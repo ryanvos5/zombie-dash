@@ -143,7 +143,7 @@ const ZOMBIE_TYPES = {
     reach: 16, lunge: true, lungeSpeed: 2.4, scale: 3.0, coin: 250,
     ammoDrop: 0, ammoDropChance: 0, knockback: true, knockResist: 0, // immuun voor knockback
     knockPlayer: 22, healChance: 0, spawner: true, color: '#3a6a2a',
-    shootEvery: 1250, shotSpeed: 3.6, shotDmg: 28, // zuur-projectielen: hard! spring eroverheen
+    shootEvery: 1600, shotSpeed: 3.4, shotDmg: 14, // zuur-projectielen: spring eroverheen
   },
 };
 
@@ -157,7 +157,7 @@ const MAX_ZOMBIE_SPEED = 2.0;
 // EHBO-doosje geneest zo veel HP
 const HEALTH_PACK_HEAL = 28;
 // HP van de mega-zombie eindbaas
-const BOSS_HP = 1700;
+const BOSS_HP = 1000;
 
 /* ---------- THEMA'S (omgeving per wereldstuk) ----------
    sky: [boven, midden, onder]  far/near: gebouwkleuren  ground/groundTop: straat

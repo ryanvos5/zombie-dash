@@ -136,6 +136,15 @@ class Player {
     const dmg = w.damage * this.meleeMul * (this.hasBuff('rage', game.time) ? 2 : 1);
     for (const z of game.zombies) {
       if (!z.alive) continue;
+      if (z.type.id === 'boss') {
+        // baas: alleen op de kop raken -> spring ernaast en sla het hoofd
+        const atkY = this.y - 16;
+        if (Math.abs(z.x - this.x) < reach + z.weakHalfW &&
+            atkY >= z.y + z.weakTop && atkY <= z.y + z.weakBot) {
+          z.takeDamage(dmg, this.dir, game, 0);
+        }
+        continue;
+      }
       const dx = (z.x - this.x) * this.dir;
       if (dx > -6 && dx < reach && Math.abs(z.y - this.y) < 30) {
         z.takeDamage(dmg, this.dir, game, 9); // melee slaat zombies hard naar achter
@@ -213,6 +222,15 @@ class Zombie {
     this.reach = t.reach * t.scale;
     if (t.low) { this.cyOff = 9 * t.scale; this.halfH = 11 * t.scale; this.halfW = 10 * t.scale; }
     else { this.cyOff = 16 * t.scale; this.halfH = 17 * t.scale; this.halfW = 7 * t.scale; }
+
+    // zwakke plek (alleen de baas): je kunt 'm enkel op het HOOFD raken
+    if (t.id === 'boss') { this.weakTop = -98; this.weakBot = -44; this.weakHalfW = 16; }
+  }
+
+  // is een treffer op positie (px,py) een kop-treffer? (alleen voor de baas)
+  isHeadHit(px, py) {
+    return Math.abs(px - this.x) < this.weakHalfW + 2 &&
+           py >= this.y + this.weakTop && py <= this.y + this.weakBot;
   }
 
   // baas roept kleine zombies op (max enkele tegelijk) — ook van achter de speler
@@ -376,6 +394,22 @@ class Bullet {
 
     for (const z of game.zombies) {
       if (!z.alive) continue;
+      if (z.type.id === 'boss') {
+        // alleen de KOP doet schade; de body (lager) is gepantserd; ernaast = mis
+        if (z.isHeadHit(this.x, this.y)) {
+          z.takeDamage(this.damage, Math.sign(this.vx), game, 0);
+          game.spawnBlood(this.x, this.y);
+          this.alive = false;
+          return;
+        }
+        const bodyTop = z.y + z.weakBot, bodyBot = z.y + 4; // body zit ónder de kop
+        if (Math.abs(z.x - this.x) < z.halfW + 2 && this.y >= bodyTop && this.y <= bodyBot) {
+          game.spawnArmorSpark(this.x, this.y); // ketst af op het pantser
+          this.alive = false;
+          return;
+        }
+        continue; // op kophoogte ernaast: vliegt door tot de kop-kolom
+      }
       if (Math.abs(z.x - this.x) < z.halfW + 2 && Math.abs(z.cy - this.y) < z.halfH) {
         z.takeDamage(this.damage, Math.sign(this.vx), game, 4); // kogels duwen licht
         this.alive = false;

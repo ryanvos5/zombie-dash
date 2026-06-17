@@ -520,6 +520,25 @@ const Sprites = {
     this.px(ctx, '#6abe30', x + 4, y - o, 2, 2);
   },
 
+  /* ---------- ZWAKKE PLEK (baas-hoofd) ---------- */
+  drawWeakpoint(ctx, cx, cy, halfW, time) {
+    const pulse = (Math.sin(time / 220) + 1) / 2;
+    const col = pulse > 0.5 ? '#ff4a3a' : '#ffd24a';
+    const w = halfW + 5, h = 17, L = 4;
+    ctx.globalAlpha = 0.55 + pulse * 0.45;
+    // hoek-haakjes rond de kop (richtkruis)
+    this.px(ctx, col, cx - w, cy - h, L, 1); this.px(ctx, col, cx - w, cy - h, 1, L);
+    this.px(ctx, col, cx + w - L, cy - h, L, 1); this.px(ctx, col, cx + w - 1, cy - h, 1, L);
+    this.px(ctx, col, cx - w, cy + h - 1, L, 1); this.px(ctx, col, cx - w, cy + h - L, 1, L);
+    this.px(ctx, col, cx + w - L, cy + h - 1, L, 1); this.px(ctx, col, cx + w - 1, cy + h - L, 1, L);
+    // bobbende pijl erboven
+    const oy = Math.round(Math.sin(time / 220) * 2);
+    this.px(ctx, col, cx - 3, cy - h - 8 + oy, 6, 2);
+    this.px(ctx, col, cx - 2, cy - h - 6 + oy, 4, 2);
+    this.px(ctx, col, cx - 1, cy - h - 4 + oy, 2, 2);
+    ctx.globalAlpha = 1;
+  },
+
   /* ---------- KOGEL ---------- */
   drawBullet(ctx, x, y) {
     this.px(ctx, '#ffd24a', x, y, 4, 2);

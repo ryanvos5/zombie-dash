@@ -171,6 +171,11 @@ const Game = {
     for (let i = 0; i < 6; i++)
       this.particles.push(new Particle(x, y, (Math.random() - 0.5) * 3, -Math.random() * 2, '#8a2222', 350, 2));
   },
+  // kogel ketst af op het baas-pantser (geen schade)
+  spawnArmorSpark(x, y) {
+    for (let i = 0; i < 5; i++)
+      this.particles.push(new Particle(x, y, (Math.random() - 0.7) * 3, (Math.random() - 0.5) * 2.5, Math.random() < 0.5 ? '#cfd6df' : '#9aa3ad', 220, 2));
+  },
   spawnMeleeSwing(player) {
     const x = player.x + player.dir * 18, y = player.y - 16;
     for (let i = 0; i < 4; i++)
@@ -548,6 +553,10 @@ const Game = {
       if (z.hitFlash > 0) ctx.globalAlpha = alpha * 0.55;
       Sprites.drawZombie(ctx, z.x, z.y, z.dir, z);
       ctx.globalAlpha = 1;
+      // zwakke-plek-indicator op de kop van de baas
+      if (z.type.id === 'boss' && z.alive && z.emerging <= 0) {
+        Sprites.drawWeakpoint(ctx, z.x, z.y + (z.weakTop + z.weakBot) / 2, z.weakHalfW, this.time);
+      }
       // hp-balkje boven de kop (niet voor de baas — die heeft de grote balk)
       if (z.hp < z.maxHp && z.emerging <= 0 && z.type.id !== 'boss') {
         const bw = 16 * z.scale;
@@ -605,6 +614,8 @@ const Game = {
       ctx.fillStyle = '#d94343'; ctx.fillRect(bx, by, bw * Math.max(0, this.boss.hp / this.boss.maxHp), 5);
       ctx.fillStyle = '#ff8a8a'; ctx.font = 'bold 8px "Courier New", monospace';
       ctx.textAlign = 'center'; ctx.fillText('☠ MEGA ZOMBIE ☠', W / 2, by - 4);
+      ctx.fillStyle = '#ffd24a'; ctx.font = '7px "Courier New", monospace';
+      ctx.fillText('▼ raak alleen het HOOFD — spring!', W / 2, by + 15);
       ctx.textAlign = 'left';
     }
 
