@@ -350,10 +350,14 @@ class Zombie {
         const d = Math.hypot(dxp, dyp) || 1;
         this.x += (dxp / d) * this.speed * s;
         this.y += (dyp / d) * this.speed * 0.65 * s + Math.sin(game.time / 180 + this.tint) * 0.4;
-        // aanraking met een vogel = direct dood
+        // aanraking met een vogel: direct dood in de bergniveaus, maar gewone schade in de boss fight
         if (Math.abs(player.x - this.x) < this.reach && Math.abs((player.y - 16) - this.y) < 18) {
-          game.spawnBlood(player.x, player.y - 16);
-          player.takeDamage(9999);
+          if (game.level.isBoss) {
+            if (game.time - this.lastBite > t.biteCd) { this.lastBite = game.time; player.takeDamage(t.dmg); }
+          } else {
+            game.spawnBlood(player.x, player.y - 16);
+            player.takeDamage(9999);
+          }
         }
       }
       this.walkTimer += dt;
