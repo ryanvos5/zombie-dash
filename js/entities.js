@@ -360,6 +360,18 @@ class Zombie {
       this.onGround = false;
       this.dir = player.x < this.x ? -1 : 1;
       if (t.boss) {
+        this._frameT = game.time;   // voor de pulserende schild-bubbel in de tekening
+        // af en toe een onkwetsbaar schild om de ballon (een paar seconden)
+        if (this._shieldNext == null) this._shieldNext = game.time + 4500;
+        if (this.shielded) {
+          if (game.time >= this.shieldUntil) {
+            this.shielded = false;
+            this._shieldNext = game.time + 5000 + Math.random() * 3000; // 5-8s pauze
+          }
+        } else if (game.time >= this._shieldNext) {
+          this.shielded = true;
+          this.shieldUntil = game.time + 3000;                          // 3s beschermd
+        }
         // ballon: zweef hoog, drift langzaam zodat hij ~boven de speler blijft + bobt
         const targetY = 80 + Math.sin(game.time / 800) * 10;
         this.y += Math.max(-0.6 * s, Math.min(0.6 * s, targetY - this.y));
@@ -466,6 +478,11 @@ class Zombie {
 
   takeDamage(n, knockDir, game, knockAmount) {
     if (!this.alive) return;
+    if (this.shielded) {                       // ballon-baas: schild absorbeert alles
+      this.hitFlash = 60;
+      if (game && game.spawnArmorSpark) game.spawnArmorSpark(this.x, this.y - 16);
+      return;
+    }
     this.hp -= n;
     this.hitFlash = 100;
     const resist = this.type.knockResist != null ? this.type.knockResist : 1;

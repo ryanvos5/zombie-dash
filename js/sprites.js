@@ -181,6 +181,20 @@ const Sprites = {
     this.px(ctx, '#3a5a22', cx - 4, cy - 10, 8, 2);         // haar
     this.px(ctx, '#ff3030', cx + (dir > 0 ? 1 : -2), cy - 6, 2, 2); // rood oog
     this.px(ctx, '#5a8a3a', cx + (dir > 0 ? 5 : -9), cy - 1, 4, 3); // gestrekte arm
+
+    // onkwetsbaar schild-bubbel (alleen tijdens de schild-fase)
+    if (z && z.shielded) {
+      ctx.save();
+      const pulse = 0.55 + 0.25 * Math.sin((z._frameT || 0) / 90);
+      ctx.globalAlpha = pulse;
+      ctx.strokeStyle = '#8fd0ff';
+      ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.ellipse(cx, cy - 6, 26, 34, 0, 0, Math.PI * 2); ctx.stroke();
+      ctx.globalAlpha = pulse * 0.25;
+      ctx.fillStyle = '#bfe6ff';
+      ctx.fill();
+      ctx.restore();
+    }
   },
 
   // zwevend parkour-platform (rotsrichel)
