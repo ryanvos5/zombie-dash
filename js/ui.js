@@ -15,6 +15,8 @@ const UI = {
       levelName: $('level-name'), healthFill: $('health-fill'),
       coinCount: $('coin-count'), weaponName: $('weapon-name'),
       ammoCount: $('ammo-count'), ammoNum: $('ammo-num'),
+      banner: $('game-banner'), bannerMain: $('banner-main'), bannerSub: $('banner-sub'),
+      bossHpWrap: $('boss-hp-wrap'), bossHpFill: $('boss-hp-fill'), tutorialBox: $('tutorial-box'),
       menuCoins: $('menu-coin-count'), shopCoins: $('shop-coin-count'),
       charCoins: $('char-coin-count'),
       levelGrid: $('level-grid'), shopGrid: $('shop-grid'), charGrid: $('character-grid'),
@@ -125,6 +127,7 @@ const UI = {
     this.el.hud.classList.toggle('hidden', !inGame);
     this.el.pause.classList.toggle('hidden', !inGame);
     this.el.touch.classList.toggle('hidden', !inGame || !Input.isTouch());
+    if (!inGame) { this.el.tutorialBox.classList.add('hidden'); this.el.banner.classList.add('hidden'); }
 
     // muntentellers bijwerken
     this.el.menuCoins.textContent = Storage.data.coins;
@@ -332,6 +335,53 @@ const UI = {
     } else {
       this.el.ammoCount.classList.add('hidden');
     }
+    this.updateBanner(game);
+    this.updateTutorial(game);
+  },
+
+  // scherpe status-tekst (objectief / timers / boss) in de DOM
+  updateBanner(game) {
+    let main = '', sub = '', cls = '', bossFrac = -1;
+    const lv = game.level;
+    if (game.boss && game.boss.alive) {
+      main = lv.balloonBoss ? '🎈 BALLON ZOMBIE' : '☠ MEGA ZOMBIE';
+      sub = lv.balloonBoss ? 'spring & schiet de ballon neer!' : 'raak alleen het HOOFD — spring!';
+      cls = 'danger';
+      bossFrac = Math.max(0, game.boss.hp / game.boss.maxHp);
+    } else if (lv.arena) {
+      main = 'RONDE ' + game.round; cls = 'good';
+      if (game.roundBreak > 0) sub = 'RONDE VOLTOOID! +' + game.roundCfg.bonus + ' ●';
+      else sub = 'nog ' + Math.max(0, game.roundTarget - game.roundKills) + ' zombies   •   record: ronde ' + Storage.data.arenaBest;
+    } else if (lv.mode === 'horde') {
+      const sec = Math.ceil(game.hordeLeft / 1000);
+      main = 'OVERLEEF: ' + sec + 's'; cls = sec <= 5 ? 'danger' : '';
+    } else {
+      const parts = [];
+      if (lv.killAll) {
+        const rem = game.zombiesRemaining();
+        main = rem > 0 ? ('ZOMBIES OVER: ' + rem) : '→ NAAR DE FINISH!';
+        cls = rem > 0 ? 'danger' : 'good';
+      }
+      if (lv.midTime && !game.midReached) parts.push('⚑ checkpoint: ' + Math.ceil(game.midLeft / 1000) + 's');
+      if (lv.mode === 'melee') parts.push('⚠ alleen melee');
+      sub = parts.join('   •   ');
+    }
+    if (main || sub) {
+      this.el.banner.classList.remove('hidden');
+      this.el.bannerMain.textContent = main;
+      this.el.bannerMain.className = cls;
+      this.el.bannerSub.textContent = sub;
+      this.el.bossHpWrap.classList.toggle('hidden', bossFrac < 0);
+      if (bossFrac >= 0) this.el.bossHpFill.style.width = (bossFrac * 100) + '%';
+    } else {
+      this.el.banner.classList.add('hidden');
+    }
+  },
+
+  updateTutorial(game) {
+    const show = game.tutorialMsg && game.time < game.tutorialUntil;
+    this.el.tutorialBox.classList.toggle('hidden', !show);
+    if (show) this.el.tutorialBox.textContent = game.tutorialMsg;
   },
 
   showWin(stats) {

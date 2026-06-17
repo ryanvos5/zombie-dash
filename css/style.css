@@ -66,7 +66,62 @@ html, body {
   padding: 14px;
 }
 
-.hud-top { display: flex; justify-content: center; }
+.hud-top { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+
+/* ====== Status-banner (scherpe tekst i.p.v. op canvas) ====== */
+#game-banner {
+  text-align: center;
+  pointer-events: none;
+  width: min(680px, 94%);
+}
+#banner-main {
+  font-weight: bold;
+  font-size: 17px;
+  letter-spacing: 1px;
+  color: var(--gold);
+  text-shadow: 1px 1px 0 #000, 0 0 6px rgba(0,0,0,0.6);
+}
+#banner-main.danger { color: #ff7a5a; }
+#banner-main.good { color: var(--accent); }
+#banner-sub {
+  font-size: 12px;
+  letter-spacing: 1px;
+  color: #cfe0ee;
+  text-shadow: 1px 1px 0 #000;
+  margin-top: 2px;
+}
+#boss-hp-wrap {
+  margin: 4px auto 0;
+  width: min(420px, 80%);
+  height: 12px;
+  background: #2a0d0d;
+  border: 2px solid #000;
+  border-radius: 4px;
+  overflow: hidden;
+}
+#boss-hp-fill { height: 100%; width: 100%; background: linear-gradient(90deg, #b32e2e, #ff5a5a); transition: width 0.12s; }
+
+/* ====== Tutorial-popup ====== */
+#tutorial-box {
+  position: absolute;
+  top: 30%;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 25;
+  pointer-events: none;
+  background: rgba(8,10,14,0.9);
+  border: 2px solid var(--accent);
+  border-radius: 10px;
+  padding: 12px 18px;
+  max-width: min(420px, 86%);
+  text-align: center;
+  font-size: 16px;
+  font-weight: bold;
+  line-height: 1.4;
+  color: var(--text);
+  text-shadow: 1px 1px 0 #000;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+}
 
 .progress-wrap { width: min(680px, 92%); }
 

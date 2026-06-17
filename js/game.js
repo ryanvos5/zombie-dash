@@ -63,6 +63,7 @@ const Game = {
     this.buildBackdrop(level);
     this.buildObstacles(level);
     this.buildPlatforms(level);
+    this.buildTutorials();
 
     // parkour: zet de speler op het startplatform
     if (level.parkour && this.platforms.length) {
@@ -108,6 +109,7 @@ const Game = {
     this.ammo = ARENA_START_AMMO;
     this.time = 0;
     this.theme = THEMES.arena;
+    this.tutorials = []; this.tutorialMsg = ''; this.tutorialUntil = 0;
     this.buildBackdrop(ARENA_LEVEL);
     this.beginRound(1);
     this.state = 'playing';
@@ -232,6 +234,16 @@ const Game = {
   buildObstacles(level) {
     this.obstacles = [];
     if (level.parkour) return;   // geen obstakels in de bergen (alleen platforms)
+    // tutorial-level: vaste, goed gespreide layout (auto -> hek -> vat)
+    if (this.worldId === 1 && level.id === 1) {
+      this.obstacles = [
+        { type: 'car', x: 360, w: 30, h: 22, color: '#7a3030' },
+        { type: 'lowbar', x: 640, w: 22, h: 12 },
+        { type: 'barrel', x: 920, w: 12, hp: 1, dead: false },
+        { type: 'car', x: 1180, w: 30, h: 22, color: '#30507a' },
+      ];
+      return;
+    }
     let seed = level.id * 4099 + 31;
     const rnd = () => { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; };
     const density = level.obstacleDensity || 0.6;
@@ -287,6 +299,25 @@ const Game = {
     if (snow) {
       ctx.fillStyle = '#e8eef4';
       ctx.beginPath(); ctx.moveTo(cx, topY); ctx.lineTo(cx - w * 0.13, topY + h * 0.2); ctx.lineTo(cx + w * 0.13, topY + h * 0.2); ctx.closePath(); ctx.fill();
+    }
+  },
+
+  // tutorial-triggers voor het allereerste level van elke wereld
+  buildTutorials() {
+    this.tutorials = [];
+    this.tutorialMsg = '';
+    this.tutorialUntil = 0;
+    if (this.worldId === 1 && this.level.id === 1) {
+      this.tutorials.push({ x: 90, text: 'Versla ALLE zombies! Sla met de melee-knop 🏏 of schiet 🔫', shown: false });
+      const car = this.obstacles.find((o) => o.type === 'car');
+      if (car) this.tutorials.push({ x: car.x - 90, text: 'Een auto! Spring eroverheen ⤒ (je kunt op het dak staan)', shown: false });
+      const bar = this.obstacles.find((o) => o.type === 'lowbar');
+      if (bar) this.tutorials.push({ x: bar.x - 90, text: 'Een hek! Bukken ⤓ om eronderdoor te gaan', shown: false });
+      const barrel = this.obstacles.find((o) => o.type === 'barrel');
+      if (barrel) this.tutorials.push({ x: barrel.x - 80, text: 'Explosief vat! Schiet of sla het kapot 💥', shown: false });
+    } else if (this.worldId === 2 && this.level.id === 1) {
+      this.tutorials.push({ x: 70, text: 'DUBBEL-JUMP! Druk 2× op springen in de lucht ⤒⤒', shown: false });
+      this.tutorials.push({ x: 240, text: 'Houd springen vast = hoger/verder. Val niet in het ravijn!', shown: false });
     }
   },
 
@@ -465,6 +496,13 @@ const Game = {
     this.dtScale = Math.min(3, dt / 16.6667);
 
     this.player.update(dt, this);
+
+    // tutorial-popups (eerste levels): toon tekst als je een trigger-punt bereikt
+    if (this.tutorials) {
+      for (const tut of this.tutorials) {
+        if (!tut.shown && this.player.x >= tut.x) { tut.shown = true; this.tutorialMsg = tut.text; this.tutorialUntil = this.time + 5000; }
+      }
+    }
 
     // spawnen "wapenen" zodra de speler begint te lopen (rustige start, ook op boss-level)
     if (!this.spawnArmed && (this.player.x > 76 || Input.state.left || Input.state.right)) this.spawnArmed = true;
@@ -875,81 +913,7 @@ const Game = {
     ctx.restore();   // wereld (camera)
     ctx.restore();   // schermschud
 
-    // BOSS-HP-balk bovenin (scherm-ruimte)
-    if (this.level.isBoss && this.boss && this.boss.alive) {
-      const bw = W * 0.66, bx = (W - bw) / 2, by = 30;
-      ctx.fillStyle = '#000'; ctx.fillRect(bx - 2, by - 2, bw + 4, 9);
-      ctx.fillStyle = '#3a0d0d'; ctx.fillRect(bx, by, bw, 5);
-      ctx.fillStyle = '#d94343'; ctx.fillRect(bx, by, bw * Math.max(0, this.boss.hp / this.boss.maxHp), 5);
-      ctx.fillStyle = '#ff8a8a'; ctx.font = 'bold 8px "Courier New", monospace';
-      ctx.textAlign = 'center';
-      ctx.fillText(this.level.balloonBoss ? '🎈 BALLON ZOMBIE 🎈' : '☠ MEGA ZOMBIE ☠', W / 2, by - 4);
-      ctx.fillStyle = '#ffd24a'; ctx.font = '7px "Courier New", monospace';
-      ctx.fillText(this.level.balloonBoss ? 'spring en schiet de ballon neer!' : '▼ raak alleen het HOOFD — spring!', W / 2, by + 15);
-      ctx.textAlign = 'left';
-    }
-
-    // arena-HUD: ronde + voortgang + record
-    if (this.level.arena) {
-      ctx.textAlign = 'center';
-      ctx.font = 'bold 12px "Courier New", monospace';
-      ctx.fillStyle = '#000'; ctx.fillText('RONDE ' + this.round, W / 2 + 1, 31);
-      ctx.fillStyle = '#ffd24a'; ctx.fillText('RONDE ' + this.round, W / 2, 30);
-      ctx.font = 'bold 9px "Courier New", monospace';
-      if (this.roundBreak > 0) {
-        ctx.fillStyle = '#6abe30'; ctx.fillText('RONDE VOLTOOID! +' + this.roundCfg.bonus + ' ●', W / 2, 44);
-      } else {
-        const left = Math.max(0, this.roundTarget - this.roundKills);
-        ctx.fillStyle = '#ff8a6a'; ctx.fillText('nog ' + left + ' zombies', W / 2, 44);
-      }
-      ctx.font = '8px "Courier New", monospace'; ctx.fillStyle = '#8b97aa';
-      ctx.fillText('record: ronde ' + Storage.data.arenaBest, W / 2, 56);
-      ctx.textAlign = 'left';
-      // muntenteller staat al in de HUD (runCoins)
-    }
-
-    // zombies-over teller (kill-all)
-    if (this.level.killAll) {
-      const rem = this.zombiesRemaining();
-      ctx.font = 'bold 11px "Courier New", monospace';
-      ctx.textAlign = 'center';
-      const txt = rem > 0 ? ('ZOMBIES OVER: ' + rem) : '→ NAAR DE FINISH!';
-      ctx.fillStyle = '#000'; ctx.fillText(txt, W / 2 + 1, 49);
-      ctx.fillStyle = rem > 0 ? '#ff7a5a' : '#6abe30';
-      ctx.fillText(txt, W / 2, 48);
-      ctx.textAlign = 'left';
-    }
-
-    // checkpoint-timer (tot je de halverwege-vlag haalt)
-    if (this.level.midTime && !this.midReached) {
-      const sec = Math.ceil(this.midLeft / 1000);
-      ctx.font = 'bold 10px "Courier New", monospace';
-      ctx.textAlign = 'center';
-      const t2 = '⚑ CHECKPOINT: ' + sec + 's';
-      ctx.fillStyle = '#000'; ctx.fillText(t2, W / 2 + 1, 63);
-      ctx.fillStyle = sec <= 4 ? '#ff5a5a' : '#3ad0ff';
-      ctx.fillText(t2, W / 2, 62);
-      ctx.textAlign = 'left';
-    }
-
-    // horde-timer
-    if (this.level.mode === 'horde') {
-      const sec = Math.ceil(this.hordeLeft / 1000);
-      ctx.font = 'bold 11px "Courier New", monospace';
-      ctx.textAlign = 'center';
-      ctx.fillStyle = '#000'; ctx.fillText('OVERLEEF  ' + sec + 's', W / 2 + 1, 49);
-      ctx.fillStyle = sec <= 5 ? '#ff5a5a' : '#f2c94c';
-      ctx.fillText('OVERLEEF  ' + sec + 's', W / 2, 48);
-      ctx.textAlign = 'left';
-    }
-
-    // melee-only hint
-    if (this.level.mode === 'melee') {
-      ctx.font = 'bold 8px "Courier New", monospace';
-      ctx.textAlign = 'center';
-      ctx.fillStyle = '#ff8a8a'; ctx.fillText('⚠ WAPENS GEBLOKKEERD — ALLEEN MELEE', W / 2, 76);
-      ctx.textAlign = 'left';
-    }
+    // (objectief/timers/boss-naam staan nu als scherpe DOM-tekst, zie #game-banner)
 
     // actieve power-ups (icoontjes met aflopende balk), midden-onder
     const active = [];
