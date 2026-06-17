@@ -215,10 +215,12 @@ body.fs #fs-btn { color: var(--accent); border-color: var(--accent); }
   padding: 16px;
   padding-left: calc(18px + env(safe-area-inset-left));
   padding-right: calc(18px + env(safe-area-inset-right));
-  /* boven de health-/wapenbalk getild zodat de pijltjes die niet overlappen */
-  padding-bottom: calc(72px + env(safe-area-inset-bottom));
+  /* laag in de hoeken (HUD staat op touch bovenin, dus onderkant is vrij) */
+  padding-bottom: calc(22px + env(safe-area-inset-bottom));
   z-index: 20;
 }
+/* op touch: health/munten/wapen bovenin (onder de voortgangsbalk) i.p.v. onderaan */
+body.is-touch #hud { justify-content: flex-start; gap: 8px; }
 .touch-left, .touch-right { display: flex; gap: 16px; pointer-events: auto; align-items: flex-end; }
 .tbtn {
   width: 74px;
@@ -256,7 +258,7 @@ body.fs #fs-btn { color: var(--accent); border-color: var(--accent); }
 }
 /* iets kleiner op echt lage schermen zodat alles past */
 @media (max-height: 380px) {
-  #touch-controls { padding-bottom: calc(60px + env(safe-area-inset-bottom)); }
+  #touch-controls { padding-bottom: calc(16px + env(safe-area-inset-bottom)); }
   .tbtn { width: 62px; height: 62px; font-size: 26px; }
   .touch-left .tbtn { width: 76px; height: 76px; font-size: 34px; }
   .tbtn-melee { width: 70px; height: 70px; }

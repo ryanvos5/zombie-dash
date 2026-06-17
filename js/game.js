@@ -341,7 +341,9 @@ const Game = {
     if (this.level.mode === 'boss') return;         // de baas regelt zijn eigen adds
     if (!this.spawnArmed) { this.spawnTimer = 0; return; }
 
-    // zombies blijven het HELE level door komen (tot je de finish haalt),
+    // kill-all-levels: spawn een vast totaal (zombieCount), daarna niets meer
+    if (this.level.killAll && this.spawned >= this.level.zombieCount) return;
+
     // begrensd door hoeveel er tegelijk levend mogen zijn
     const aliveCount = this.zombies.reduce((n, z) => n + (z.alive ? 1 : 0), 0);
     if (aliveCount >= (this.level.maxAlive || 12)) { return; }
@@ -436,7 +438,8 @@ const Game = {
     if (this.shake > 0) this.shake = Math.max(0, this.shake - dt * 0.04);
 
     // opruimen (de baas wordt nooit weggecullt)
-    this.zombies = this.zombies.filter((z) => z.alive && (z === this.boss || z.x > this.cam.x - 60));
+    // in kill-all blijven levende zombies bestaan (ze achtervolgen je), anders cull links buiten beeld
+    this.zombies = this.zombies.filter((z) => z.alive && (z === this.boss || this.level.killAll || z.x > this.cam.x - 60));
     this.bullets = this.bullets.filter((b) => b.alive);
     this.particles = this.particles.filter((p) => p.life > 0);
     this.coinFx = this.coinFx.filter((c) => c.life > 0);
@@ -470,7 +473,8 @@ const Game = {
     } else if (this.level.mode === 'horde') {
       if (this.hordeLeft <= 0 && this.spawnArmed) this.win(); // horde overleefd
     } else if (this.player.x >= this.level.length) {
-      this.win();                                          // finish gehaald
+      // kill-all: pas finishen als alle zombies dood zijn
+      if (!this.level.killAll || this.zombiesRemaining() <= 0) this.win();
     }
 
     UI.updateHUD(this);
@@ -492,6 +496,9 @@ const Game = {
     // (voorraad blijft zoals aan het begin van dit level)
     UI.showLose({ kills: this.runKills, coins: this.runCoins });
   },
+
+  // aantal nog te doden zombies (kill-all-levels)
+  zombiesRemaining() { return Math.max(0, this.level.zombieCount - this.runKills); },
 
   // ---------- render ----------
   render() {
@@ -750,6 +757,18 @@ const Game = {
       ctx.textAlign = 'left';
     }
 
+    // zombies-over teller (kill-all)
+    if (this.level.killAll) {
+      const rem = this.zombiesRemaining();
+      ctx.font = 'bold 11px "Courier New", monospace';
+      ctx.textAlign = 'center';
+      const txt = rem > 0 ? ('ZOMBIES OVER: ' + rem) : '→ NAAR DE FINISH!';
+      ctx.fillStyle = '#000'; ctx.fillText(txt, W / 2 + 1, 49);
+      ctx.fillStyle = rem > 0 ? '#ff7a5a' : '#6abe30';
+      ctx.fillText(txt, W / 2, 48);
+      ctx.textAlign = 'left';
+    }
+
     // horde-timer
     if (this.level.mode === 'horde') {
       const sec = Math.ceil(this.hordeLeft / 1000);
@@ -765,7 +784,7 @@ const Game = {
     if (this.level.mode === 'melee') {
       ctx.font = 'bold 8px "Courier New", monospace';
       ctx.textAlign = 'center';
-      ctx.fillStyle = '#ff8a8a'; ctx.fillText('⚠ WAPENS GEBLOKKEERD — ALLEEN MELEE', W / 2, 48);
+      ctx.fillStyle = '#ff8a8a'; ctx.fillText('⚠ WAPENS GEBLOKKEERD — ALLEEN MELEE', W / 2, 60);
       ctx.textAlign = 'left';
     }
 

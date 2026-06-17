@@ -238,6 +238,7 @@ function buildWorld1() {
     else if (id === 7) mode = 'melee';   // wapens geblokkeerd, alleen melee
     const lvl = {
       id, name: 'Level ' + id, theme: themeFor(id), mode,
+      killAll: (mode === 'reach' || mode === 'melee'), // eerst alle zombies doden, dan de finish
       hordeTime: 32000,                                  // alleen voor horde-modus
       length: Math.round(1400 + i * 230),               // 1400 -> 3240
       zombieCount: Math.round(6 + i * 2),               // 6 -> 22
@@ -250,7 +251,7 @@ function buildWorld1() {
       doorChance: 0.40,
       obstacleDensity: 0.5 + t * 0.6,                   // hoe vol met obstakels (0.5 -> 1.1)
       healMult: 1,
-      maxAlive: Math.round(7 + i * 1.1),                // max zombies tegelijk levend (7 -> 16)
+      maxAlive: Math.round(4 + i * 0.7),                // max zombies tegelijk levend (4 -> 10) — waves, niet overspoeld
       reward: 30 + i * 12,
     };
     // melee-only levels apart en eerlijker afstemmen (geen vuurwapen-vangnet)
