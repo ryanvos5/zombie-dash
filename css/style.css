@@ -213,20 +213,21 @@ body.fs #fs-btn { color: var(--accent); border-color: var(--accent); }
   justify-content: space-between;
   align-items: flex-end;
   padding: 16px;
-  padding-left: calc(16px + env(safe-area-inset-left));
-  padding-right: calc(16px + env(safe-area-inset-right));
-  padding-bottom: calc(16px + env(safe-area-inset-bottom));
+  padding-left: calc(18px + env(safe-area-inset-left));
+  padding-right: calc(18px + env(safe-area-inset-right));
+  /* boven de health-/wapenbalk getild zodat de pijltjes die niet overlappen */
+  padding-bottom: calc(72px + env(safe-area-inset-bottom));
   z-index: 20;
 }
-.touch-left, .touch-right { display: flex; gap: 14px; pointer-events: auto; align-items: flex-end; }
+.touch-left, .touch-right { display: flex; gap: 16px; pointer-events: auto; align-items: flex-end; }
 .tbtn {
-  width: 62px;
-  height: 62px;
-  background: rgba(37,44,59,0.78);
-  border: 2px solid #4a5670;
+  width: 74px;
+  height: 74px;
+  background: rgba(37,44,59,0.8);
+  border: 3px solid #4a5670;
   border-radius: 50%;
   color: var(--text);
-  font-size: 26px;
+  font-size: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -237,19 +238,25 @@ body.fs #fs-btn { color: var(--accent); border-color: var(--accent); }
 }
 .tbtn:active { background: rgba(106,190,48,0.6); transform: scale(0.94); }
 .tbtn-fire {
-  width: 80px;
-  height: 80px;
-  background: rgba(217,67,67,0.72);
+  width: 96px;
+  height: 96px;
+  font-size: 40px;
+  background: rgba(217,67,67,0.75);
   border-color: #e85d5d;
 }
 .tbtn-melee {
-  background: rgba(122,82,48,0.75);
+  width: 84px;
+  height: 84px;
+  font-size: 36px;
+  background: rgba(122,82,48,0.78);
   border-color: #9a6a3a;
 }
-/* grotere raakvlakken op kleine schermen */
-@media (max-height: 420px) {
-  .tbtn { width: 56px; height: 56px; font-size: 22px; }
-  .tbtn-fire { width: 70px; height: 70px; }
+/* iets kleiner op echt lage schermen zodat alles past */
+@media (max-height: 380px) {
+  #touch-controls { padding-bottom: calc(64px + env(safe-area-inset-bottom)); }
+  .tbtn { width: 64px; height: 64px; font-size: 28px; }
+  .tbtn-melee { width: 72px; height: 72px; }
+  .tbtn-fire { width: 82px; height: 82px; font-size: 34px; }
 }
 
 /* ====== Schermen (menu/shop/etc.) ====== */
