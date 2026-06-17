@@ -31,21 +31,31 @@ const Input = {
       if (action) this.state[action] = false;
     });
 
-    // ---- touch knoppen ----
+    // ---- touch/pointer knoppen ----
+    // Pointer Events + pointer-capture = direct reagerend, en de knop blijft
+    // ingedrukt ook als je duim een beetje verschuift (geen "release" bij drift).
     document.querySelectorAll('.tbtn').forEach((btn) => {
       const key = btn.dataset.key;
       const press = (e) => {
         e.preventDefault();
+        try { btn.setPointerCapture(e.pointerId); } catch (_) {}
         if (key === 'jump' && !this.state.jump) this.jumpPressed = true;
         this.state[key] = true;
       };
       const release = (e) => { e.preventDefault(); this.state[key] = false; };
-      btn.addEventListener('touchstart', press, { passive: false });
-      btn.addEventListener('touchend', release, { passive: false });
-      btn.addEventListener('touchcancel', release, { passive: false });
-      btn.addEventListener('mousedown', press);
-      btn.addEventListener('mouseup', release);
-      btn.addEventListener('mouseleave', release);
+      if (window.PointerEvent) {
+        btn.addEventListener('pointerdown', press);
+        btn.addEventListener('pointerup', release);
+        btn.addEventListener('pointercancel', release);
+      } else {
+        // fallback voor heel oude browsers
+        btn.addEventListener('touchstart', press, { passive: false });
+        btn.addEventListener('touchend', release, { passive: false });
+        btn.addEventListener('touchcancel', release, { passive: false });
+        btn.addEventListener('mousedown', press);
+        btn.addEventListener('mouseup', release);
+      }
+      btn.addEventListener('contextmenu', (e) => e.preventDefault());
     });
   },
 

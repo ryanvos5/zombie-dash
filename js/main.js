@@ -19,12 +19,6 @@ window.addEventListener('DOMContentLoaded', () => {
   window.addEventListener('orientationchange', () => setTimeout(updateOrientation, 250));
   if (window.visualViewport) window.visualViewport.addEventListener('resize', updateOrientation);
 
-  // dubbel-tik-zoom op iOS blokkeren
+  // pinch-zoom blokkeren (dubbeltik-zoom wordt al door touch-action:none voorkomen)
   document.addEventListener('gesturestart', (e) => e.preventDefault());
-  let lastTouch = 0;
-  document.addEventListener('touchend', (e) => {
-    const now = Date.now();
-    if (now - lastTouch < 300) e.preventDefault();
-    lastTouch = now;
-  }, { passive: false });
 });
