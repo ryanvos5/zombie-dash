@@ -422,12 +422,17 @@ const Game = {
       Sprites.px(ctx, '#1f2738', sx, top, b.w, 3);            // dak-rand
       Sprites.px(ctx, '#00000033', sx, top, 3, b.h);          // schaduw links
       // ramen (deterministisch, geen geflikker)
-      for (let wy = top + 8; wy < CONFIG.GROUND_Y - 26; wy += 13) {
-        for (let wx = sx + 7; wx < sx + b.w - 9; wx += 13) {
-          const lit = b.lit && (((Math.round(wx) * 13 + Math.round(wy) * 7) % 100) < 22);
+      // patroon op VASTE wereldpositie (kolom/rij), niet op schermpositie -> geen geflikker
+      let col = 0;
+      for (let wx = sx + 7; wx < sx + b.w - 9; wx += 13) {
+        let row = 0;
+        for (let wy = top + 8; wy < CONFIG.GROUND_Y - 26; wy += 13) {
+          const lit = b.lit && (((Math.round(b.x) * 17 + col * 31 + row * 7) % 100) < 22);
           Sprites.px(ctx, lit ? '#f2c94c' : '#10141d', wx, wy, 6, 7);
           if (lit) Sprites.px(ctx, '#fff4c8', wx, wy, 6, 2);
+          row++;
         }
+        col++;
       }
       // deur
       if (b.hasDoor) {
