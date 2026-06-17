@@ -10,13 +10,13 @@ class Player {
     this.vy = 0;
     this.onGround = true;
     this.dir = 1;
-    this.meleeId = meleeId || 'bat';
-    this.rangedId = rangedId || null;       // null = geen vuurwapen uitgerust
-    // wapen dat standaard in de hand getoond wordt
-    this.weaponId = this.rangedId || this.meleeId;
     // character-eigenschappen
     this.charId = charId;
     const ch = CHARACTERS[charId] || CHARACTERS.ryan;
+    this.meleeId = ch.forcedMelee || meleeId || 'bat';   // Tygo: altijd het schild
+    this.rangedId = rangedId || null;       // null = geen vuurwapen uitgerust
+    // wapen dat standaard in de hand getoond wordt
+    this.weaponId = this.rangedId || this.meleeId;
     this.pal = ch.palette;
     this.build = ch.build || 'normal';
     this.hairStyle = ch.hair || 'natural';
@@ -24,7 +24,12 @@ class Player {
     this.maxHp = ch.maxHp || 100;
     this.hp = this.maxHp;
     this.speed = 2.2 * (ch.speedMul || 1);
-    this.w = this.build === 'bulky' ? 14 : 12;
+    this.w = this.build === 'bulky' ? 14 : (this.build === 'tall' ? 13 : 12);
+    // schild-blok (Tygo)
+    this.shieldBlock = !!ch.shieldBlock;
+    this.blockCdUntil = 0;
+    this._shieldUp = false;
+    this._now = 0;
     this.ducking = false;
     this.walkPhase = 0;
     this.walkTimer = 0;
@@ -70,6 +75,16 @@ class Player {
     // actieve power-ups
     this._rageActive = this.hasBuff('rage', game.time);
     this._shieldActive = this.hasBuff('shield', game.time);
+
+    // Tygo's schild: omhoog zolang je de meleeknop indrukt (en niet in cooldown na een blok)
+    this._now = game.time;
+    const meleeHeld = inp.melee || (!this.rangedId && inp.attack);
+    this._shieldUp = this.shieldBlock && meleeHeld && game.time >= this.blockCdUntil;
+    if (this._blockedHit) { // visuele feedback na een blok
+      this._blockedHit = false;
+      game.spawnArmorSpark(this.x + this.dir * 14, this.y - 16);
+      game.shake = Math.max(game.shake, 4);
+    }
 
     // snelheid (power-up + duik-loop is langzamer)
     let spd = this.speed;
@@ -203,6 +218,12 @@ class Player {
 
   takeDamage(n) {
     if (this._shieldActive) return;          // schild-power-up blokkeert schade
+    if (this._shieldUp) {                    // Tygo's schild blokt deze treffer -> 3s cooldown
+      this._shieldUp = false;
+      this.blockCdUntil = this._now + SHIELD_BLOCK_CD;
+      this._blockedHit = true;
+      return;
+    }
     this.hp = Math.max(0, this.hp - n);
   }
 }

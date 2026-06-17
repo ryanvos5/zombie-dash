@@ -56,6 +56,12 @@ const WEAPONS = {
     damage: 130, cooldown: 950, range: 999, bulletSpeed: 6, pellets: 1, cost: 15000,
     desc: 'Explosieve raketten (AoE). Heeft losse raketten nodig — schaars!'
   },
+  // intern melee-wapen van Tygo (niet in de shop)
+  shield: {
+    id: 'shield', name: 'Schild', type: 'melee',
+    damage: 34, cooldown: 360, range: 30, cost: 0,
+    desc: 'Schildbash + blok.'
+  },
 };
 
 // volgorde in de shop
@@ -83,6 +89,19 @@ const CHARACTERS = {
     },
     desc: 'Gebalanceerd. Snelste loper.'
   },
+  tygo: {
+    id: 'tygo', name: 'Tygo', cost: 700,
+    maxHp: 110, speedMul: 1.0, meleeMul: 1.0, build: 'tall', hair: 'natural',
+    forcedMelee: 'shield', shieldBlock: true,
+    palette: {
+      hair: '#a8824a', hairDark: '#7a5e30',  // blond-bruin
+      skin: '#dcb088', skinDark: '#b88f64',
+      eye: '#3a2414',                          // bruine ogen
+      shirt: '#3a5048', shirtDark: '#26352f',  // groen-grijze tuniek
+      pants: '#2a2622', shoe: '#161210',
+    },
+    desc: 'Lang & taai (+10 HP). Meleeknop = schildbash + blok (3s cooldown). Alleen het schild als melee.'
+  },
   jenze: {
     id: 'jenze', name: 'Jenze', cost: 450,
     maxHp: 140, speedMul: 0.9, meleeMul: 1.3, build: 'bulky', hair: 'curly',
@@ -96,7 +115,8 @@ const CHARACTERS = {
     desc: 'Fors & taai: +40 HP, +30% melee, iets trager.'
   },
 };
-const CHARACTER_ORDER = ['ryan', 'jenze'];
+const CHARACTER_ORDER = ['ryan', 'jenze', 'tygo'];
+const SHIELD_BLOCK_CD = 3000;   // ms cooldown nadat Tygo's schild een treffer blokt
 
 /* ---------- LEVELS (Wereld 1: Verlaten Stad) ----------
    length: lengte van het level in px (hoe ver lopen)

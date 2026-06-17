@@ -919,9 +919,10 @@ const Game = {
       airborne: !this.player.onGround,
       ducking: this.player.ducking,
       attacking: this.time < this.player.attackAnimUntil,
-      weapon: swingingBat ? this.player.swingWeapon : this.player.weaponId,
+      weapon: this.player._shieldUp ? 'shield' : (swingingBat ? this.player.swingWeapon : this.player.weaponId),
       build: this.player.build,
       hair: this.player.hairStyle,
+      shielding: this.player._shieldUp,
     });
 
     // zwevende munten

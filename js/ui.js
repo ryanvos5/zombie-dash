@@ -304,7 +304,7 @@ const UI = {
       cctx.save();
       cctx.translate(55, 4); cctx.scale(1.4, 1.4);
       Sprites.drawCharacter(cctx, 0, 38, 1, c.palette, {
-        weapon: 'bat', build: c.build, hair: c.hair,
+        weapon: c.forcedMelee || 'bat', build: c.build, hair: c.hair,
       });
       cctx.restore();
 

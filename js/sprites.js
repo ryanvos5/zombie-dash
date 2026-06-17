@@ -19,16 +19,18 @@ const Sprites = {
     const duck = pose.ducking;
     const weapon = pose.weapon;
     const bulky = pose.build === 'bulky';
+    const tall = pose.build === 'tall';
     const curly = pose.hair === 'curly';
 
-    // breedtes (fors = breder lijf)
-    const bh = bulky ? 6 : 5;   // halve romp-breedte
-    const hh = bulky ? 5 : 4;   // halve hoofd-breedte
-    const legW = bulky ? 4 : 3;
+    // breedtes (fors = breder lijf, lang = dunner lijf)
+    const bh = bulky ? 6 : (tall ? 4 : 5);   // halve romp-breedte
+    const hh = bulky ? 5 : 4;                 // halve hoofd-breedte
+    const legW = bulky ? 4 : (tall ? 2 : 3);
 
-    // hoogtematen
-    const legH = duck ? 4 : 9;
-    const torsoH = duck ? 8 : 11;
+    // hoogtematen (lang = hoger)
+    const hM = tall ? 1.32 : 1;
+    const legH = Math.round((duck ? 4 : 9) * hM);
+    const torsoH = Math.round((duck ? 8 : 11) * hM);
     const headH = duck ? 8 : 9;
 
     const legTop = footY - legH;
@@ -76,14 +78,30 @@ const Sprites = {
     this.px(ctx, pal.eye, cx + (dir > 0 ? 1 : -2), headTop + 3, 2, 2);
 
     // --- arm + wapen ---
-    this.drawArmAndWeapon(ctx, cx, torsoTop, dir, pal, weapon, pose.attacking, bh);
+    this.drawArmAndWeapon(ctx, cx, torsoTop, dir, pal, weapon, pose.attacking, bh, pose.shielding);
   },
 
-  drawArmAndWeapon(ctx, cx, torsoTop, dir, pal, weaponId, attacking, bh) {
+  drawArmAndWeapon(ctx, cx, torsoTop, dir, pal, weaponId, attacking, bh, shielding) {
     const armY = torsoTop + 3;
     const reach = attacking ? 9 : 5;
     const sh = (bh || 5) - 2;   // schouder-offset (breder bij fors lijf)
     const w = WEAPONS[weaponId] || WEAPONS.bat;
+
+    // schild (Tygo): voor het lijf in blok-stand, anders naar voren als melee
+    if (w.id === 'shield') {
+      const armX = cx + (dir > 0 ? sh : -sh - reach);
+      this.px(ctx, pal.skin, armX, armY, reach + 3, 3);   // arm
+      const sx = shielding
+        ? cx + (dir > 0 ? sh + 3 : -(sh + 3) - 4)          // voor het lijf bij blokken
+        : cx + (dir > 0 ? sh + reach + 1 : -(sh + reach + 1) - 4);
+      const sy = shielding ? armY - 6 : armY - (attacking ? 5 : 3);
+      const sH = shielding ? 16 : 13;
+      this.px(ctx, '#9aa3ad', sx, sy, 4, sH);                                // metaal
+      this.px(ctx, '#c8ced6', sx + (dir > 0 ? 0 : 2), sy + 1, 2, sH - 2);    // glans
+      this.px(ctx, '#6b7480', sx + (dir > 0 ? 3 : 0), sy, 1, sH);            // rand-schaduw
+      this.px(ctx, '#e2c558', sx + 1, sy + (sH >> 1) - 1, 2, 2);            // embleem
+      return;
+    }
 
     // arm (huidskleur)
     this.px(ctx, pal.skin, cx + (dir > 0 ? sh : -sh - reach), armY, reach + 3, 3);
