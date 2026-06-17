@@ -137,8 +137,8 @@ class Player {
         }
       }
     }
-    // gewone grond (NIET in parkour-levels — daar is een ravijn)
-    if (!game.level.parkour && this.y >= CONFIG.GROUND_Y) {
+    // gewone grond (NIET in parkour-levels — daar is een ravijn; ook niet boven een gat)
+    if (!game.level.parkour && this.y >= CONFIG.GROUND_Y && !game.overPit(this.x)) {
       this.y = CONFIG.GROUND_Y; this.vy = 0; this.onGround = true;
     }
     // bij landing de sprongen weer opladen
@@ -477,6 +477,16 @@ class Zombie {
         this.bite(game, player);
       }
       if (this.atkTimer <= 0) { this.atk = 'walk'; this.lastBite = game.time; }
+    }
+
+    // grond-zombies vallen niet in ravijn-gaten: stop netjes aan de rand
+    if (this.onGround && game.pits && game.pits.length) {
+      for (const p of game.pits) {
+        if (this.x > p.x0 - 7 && this.x < p.x1 + 7) {
+          this.x = this.dir < 0 ? p.x1 + 7 : p.x0 - 7;   // duw terug naar de rand aan hun kant
+          break;
+        }
+      }
     }
 
     // loop-animatie

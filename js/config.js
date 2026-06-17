@@ -388,6 +388,7 @@ function buildWorld3() {
       id, name: 'Jungle ' + id, theme: 'jungle', mode: 'reach',
       killAll: true,                                     // versla alle zombies, dan de finish
       platforms: true,                                   // zwevende platforms (parkour) + vaste grond
+      pits: true,                                        // ravijn-gaten: eronder vallen = dood (parkour nut)
       flyerChance: +(0.16 + t * 0.12).toFixed(2),        // af en toe vogels (0.16 -> 0.28)
       length,
       zombieCount: Math.round(16 + i * 4),               // 16 -> 48

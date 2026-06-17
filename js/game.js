@@ -294,16 +294,33 @@ const Game = {
   // zwevende parkour-platforms genereren (wereld 2). Gaten = ravijn (val = dood).
   buildPlatforms(level) {
     this.platforms = [];
-    // Wereld 3 (jungle): zwevende platforms BOVEN de vaste grond (klim-laag, geen ravijn)
+    this.pits = [];
+    // Wereld 3 (jungle): zwevende platforms BOVEN de vaste grond + af en toe een ravijn-gat
     if (!level.parkour && level.platforms) {
       let seed = level.id * 5179 + 11;
       const rnd = () => { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; };
-      let x = 120;
-      while (x < level.length - 120) {
-        const w = Math.round(40 + rnd() * 46);
-        const y = Math.round(CONFIG.GROUND_Y - (30 + rnd() * 62));   // 30..92 px boven de grond
-        this.platforms.push({ x: Math.round(x), y, w });
-        x += w / 2 + 70 + rnd() * 120;                                // ruimte tussen platforms
+      let x = 240;                                  // eerste stuk = veilige vaste grond
+      while (x < level.length - 280) {
+        if (level.pits && rnd() < 0.55) {
+          // ravijn-gat: geen grond -> alleen oversteekbaar via platforms (val = dood)
+          const pitW = 72 + Math.floor(rnd() * 78);   // 72..150 breed
+          const x0 = Math.round(x), x1 = Math.round(x + pitW);
+          this.pits.push({ x0, x1 });
+          // stapsteen-platforms over het gat (haalbaar met (dubbel-)jump)
+          const steps = Math.max(1, Math.round(pitW / 64));
+          for (let s = 0; s < steps; s++) {
+            const px = x0 + (pitW * (s + 0.5) / steps);
+            const py = CONFIG.GROUND_Y - (26 + Math.floor(rnd() * 38));   // 26..64 boven de grond
+            this.platforms.push({ x: Math.round(px), y: Math.round(py), w: Math.round(32 + rnd() * 18) });
+          }
+          x = x1 + 110 + Math.floor(rnd() * 120);     // vaste grond na het gat
+        } else {
+          // los klim-/decoratief platform boven vaste grond
+          const w = Math.round(40 + rnd() * 42);
+          const py = Math.round(CONFIG.GROUND_Y - (30 + rnd() * 54));
+          this.platforms.push({ x: Math.round(x), y: py, w });
+          x += w + 70 + Math.floor(rnd() * 100);
+        }
       }
       return;
     }
@@ -328,6 +345,13 @@ const Game = {
     }
     // breed eindplatform bij de finish
     this.platforms.push({ x: level.length, y: Math.max(92, Math.min(CONFIG.GROUND_Y - 12, y)), w: 86 });
+  },
+
+  // staat (wereld-x) boven een ravijn-gat? (geen vaste grond hier -> val = dood)
+  overPit(x) {
+    if (!this.pits) return false;
+    for (const p of this.pits) if (x > p.x0 && x < p.x1) return true;
+    return false;
   },
 
   // bergtop (driehoek) tekenen
@@ -654,8 +678,8 @@ const Game = {
     let target = this.player.x - CONFIG.VIEW_W * 0.35;
     this.cam.x = Math.max(0, Math.min(this.level.length - CONFIG.VIEW_W + 60, target));
 
-    // in het ravijn gevallen = direct dood (parkour)
-    if (this.level.parkour && this.player.y > FALL_DEATH_Y && this.state === 'playing') {
+    // in het ravijn / een jungle-gat gevallen = direct dood
+    if ((this.level.parkour || this.overPit(this.player.x)) && this.player.y > FALL_DEATH_Y && this.state === 'playing') {
       this.player.hp = 0;
     }
 
@@ -902,6 +926,18 @@ const Game = {
         ctx.lineTo(lp.x + 22, CONFIG.GROUND_Y + 6);
         ctx.closePath(); ctx.fill();
         ctx.globalAlpha = 1;
+      }
+      // ravijn-gaten uit de bodem snijden (val = dood)
+      if (this.pits) for (const p of this.pits) {
+        if (p.x1 < this.cam.x - 12 || p.x0 > this.cam.x + W + 12) continue;
+        const pw = p.x1 - p.x0;
+        Sprites.px(ctx, '#0a1018', p.x0, CONFIG.GROUND_Y - 1, pw, H);
+        ctx.globalAlpha = 0.6; Sprites.px(ctx, '#05070c', p.x0, CONFIG.GROUND_Y + 22, pw, H); ctx.globalAlpha = 1;
+        // begroeide, afgebrokkelde randen
+        Sprites.px(ctx, theme.groundTop, p.x0 - 5, CONFIG.GROUND_Y, 5, 4);
+        Sprites.px(ctx, theme.groundTop, p.x1, CONFIG.GROUND_Y, 5, 4);
+        Sprites.px(ctx, '#1a120a', p.x0 - 1, CONFIG.GROUND_Y, 2, 9);
+        Sprites.px(ctx, '#1a120a', p.x1 - 1, CONFIG.GROUND_Y, 2, 9);
       }
       // zwevende platforms boven de grond (wereld 3)
       for (const pf of this.platforms) {
