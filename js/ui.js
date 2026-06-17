@@ -376,8 +376,10 @@ const UI = {
     let main = '', sub = '', cls = '', bossFrac = -1;
     const lv = game.level;
     if (game.boss && game.boss.alive) {
-      main = lv.balloonBoss ? '🎈 BALLON ZOMBIE' : '☠ MEGA ZOMBIE';
-      sub = lv.balloonBoss ? 'spring & schiet de ballon neer!' : 'raak alleen het HOOFD — spring!';
+      main = lv.balloonBoss ? '🎈 BALLON ZOMBIE' : lv.apeBoss ? '🦍 MEGA ZOMBIE-AAP' : '☠ MEGA ZOMBIE';
+      sub = lv.balloonBoss ? 'spring & schiet de ballon neer!'
+        : lv.apeBoss ? 'ontwijk de sprong & sla terug!'
+        : 'raak alleen het HOOFD — spring!';
       cls = 'danger';
       bossFrac = Math.max(0, game.boss.hp / game.boss.maxHp);
     } else if (lv.arena) {

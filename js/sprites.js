@@ -139,6 +139,7 @@ const Sprites = {
   drawZombie(ctx, cx, footY, dir, z) {
     const id = (z && z.type) ? z.type.id : 'walker';
     if (id === 'boss') return this.drawBoss(ctx, cx, footY, dir, z);
+    if (id === 'ape') return this.drawApe(ctx, cx, footY, dir, z);
     if (id === 'balloon') return this.drawBalloon(ctx, cx, footY, dir, z);
     if (id === 'flyer') return this.drawFlyer(ctx, cx, footY, dir, z);
     if (id === 'brute') return this.drawBrute(ctx, cx, footY, dir, z);
@@ -392,6 +393,76 @@ const Sprites = {
     this.px(ctx, bone, cx - 2, headTop + 15, 2, 3);
     this.px(ctx, bone, cx + 2, headTop + 15, 2, 3);
     this.px(ctx, blood, cx - 4, headTop + 19, 8, 1); // kwijl/bloed
+  },
+
+  /* ---------- MEGA ZOMBIE-AAP (wereld 3 boss) ---------- */
+  drawApe(ctx, cx, footY, dir, z) {
+    const fur = '#3a5a2a', furDk = '#27411c', furLt = '#4e7236';
+    const skin = '#6a8a4a', blood = '#7a1f1f', bone = '#d2ccb0';
+    const crouch = z && z.crouchT > 0;        // ineengedoken vóór de sprong
+    const air = z && !z.onGround;              // mid-sprong (armen omhoog)
+    const ph = (z && z.walkPhase) || 0;
+    const sw = (ph === 1) ? 4 : (ph === 3) ? -4 : 0;
+
+    // afmetingen — gehurkt = lager & breder
+    const bodyH = crouch ? 30 : 42;
+    const legH = crouch ? 12 : 18;
+    const legTop = footY - legH;
+    const torsoTop = legTop - bodyH;
+    const headH = 20;
+    const headTop = torsoTop - headH + 6;      // kop zakt iets in de schouders
+
+    // korte krachtige benen
+    this.px(ctx, fur, cx - 18, legTop, 14, legH);
+    this.px(ctx, fur, cx + 4, legTop, 14, legH);
+    this.px(ctx, furDk, cx - 18, legTop, 4, legH);
+    this.px(ctx, '#161208', cx - 18 - sw, footY - 4, 15, 4);    // grote voeten
+    this.px(ctx, '#161208', cx + 4 + sw, footY - 4, 15, 4);
+
+    // enorme gespierde romp (breed bovenaan = aap-schouders)
+    this.px(ctx, fur, cx - 22, torsoTop, 44, bodyH);
+    this.px(ctx, furLt, cx - 22, torsoTop, 44, 6);             // lichte schouderband
+    this.px(ctx, furDk, cx - 22, torsoTop, 6, bodyH);          // schaduw links
+    // kale, gehavende borst met ribben + bloed (zombie)
+    this.px(ctx, skin, cx - 9, torsoTop + 10, 18, bodyH - 16);
+    this.px(ctx, bone, cx - 6, torsoTop + 14, 12, 2);
+    this.px(ctx, bone, cx - 6, torsoTop + 20, 12, 2);
+    this.px(ctx, blood, cx - 4, torsoTop + 24, 9, 5);
+
+    // gigantische armen
+    const ay = torsoTop + 8;
+    if (air) {
+      // beide armen hoog omhoog tijdens de sprong (duik-pose)
+      this.px(ctx, fur, cx + (dir > 0 ? 14 : -34), torsoTop - 16, 20, 12);
+      this.px(ctx, skin, cx + (dir > 0 ? 30 : -34), torsoTop - 22, 6, 10);   // klauw
+      this.px(ctx, fur, cx + (dir > 0 ? -30 : 16), torsoTop - 10, 16, 11);
+    } else if (crouch) {
+      // armen op de grond gesteund (ineengedoken, klaar om te springen)
+      this.px(ctx, fur, cx + (dir > 0 ? 12 : -34), ay + 10, 22, 11);
+      this.px(ctx, skin, cx + (dir > 0 ? 32 : -34), ay + 16, 6, 6);
+      this.px(ctx, fur, cx + (dir > 0 ? -34 : 12), ay + 10, 22, 11);
+    } else {
+      // lange hangende armen (knokkel-stand)
+      this.px(ctx, fur, cx + (dir > 0 ? 16 : -40), ay, 24, 12);
+      this.px(ctx, skin, cx + (dir > 0 ? 38 : -42), ay + 6, 6, 12);          // klauw vooraan
+      this.px(ctx, furDk, cx + (dir > 0 ? -40 : 16), ay + 2, 18, 10);        // arm achter
+    }
+
+    // brede kop met zware kaak
+    this.px(ctx, fur, cx - 13, headTop, 26, headH);
+    this.px(ctx, furDk, cx - 13, headTop, 5, headH);
+    this.px(ctx, '#1f2e14', cx - 13, headTop - 2, 26, 3);       // ruige kruin
+    // ingevallen snuit
+    this.px(ctx, skin, cx - 7, headTop + 9, 14, 9);
+    // gloeiende rode ogen onder zware wenkbrauw
+    this.px(ctx, furDk, cx - 11, headTop + 5, 22, 2);
+    this.px(ctx, '#ff2a2a', cx + (dir > 0 ? 1 : -8), headTop + 8, 5, 4);
+    this.px(ctx, '#ffa060', cx + (dir > 0 ? 2 : -7), headTop + 8, 2, 2);
+    // grommende muil met slagtanden
+    this.px(ctx, '#160808', cx - 7, headTop + 15, 15, 4);
+    this.px(ctx, bone, cx - 6, headTop + 14, 2, 4);
+    this.px(ctx, bone, cx + 4, headTop + 14, 2, 4);
+    this.px(ctx, blood, cx - 4, headTop + 19, 9, 1);
   },
 
   /* ---------- FINISH: stok met wapperende vlag ---------- */

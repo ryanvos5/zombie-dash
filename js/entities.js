@@ -383,13 +383,14 @@ class Zombie {
         const d = Math.hypot(dxp, dyp) || 1;
         this.x += (dxp / d) * this.speed * s;
         this.y += (dyp / d) * this.speed * 0.65 * s + Math.sin(game.time / 180 + this.tint) * 0.4;
-        // aanraking met een vogel: direct dood in de bergniveaus, maar gewone schade in de boss fight
+        // aanraking met een vogel: direct dood in de berg-parkour (ravijn-niveaus),
+        // maar gewone schade in de jungle (wereld 3) en in de boss fight
         if (Math.abs(player.x - this.x) < this.reach && Math.abs((player.y - 16) - this.y) < 18) {
-          if (game.level.isBoss) {
-            if (game.time - this.lastBite > t.biteCd) { this.lastBite = game.time; player.takeDamage(t.dmg); }
-          } else {
+          if (game.level.flyerOnly && !game.level.isBoss) {
             game.spawnBlood(player.x, player.y - 16);
             player.takeDamage(9999);
+          } else {
+            if (game.time - this.lastBite > t.biteCd) { this.lastBite = game.time; player.takeDamage(t.dmg); }
           }
         }
       }
@@ -407,6 +408,44 @@ class Zombie {
     const dx = this.x - player.x;
     const dist = Math.abs(dx);
     this.dir = dx > 0 ? -1 : 1;
+
+    // ---- MEGA ZOMBIE-AAP: springt in één keer naar de speler toe ----
+    if (t.apeLeap) {
+      if (this.apeCd == null) this.apeCd = 1200;
+      if (!this.onGround) {
+        this.x += (this.leapVx || 0) * s;                 // boog richting de speler
+      } else if (this.leapVx) {
+        // net geland na een sprong -> schokgolf + dreun als hij dichtbij is
+        this.leapVx = 0;
+        game.shake = Math.max(game.shake, 9);
+        for (let k = 0; k < 8; k++) game.spawnBlood(this.x + (Math.random() - 0.5) * 30, CONFIG.GROUND_Y);
+        if (dist <= this.reach + 16) { this.bite(game, player); this.lastBite = game.time; }
+      } else if (this.crouchT > 0) {
+        this.crouchT -= dt;                                // ineengedoken (telegraaf vóór de sprong)
+        if (this.crouchT <= 0) {
+          const dxp = player.x - this.x;
+          this.vy = -10.5;                                 // hoge sprong
+          const airFrames = (2 * 10.5) / CONFIG.GRAVITY;   // ~35 frames in de lucht
+          this.leapVx = Math.max(-7.5, Math.min(7.5, dxp / airFrames));
+          this.onGround = false;
+        }
+      } else {
+        this.apeCd -= dt;
+        if (dist <= this.reach + 6 && game.time - this.lastBite > t.biteCd) {
+          this.bite(game, player); this.lastBite = game.time;   // dichtbij: mep
+        } else if (this.apeCd <= 0 && dist > 38) {
+          this.crouchT = 300;                              // duik ineen om te springen
+          this.apeCd = 2000 + Math.random() * 1400;        // pauze tot de volgende sprong
+        } else {
+          this.x += this.dir * this.speed * s;             // sjok langzaam naderbij
+          this.separate(game, s);
+        }
+      }
+      this.walkTimer += dt;
+      if (this.walkTimer > 150) { this.walkTimer = 0; this.walkPhase = (this.walkPhase + 1) % 4; }
+      if (this.hitFlash > 0) this.hitFlash -= dt;
+      return;
+    }
 
     // crawlers springen naar de speler toe om afstand te overbruggen
     if (t.jumps && this.onGround && dist > this.reach && dist < 110 && game.time - this.lastJump > 1300) {
@@ -450,7 +489,7 @@ class Zombie {
   // normale zombies missen als je over ze heen springt; brutes/baas (groot) en
   // zelf-springende zombies (crawler-leap) raken je ook in de lucht.
   reachesVertically(player) {
-    if (this.type.id === 'brute' || this.type.id === 'boss') return true;
+    if (this.type.id === 'brute' || this.type.id === 'boss' || this.type.id === 'ape') return true;
     if (!this.onGround) return true;               // deze zombie springt zelf
     const airHeight = CONFIG.GROUND_Y - player.y;  // 0 = op de grond
     return airHeight < 22;                          // hoger = je sprong eroverheen

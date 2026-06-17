@@ -187,6 +187,13 @@ const ZOMBIE_TYPES = {
     flying: true, boss: true, knockback: true, knockResist: 0,
     spawner: true, shootEvery: 1700, shotSpeed: 3.2, shotDmg: 16, color: '#3a6a2a',
   },
+  // eindbaas wereld 3: mega zombie-aap die in één sprong naar de speler toe duikt
+  ape: {
+    id: 'ape', hpMul: 1.0, speedMul: 0.5, dmg: 30, biteCd: 900,
+    reach: 30, lunge: false, apeLeap: true, scale: 2.8, coin: 450,
+    ammoDrop: 0, ammoDropChance: 0, knockback: true, knockResist: 0,
+    healChance: 0, color: '#3a5a2a',
+  },
 };
 
 // munitie: beginvoorraad bij een nieuw spel (blijft daarna behouden tussen levels)
@@ -202,6 +209,8 @@ const HEALTH_PACK_HEAL = 28;
 const BOSS_HP = 1000;
 // HP van de ballon-eindbaas (wereld 2)
 const BALLOON_HP = 900;
+// HP van de mega zombie-aap (wereld 3)
+const APE_HP = 1200;
 // vanaf deze wereld kun je dubbel springen
 const DOUBLE_JUMP_FROM_WORLD = 2;
 // onder deze y val je in het ravijn (instant dood) — alleen in parkour-levels
@@ -249,6 +258,14 @@ const THEMES = {
     far: ['#1c1f2a'], near: ['#2a2e3c'],
     ground: '#241f18', groundTop: '#3a3022',
     lamp: '#ffd24a', weather: null, isArena: true,
+  },
+  jungle: {
+    name: 'Jungle',
+    sky: ['#16331f', '#1f472a', '#315a39'],             // dampig groen oerwoud
+    far: ['#173a22', '#1e482a', '#143420'],             // verre boomsilhouetten
+    near: ['#21512c', '#2a6234', '#255a2e', '#1d4a26'], // dichte begroeiing
+    ground: '#21341a', groundTop: '#3a5223',
+    lamp: '#c6ec9a', weather: 'fog', jungle: true,
   },
 };
 
@@ -356,9 +373,52 @@ function buildWorld2() {
   return levels;
 }
 
+/* ---------- WERELD 3: JUNGLE (zombies + parkour in één) ----------
+   platforms: true  -> zwevende jungle-platforms BOVEN de vaste bodem (klim/parkour),
+                       je valt niet dood (geen ravijn) — grond-zombies lopen eronder.
+   flyerChance      -> kans dat er bij een spawn een vogel door het level vliegt.
+   Levels zijn ~3x zo lang als in wereld 1/2. Boss = mega zombie-aap (springt naar je toe). */
+function buildWorld3() {
+  const levels = [];
+  for (let i = 0; i < 9; i++) {
+    const t = i / 8;
+    const id = i + 1;
+    const length = Math.round(4500 + i * 650);          // ~3x zo lang (4500 -> 9700)
+    levels.push({
+      id, name: 'Jungle ' + id, theme: 'jungle', mode: 'reach',
+      killAll: true,                                     // versla alle zombies, dan de finish
+      platforms: true,                                   // zwevende platforms (parkour) + vaste grond
+      flyerChance: +(0.16 + t * 0.12).toFixed(2),        // af en toe vogels (0.16 -> 0.28)
+      length,
+      zombieCount: Math.round(16 + i * 4),               // 16 -> 48
+      spawnEvery: Math.round(1700 - t * 650),            // 1700 -> 1050
+      zombieHp: Math.round(48 + i * 9),                  // 48 -> 120
+      zombieSpeed: +(0.7 + t * 0.5).toFixed(2),          // 0.7 -> 1.20 (gecapt op MAX)
+      runnerChance: +(0.10 + t * 0.22).toFixed(2),
+      crawlerChance: +(0.06 + t * 0.18).toFixed(2),
+      bruteChance: i >= 3 ? +(0.05 + t * 0.12).toFixed(2) : 0,
+      doorChance: 0,                                     // jungle: zombies komen van rechts/uit het groen
+      obstacleDensity: 0,                                // platforms i.p.v. straat-obstakels
+      maxAlive: Math.round(5 + i * 0.8),                 // 5 -> 11 tegelijk
+      reward: 90 + i * 20,                               // 90 -> 250
+      midTime: Math.round(length * 12 + 6000),           // royale checkpoint-tijd (lang level)
+    });
+  }
+  // level 10: MEGA ZOMBIE-AAP (springt in één keer naar je toe)
+  levels.push({
+    id: 10, name: 'AAP BOSS', theme: 'jungle', mode: 'boss', isBoss: true, apeBoss: true,
+    platforms: true,
+    length: 1600, zombieCount: 0, spawnEvery: 999999,
+    zombieHp: 60, zombieSpeed: 1.1, maxAlive: 4,
+    doorChance: 0, obstacleDensity: 0, reward: 600,
+  });
+  return levels;
+}
+
 const WORLDS = [
   { id: 1, name: 'Verlaten Stad', levels: buildWorld1() },
   { id: 2, name: 'De Bergen', levels: buildWorld2() },
+  { id: 3, name: 'Jungle', levels: buildWorld3() },
 ];
 
 /* ---------- ZOMBIE KNOCK-OUT (arena wave-survival) ---------- */
