@@ -65,6 +65,8 @@ const Game = {
 
     this.state = 'playing';
     Input.clear();
+    const pauseScreen = document.getElementById('pause-screen');
+    if (pauseScreen) pauseScreen.classList.add('hidden');
     UI.show('game');
   },
 
@@ -77,8 +79,23 @@ const Game = {
   retryLevel() { this.startLevel(this.worldId, this.level.id); },
 
   togglePause() {
-    if (this.state === 'playing') { this.state = 'paused'; Input.clear(); }
-    else if (this.state === 'paused') { this.state = 'playing'; }
+    const pauseScreen = document.getElementById('pause-screen');
+    if (this.state === 'playing') {
+      this.state = 'paused'; Input.clear();
+      if (pauseScreen) pauseScreen.classList.remove('hidden');
+    } else if (this.state === 'paused') {
+      this.state = 'playing';
+      if (pauseScreen) pauseScreen.classList.add('hidden');
+    }
+  },
+
+  // level verlaten -> terug naar het hoofdmenu (geen beloning, run telt niet)
+  quitToMenu() {
+    const pauseScreen = document.getElementById('pause-screen');
+    if (pauseScreen) pauseScreen.classList.add('hidden');
+    this.state = 'menu';
+    Input.clear();
+    UI.show('menu');
   },
 
   // achtergrond vooraf bepalen (anders flikkeren ze). Twee lagen + deuren + lantaarns.
@@ -625,18 +642,7 @@ const Game = {
       });
     }
 
-    // pauze-overlay
-    if (this.state === 'paused') {
-      ctx.fillStyle = 'rgba(0,0,0,0.6)';
-      ctx.fillRect(0, 0, W, H);
-      ctx.fillStyle = '#fff';
-      ctx.font = 'bold 20px "Courier New", monospace';
-      ctx.textAlign = 'center';
-      ctx.fillText('GEPAUZEERD', W / 2, H / 2);
-      ctx.font = '11px "Courier New", monospace';
-      ctx.fillText('druk op II om door te gaan', W / 2, H / 2 + 20);
-      ctx.textAlign = 'left';
-    }
+    // (pauze wordt nu als DOM-menu getoond, zie #pause-screen)
   },
 
   // ---------- hoofdloop ----------

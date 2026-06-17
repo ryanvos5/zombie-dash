@@ -67,6 +67,7 @@
           <button id="btn-characters" class="big-btn secondary">CHARACTERS</button>
         </div>
         <div class="menu-coins">Munten: <span id="menu-coin-count">0</span> ●</div>
+        <button id="btn-newgame" class="text-btn">Nieuw spel (wis voortgang)</button>
       </div>
     </div>
 
@@ -135,6 +136,18 @@
     <!-- ===== Pauze + fullscreen knoppen ===== -->
     <button id="pause-btn" class="hidden">II</button>
     <button id="fs-btn" title="Volledig scherm">⛶</button>
+
+    <!-- ===== Pauze-menu ===== -->
+    <div id="pause-screen" class="overlay hidden">
+      <div class="overlay-box">
+        <h2 class="screen-title">GEPAUZEERD</h2>
+        <div class="menu-buttons">
+          <button id="btn-resume" class="big-btn">DOORGAAN</button>
+          <button id="btn-restart" class="big-btn secondary">OPNIEUW</button>
+          <button id="btn-quit" class="big-btn secondary">NAAR MENU</button>
+        </div>
+      </div>
+    </div>
 
     <!-- ===== Draai-je-telefoon hint (portrait op touch) ===== -->
     <div id="rotate-hint">

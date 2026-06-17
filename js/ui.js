@@ -42,6 +42,17 @@ const UI = {
 
     // pauze
     this.el.pause.onclick = () => Game.togglePause();
+    $('btn-resume').onclick = () => Game.togglePause();
+    $('btn-restart').onclick = () => Game.retryLevel();
+    $('btn-quit').onclick = () => Game.quitToMenu();
+
+    // nieuw spel (wist alle voortgang)
+    $('btn-newgame').onclick = () => {
+      if (confirm('Nieuw spel starten? Al je munten, wapens, characters en levelvoortgang worden gewist.')) {
+        Storage.reset();
+        this.show('menu');
+      }
+    };
 
     // fullscreen
     const fsBtn = document.getElementById('fs-btn');
