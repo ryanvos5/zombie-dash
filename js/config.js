@@ -373,45 +373,60 @@ function buildWorld2() {
   return levels;
 }
 
-/* ---------- WERELD 3: JUNGLE (zombies + parkour in één) ----------
-   platforms: true  -> zwevende jungle-platforms BOVEN de vaste bodem (klim/parkour),
-                       je valt niet dood (geen ravijn) — grond-zombies lopen eronder.
-   flyerChance      -> kans dat er bij een spawn een vogel door het level vliegt.
-   Levels zijn ~3x zo lang als in wereld 1/2. Boss = mega zombie-aap (springt naar je toe). */
+/* ---------- WERELD 3: JUNGLE ----------
+   Normale gevechtslevels (vaste grond, veel zombies, af en toe een vogel) afgewisseld
+   met een paar ECHTE parkour-levels (ravijn + platforms, zoals wereld 2) in jungle-stijl.
+   Boss = mega zombie-aap (springt in één keer naar je toe). */
 function buildWorld3() {
   const levels = [];
+  const PARKOUR_LEVELS = [3, 6, 9];   // deze levels zijn pure parkour (jungle, zoals wereld 2)
   for (let i = 0; i < 9; i++) {
     const t = i / 8;
     const id = i + 1;
-    const length = Math.round(4500 + i * 650);          // ~3x zo lang (4500 -> 9700)
-    levels.push({
-      id, name: 'Jungle ' + id, theme: 'jungle', mode: 'reach',
-      killAll: true,                                     // versla alle zombies, dan de finish
-      platforms: true,                                   // zwevende platforms (parkour) + vaste grond
-      pits: true,                                        // ravijn-gaten: eronder vallen = dood (parkour nut)
-      flyerChance: +(0.16 + t * 0.12).toFixed(2),        // af en toe vogels (0.16 -> 0.28)
-      length,
-      zombieCount: Math.round(28 + i * 7),               // 28 -> 84 (veel meer zombies)
-      spawnEvery: Math.round(1300 - t * 600),            // 1300 -> 700 (sneller)
-      zombieHp: Math.round(48 + i * 9),                  // 48 -> 120
-      zombieSpeed: +(0.7 + t * 0.5).toFixed(2),          // 0.7 -> 1.20 (gecapt op MAX)
-      runnerChance: +(0.10 + t * 0.22).toFixed(2),
-      crawlerChance: +(0.06 + t * 0.18).toFixed(2),
-      bruteChance: i >= 3 ? +(0.05 + t * 0.12).toFixed(2) : 0,
-      doorChance: 0,                                     // jungle: zombies komen van rechts/uit het groen
-      obstacleDensity: 0,                                // platforms i.p.v. straat-obstakels
-      maxAlive: Math.round(8 + i * 1.1),                 // 8 -> 18 tegelijk (drukker)
-      reward: 90 + i * 20,                               // 90 -> 250
-      midTime: Math.round(length * 12 + 6000),           // royale checkpoint-tijd (lang level)
-    });
+    if (PARKOUR_LEVELS.includes(id)) {
+      // ---- pure parkour-level (jungle-stijl): ravijn + zwevende platforms + vogels ----
+      levels.push({
+        id, name: 'Jungle ' + id, theme: 'jungle', mode: 'reach',
+        parkour: true, flyerOnly: true,
+        length: Math.round(1700 + i * 220),               // 1700 -> 3460
+        zombieCount: 999,                                  // doorlopend (vogels)
+        spawnEvery: Math.round(2700 - t * 1000),
+        zombieHp: Math.round(30 + i * 6),
+        zombieSpeed: +(0.85 + t * 0.5).toFixed(2),
+        maxAlive: 2 + Math.floor(i / 3),
+        gapMin: 46 + i * 3, gapMax: 72 + i * 6,            // gaten in het ravijn
+        platMin: 50 - i, platMax: 76 - i,
+        yJump: 18 + i * 3,
+        reward: 130 + i * 18,
+      });
+    } else {
+      // ---- normaal jungle-gevechtslevel: vaste grond, veel zombies ----
+      const length = Math.round(2600 + i * 300);          // 2600 -> 5000
+      levels.push({
+        id, name: 'Jungle ' + id, theme: 'jungle', mode: 'reach',
+        killAll: true, noObstacles: true,                 // geen straat-obstakels in de jungle
+        flyerChance: +(0.12 + t * 0.10).toFixed(2),        // af en toe een vogel (gewone schade)
+        length,
+        zombieCount: Math.round(26 + i * 6),               // 26 -> 74 (veel zombies)
+        spawnEvery: Math.round(1300 - t * 600),            // 1300 -> 700 (sneller)
+        zombieHp: Math.round(48 + i * 9),                  // 48 -> 120
+        zombieSpeed: +(0.7 + t * 0.5).toFixed(2),
+        runnerChance: +(0.10 + t * 0.22).toFixed(2),
+        crawlerChance: +(0.06 + t * 0.18).toFixed(2),
+        bruteChance: i >= 3 ? +(0.05 + t * 0.12).toFixed(2) : 0,
+        doorChance: 0,
+        maxAlive: Math.round(7 + i * 1.1),                 // 7 -> 16 tegelijk (drukker)
+        reward: 90 + i * 18,
+        midTime: Math.round(length * 11 + 5000),           // royale checkpoint-tijd
+      });
+    }
   }
   // level 10: MEGA ZOMBIE-AAP (springt in één keer naar je toe)
   levels.push({
     id: 10, name: 'AAP BOSS', theme: 'jungle', mode: 'boss', isBoss: true, apeBoss: true,
-    platforms: true,
     length: 1600, zombieCount: 0, spawnEvery: 999999,
     zombieHp: 60, zombieSpeed: 1.1, maxAlive: 4,
-    doorChance: 0, obstacleDensity: 0, reward: 600,
+    doorChance: 0, noObstacles: true, reward: 600,
   });
   return levels;
 }

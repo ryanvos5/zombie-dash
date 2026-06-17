@@ -261,7 +261,7 @@ const Game = {
   // gaten met spikes (springen), en explosieve vaten (schieten)
   buildObstacles(level) {
     this.obstacles = [];
-    if (level.parkour) return;   // geen obstakels in de bergen (alleen platforms)
+    if (level.parkour || level.noObstacles) return;   // geen obstakels (bergen/jungle)
     // tutorial-level: vaste, goed gespreide layout (auto -> hek -> vat)
     if (this.worldId === 1 && level.id === 1) {
       this.obstacles = [
@@ -384,8 +384,10 @@ const Game = {
       this.tutorials.push({ x: 70, text: 'DUBBEL-JUMP! Druk 2× op springen in de lucht ⤒⤒', shown: false });
       this.tutorials.push({ x: 240, text: 'Houd springen vast = hoger/verder. Val niet in het ravijn!', shown: false });
     } else if (this.worldId === 3 && this.level.id === 1) {
-      this.tutorials.push({ x: 80, text: 'JUNGLE! Versla ALLE zombies en haal de finish. Levels zijn lang!', shown: false });
-      this.tutorials.push({ x: 240, text: 'Klim over de zwevende platforms ⤒ — en pas op voor vliegende vogels! 🦅', shown: false });
+      this.tutorials.push({ x: 80, text: 'JUNGLE! Versla ALLE zombies en haal de finish. Pas op voor vogels! 🦅', shown: false });
+    } else if (this.worldId === 3 && this.level.parkour) {
+      this.tutorials.push({ x: 70, text: 'PARKOUR! Spring over het ravijn ⤒⤒ (dubbel-jump). Val niet naar beneden!', shown: false });
+      this.tutorials.push({ x: 240, text: 'Raak GEEN vogels aan tijdens het springen — dat is direct fataal! 🦅', shown: false });
     }
   },
 
