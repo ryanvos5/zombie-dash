@@ -223,11 +223,12 @@ body.fs #fs-btn { color: var(--accent); border-color: var(--accent); }
 .tbtn {
   width: 74px;
   height: 74px;
-  background: rgba(37,44,59,0.8);
-  border: 3px solid #4a5670;
+  background: rgba(37,44,59,0.28);
+  border: 2px solid rgba(180,195,220,0.45);
   border-radius: 50%;
-  color: var(--text);
+  color: rgba(255,255,255,0.85);
   font-size: 32px;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.8);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -236,20 +237,20 @@ body.fs #fs-btn { color: var(--accent); border-color: var(--accent); }
   user-select: none;
   -webkit-touch-callout: none;
 }
-.tbtn:active { background: rgba(106,190,48,0.6); transform: scale(0.94); }
+.tbtn:active { background: rgba(106,190,48,0.5); transform: scale(0.94); }
 .tbtn-fire {
   width: 96px;
   height: 96px;
   font-size: 40px;
-  background: rgba(217,67,67,0.75);
-  border-color: #e85d5d;
+  background: rgba(217,67,67,0.28);
+  border-color: rgba(232,93,93,0.6);
 }
 .tbtn-melee {
   width: 84px;
   height: 84px;
   font-size: 36px;
-  background: rgba(122,82,48,0.78);
-  border-color: #9a6a3a;
+  background: rgba(122,82,48,0.28);
+  border-color: rgba(170,120,70,0.6);
 }
 /* iets kleiner op echt lage schermen zodat alles past */
 @media (max-height: 380px) {
