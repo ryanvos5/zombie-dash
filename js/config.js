@@ -51,10 +51,19 @@ const WEAPONS = {
     damage: 52, cooldown: 150, range: 999, bulletSpeed: 9, pellets: 1, cost: 3000,
     desc: 'Hoge schade én snel. De koning.'
   },
+  rocket: {
+    id: 'rocket', name: 'Rocket Launcher', type: 'ranged', ammoType: 'rocket',
+    damage: 130, cooldown: 950, range: 999, bulletSpeed: 6, pellets: 1, cost: 15000,
+    desc: 'Explosieve raketten (AoE). Heeft losse raketten nodig — schaars!'
+  },
 };
 
 // volgorde in de shop
-const WEAPON_ORDER = ['bat', 'machete', 'pistol', 'uzi', 'ak47'];
+const WEAPON_ORDER = ['bat', 'machete', 'pistol', 'uzi', 'ak47', 'rocket'];
+// raketten: prijs per stuk in de shop + zeldzame drop-kans (alleen als je de RPG hebt)
+const ROCKET_COST = 250;
+const ROCKET_DROP_CHANCE = 0.02;   // ~2% per kill -> soms 0 in een heel level
+const ROCKET_AOE = 56;             // straal van de explosie
 
 /* ---------- CHARACTERS ----------
    palette: kleuren voor de sprite-tekenaar

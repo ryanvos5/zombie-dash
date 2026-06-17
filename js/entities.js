@@ -178,14 +178,22 @@ class Player {
 
   useRanged(game, w) {
     if (game.time - (this.lastShoot || -9999) < w.cooldown) return;
+    const hx = this.x + this.dir * 16;
+    const hy = this.y - 16;
+    const dmg = w.damage * (this.hasBuff('rage', game.time) ? 2 : 1);
+    if (w.ammoType === 'rocket') {
+      if (game.rockets <= 0) return;          // geen raketten -> gebruik de melee
+      this.lastShoot = game.time; game.rockets--;
+      this.attackAnimUntil = game.time + 160; this.swingWeapon = null;
+      game.rocketShots.push(new Rocket(hx, hy, this.dir * w.bulletSpeed, dmg));
+      game.spawnMuzzleFlash(hx, hy, this.dir);
+      return;
+    }
     if (game.ammo <= 0) { return; }          // geen kogels meer -> gebruik de knuppel
     this.lastShoot = game.time;
     game.ammo--;
     this.attackAnimUntil = game.time + 140;
     this.swingWeapon = null;
-    const hx = this.x + this.dir * 16;
-    const hy = this.y - 16;
-    const dmg = w.damage * (this.hasBuff('rage', game.time) ? 2 : 1);
     for (let i = 0; i < (w.pellets || 1); i++) {
       const spread = (w.pellets > 1) ? (Math.random() - 0.5) * 1.4 : 0;
       game.bullets.push(new Bullet(hx, hy + i, this.dir * w.bulletSpeed, dmg, spread));
@@ -495,6 +503,52 @@ class Bullet {
     // explosief vat raken
     if (game.hitBarrels && game.hitBarrels(this.x, 10, game)) {
       this.alive = false;
+    }
+  }
+}
+
+// raket van de Rocket Launcher: vliegt, ontploft op de eerste zombie of aan het eind (AoE)
+class Rocket {
+  constructor(x, y, vx, damage) {
+    this.x = x; this.y = y; this.vx = vx; this.damage = damage;
+    this.alive = true; this.life = 0;
+  }
+  update(dt, game) {
+    const s = game.dtScale;
+    this.x += this.vx * s; this.life += dt;
+    // rookspoor
+    if (Math.random() < 0.7) game.particles.push(new Particle(this.x - Math.sign(this.vx) * 4, this.y, (Math.random() - 0.5), (Math.random() - 0.5), '#9aa3ad', 280, 2));
+    if (this.life > 2500 || this.x < 6 || this.x > game.level.length + 60) { game.explodeAt(this.x, this.y, this.damage); this.alive = false; return; }
+    for (const z of game.zombies) {
+      if (!z.alive) continue;
+      if (Math.abs(z.x - this.x) < z.halfW + 6 && Math.abs(z.cy - this.y) < z.halfH + 6) {
+        game.explodeAt(this.x, this.y, this.damage); this.alive = false; return;
+      }
+    }
+  }
+}
+
+// raket-pickup (geeft 1 raket) — valt zeldzaam, alleen als je de RPG hebt
+class RocketPickup {
+  constructor(x) {
+    this.x = x; this.y = CONFIG.GROUND_Y;
+    this.vx = (Math.random() - 0.5) * 2.4; this.vy = -2.6 - Math.random() * 1.5;
+    this.onGround = false; this.life = 16000; this.dead = false; this.bob = Math.random() * 6.28;
+    this.isRocket = true;
+  }
+  update(dt, game) {
+    const s = game.dtScale;
+    if (!this.onGround) {
+      this.vy += CONFIG.GRAVITY * s; this.y += this.vy * s; this.x += this.vx * s;
+      if (this.y >= CONFIG.GROUND_Y) { this.y = CONFIG.GROUND_Y; this.vy = 0; this.vx = 0; this.onGround = true; }
+    }
+    this.bob += dt * 0.005; this.life -= dt;
+    if (this.life <= 0) { this.dead = true; return; }
+    const p = game.player;
+    if (Math.abs(p.x - this.x) < 15 && Math.abs(p.y - this.y) < 28) {
+      game.rockets += 1;
+      game.ammoFx.push({ x: this.x, y: this.y - 18, n: 0, rocket: 1, vy: -0.6, life: 900 });
+      this.dead = true;
     }
   }
 }

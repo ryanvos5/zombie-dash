@@ -254,6 +254,32 @@ const UI = {
     aCard.appendChild(aInfo);
     aCard.appendChild(aBtn);
     grid.appendChild(aCard);
+
+    // ---- raketten bijkopen (alleen met Rocket Launcher) ----
+    if (Storage.ownsWeapon('rocket')) {
+      const rCard = document.createElement('div');
+      rCard.className = 'shop-card owned';
+      const rCanvas = document.createElement('canvas');
+      rCanvas.width = 110; rCanvas.height = 56;
+      const rctx = rCanvas.getContext('2d');
+      rctx.imageSmoothingEnabled = false;
+      Sprites.drawRocketPickup(rctx, 55, 40, 0);
+      const rInfo = document.createElement('div');
+      rInfo.innerHTML = `<div class="w-name">Raketten <span class="w-slot">RPG</span></div>
+        <div class="w-stats">Je hebt nu <b>${Storage.data.rockets}</b> raketten<br>krachtig & explosief (AoE)</div>`;
+      const rBtn = document.createElement('button');
+      rBtn.className = 'shop-buy';
+      if (Storage.data.coins >= ROCKET_COST) {
+        rBtn.classList.add('buy'); rBtn.textContent = `KOOP +1 — ${ROCKET_COST} ●`;
+        rBtn.onclick = () => { if (Storage.buyRocket()) this.renderShop(); };
+      } else {
+        rBtn.classList.add('cant'); rBtn.textContent = `${ROCKET_COST} ● (te weinig)`;
+      }
+      rCard.appendChild(rCanvas);
+      rCard.appendChild(rInfo);
+      rCard.appendChild(rBtn);
+      grid.appendChild(rCard);
+    }
   },
 
   // ---------- CHARACTER SHOP ----------
@@ -329,9 +355,15 @@ const UI = {
     this.el.weaponName.textContent = '🏏 ' + WEAPONS[game.player.meleeId].name;
     // vuurwapen + munitie alleen als er een gun is uitgerust
     if (game.player.rangedId) {
+      const rw = WEAPONS[game.player.rangedId];
       this.el.ammoCount.classList.remove('hidden');
-      this.el.ammoNum.textContent = WEAPONS[game.player.rangedId].name + ' ' + game.ammo;
-      this.el.ammoCount.classList.toggle('low', game.ammo <= 10);
+      if (rw.ammoType === 'rocket') {
+        this.el.ammoNum.textContent = rw.name + '  🚀' + game.rockets;
+        this.el.ammoCount.classList.toggle('low', game.rockets <= 0);
+      } else {
+        this.el.ammoNum.textContent = rw.name + ' ' + game.ammo;
+        this.el.ammoCount.classList.toggle('low', game.ammo <= 10);
+      }
     } else {
       this.el.ammoCount.classList.add('hidden');
     }

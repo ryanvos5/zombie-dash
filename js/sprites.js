@@ -608,6 +608,29 @@ const Sprites = {
     ctx.globalAlpha = 1;
   },
 
+  /* ---------- RAKET (projectiel) ---------- */
+  drawRocket(ctx, x, y, vx) {
+    const d = vx >= 0 ? 1 : -1;
+    this.px(ctx, '#ffd24a', x - d * 7, y - 1, 3, 2);   // vlam
+    this.px(ctx, '#ff8a3a', x - d * 5, y - 2, 3, 4);
+    this.px(ctx, '#4a5158', x - 4, y - 2, 8, 4);       // body
+    this.px(ctx, '#6a737c', x - 4, y - 2, 8, 1);
+    this.px(ctx, '#d94343', x + d * 4, y - 1, 2, 2);   // rode neus
+    this.px(ctx, '#2a2e34', x - d * 4, y - 3, 2, 1);   // vinnen
+    this.px(ctx, '#2a2e34', x - d * 4, y + 2, 2, 1);
+  },
+
+  /* ---------- RAKET-PICKUP ---------- */
+  drawRocketPickup(ctx, x, y, bob) {
+    const oy = Math.round(Math.sin(bob) * 1), top = y - 9 + oy;
+    this.px(ctx, '#4a5158', x - 5, top + 3, 11, 4);
+    this.px(ctx, '#6a737c', x - 5, top + 3, 11, 1);
+    this.px(ctx, '#d94343', x + 5, top + 2, 3, 5);     // kop
+    this.px(ctx, '#2a2e34', x - 6, top + 1, 2, 3);     // vin
+    this.px(ctx, '#2a2e34', x - 6, top + 5, 2, 3);
+    this.px(ctx, '#ffd24a', x - 7, top + 4, 1, 2);     // staartvlam
+  },
+
   /* ---------- KOGEL ---------- */
   drawBullet(ctx, x, y) {
     this.px(ctx, '#ffd24a', x, y, 4, 2);
@@ -651,6 +674,12 @@ const Sprites = {
         this.px(ctx, wood, cx + 8, y - 6, 8, 5);
         this.px(ctx, wood, cx - 16, y - 6, 5, 5);
         this.px(ctx, dark, cx - 2, y - 1, 5, 9);
+      } else if (weaponId === 'rocket') {
+        this.px(ctx, '#3a4750', cx - 16, y - 6, 26, 6);    // buis
+        this.px(ctx, '#566872', cx - 16, y - 6, 26, 2);
+        this.px(ctx, dark, cx - 6, y, 5, 8);               // handvat
+        this.px(ctx, '#d94343', cx + 8, y - 7, 5, 8);      // raketkop steekt eruit
+        this.px(ctx, '#ffd24a', cx - 18, y - 4, 3, 3);     // achteruitlaat
       }
     }
     ctx.restore();

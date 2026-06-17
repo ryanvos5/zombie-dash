@@ -7,7 +7,7 @@ const Game = {
   state: 'menu',          // menu | playing | paused | win | lose
   worldId: 1, level: null,
   player: null, zombies: [], bullets: [], particles: [], coinFx: [], ammoFx: [], ammoDrops: [], healthDrops: [], corpses: [], pendingZombies: [],
-  obstacles: [], powerUps: [], enemyShots: [], platforms: [],
+  obstacles: [], powerUps: [], enemyShots: [], platforms: [], rocketShots: [], rockets: 0,
   boss: null, shake: 0, hordeLeft: 0, lastHazard: -9999, bossAmmoTimer: 0,
   round: 1, roundTarget: 0, roundKills: 0, roundSpawned: 0, roundBreak: 0,
   cam: { x: 0 },
@@ -47,12 +47,13 @@ const Game = {
     this.player.maxJumps = worldId >= DOUBLE_JUMP_FROM_WORLD ? 2 : 1;
     this.player.jumps = this.player.maxJumps;
     this.zombies = []; this.bullets = []; this.particles = []; this.coinFx = []; this.ammoFx = []; this.ammoDrops = []; this.healthDrops = []; this.corpses = []; this.pendingZombies = [];
-    this.powerUps = []; this.enemyShots = []; this.platforms = [];
+    this.powerUps = []; this.enemyShots = []; this.platforms = []; this.rocketShots = [];
     this.boss = null; this.shake = 0; this.lastHazard = -9999; this.bossAmmoTimer = 0;
     this.cam.x = 0;
     this.spawnTimer = 0; this.spawned = 0; this.spawnArmed = false;
     this.runCoins = 0; this.runKills = 0;
     this.ammo = Storage.data.ammo;   // blijvende voorraad uit vorige levels
+    this.rockets = Storage.data.rockets;
     this.time = 0;
     this.theme = THEMES[level.theme] || THEMES.city;
     this.hordeLeft = level.mode === 'horde' ? level.hordeTime : 0;
@@ -102,11 +103,12 @@ const Game = {
     this.player.maxJumps = 1; this.player.jumps = 1;
     this.player.x = ARENA_LEVEL.length / 2; // midden van de arena
     this.zombies = []; this.bullets = []; this.particles = []; this.coinFx = []; this.ammoFx = []; this.ammoDrops = []; this.healthDrops = []; this.corpses = []; this.pendingZombies = [];
-    this.powerUps = []; this.enemyShots = []; this.platforms = []; this.obstacles = [];
+    this.powerUps = []; this.enemyShots = []; this.platforms = []; this.obstacles = []; this.rocketShots = [];
     this.boss = null; this.shake = 0; this.bossAmmoTimer = 0;
     this.cam.x = 0; this.spawnTimer = 0; this.spawned = 0; this.spawnArmed = true;
     this.runCoins = 0; this.runKills = 0;
     this.ammo = ARENA_START_AMMO;
+    this.rockets = Storage.data.rockets;
     this.time = 0;
     this.theme = THEMES.arena;
     this.tutorials = []; this.tutorialMsg = ''; this.tutorialUntil = 0;
@@ -376,6 +378,22 @@ const Game = {
     this.shake = Math.max(this.shake, 8);
   },
 
+  // explosie (raketten): AoE-schade aan zombies, geen zelfschade
+  explodeAt(x, y, dmg) {
+    for (const z of this.zombies) {
+      if (z.alive && Math.abs(z.x - x) < ROCKET_AOE && Math.abs(z.cy - y) < ROCKET_AOE + 12) {
+        z.takeDamage(dmg, Math.sign(z.x - x) || 1, this, 14);
+      }
+    }
+    for (const o of this.obstacles) { if (o.type === 'barrel' && !o.dead && Math.abs(o.x - x) < ROCKET_AOE) this.explodeBarrel(o); }
+    for (let i = 0; i < 30; i++) {
+      const a = Math.random() * Math.PI * 2, sp = 1 + Math.random() * 5;
+      const col = Math.random() < 0.5 ? '#ff8a3a' : (Math.random() < 0.5 ? '#ffd24a' : '#888');
+      this.particles.push(new Particle(x, y, Math.cos(a) * sp, Math.sin(a) * sp - 1, col, 460, 3));
+    }
+    this.shake = Math.max(this.shake, 10);
+  },
+
   onPowerUp(kind, x) {
     const pu = POWERUPS[kind];
     for (let i = 0; i < 14; i++) {
@@ -400,6 +418,8 @@ const Game = {
     }
     // soms een EHBO-doosje (vaker in melee-levels via healMult)
     if (Math.random() < (z.type.healChance || 0) * (this.level.healMult || 1)) this.healthDrops.push(new HealthPickup(z.x));
+    // heel zeldzaam een raket — alleen als je de Rocket Launcher bezit
+    if (Storage.ownsWeapon('rocket') && Math.random() < ROCKET_DROP_CHANCE) this.ammoDrops.push(new RocketPickup(z.x));
     // zeldzaam een power-up
     if (Math.random() < POWERUP_DROP_CHANCE) {
       const kind = POWERUP_LIST[Math.floor(Math.random() * POWERUP_LIST.length)];
@@ -530,6 +550,7 @@ const Game = {
     for (const h of this.healthDrops) h.update(dt, this);
     for (const pu of this.powerUps) pu.update(dt, this);
     for (const es of this.enemyShots) es.update(dt, this);
+    for (const rk of this.rocketShots) rk.update(dt, this);
 
     // spikes/gaten: schade als je er op de grond op staat
     if (this.player.onGround && this.time - this.lastHazard > 500) {
@@ -557,6 +578,7 @@ const Game = {
     this.healthDrops = this.healthDrops.filter((h) => !h.dead);
     this.powerUps = this.powerUps.filter((pu) => !pu.dead);
     this.enemyShots = this.enemyShots.filter((es) => es.alive);
+    this.rocketShots = this.rocketShots.filter((rk) => rk.alive);
 
     // munt-animatie frame
     this.coinAnimTimer += dt;
@@ -620,6 +642,7 @@ const Game = {
     this.state = 'win';
     Storage.clearLevel(this.worldId, this.level.id);
     Storage.setAmmo(this.ammo);                  // kogel-eindstand blijft behouden
+    Storage.setRockets(this.rockets);            // raket-eindstand blijft behouden
     const total = this.runCoins + this.level.reward;
     Storage.addCoins(total);
     UI.showWin({ kills: this.runKills, coins: total });
@@ -835,7 +858,8 @@ const Game = {
     for (const d of this.ammoDrops) {
       if (d.life < 3000 && Math.floor(d.life / 150) % 2 === 0) continue;
       if (d.onGround) Sprites.shadow(ctx, d.x, CONFIG.GROUND_Y, 6);
-      Sprites.drawAmmoBox(ctx, d.x, d.y, d.bob);
+      if (d.isRocket) Sprites.drawRocketPickup(ctx, d.x, d.y, d.bob);
+      else Sprites.drawAmmoBox(ctx, d.x, d.y, d.bob);
     }
     // EHBO-doosjes
     for (const h of this.healthDrops) {
@@ -878,6 +902,8 @@ const Game = {
     for (const b of this.bullets) Sprites.drawBullet(ctx, b.x, b.y);
     // baas-projectielen (zuur)
     for (const es of this.enemyShots) Sprites.drawEnemyShot(ctx, es.x, es.y, es.spin);
+    // raketten
+    for (const rk of this.rocketShots) Sprites.drawRocket(ctx, rk.x, rk.y, rk.vx);
 
     // speler (Ryan) — schaduw op de grond, of op het platform bij parkour
     if (this.player.onGround) Sprites.shadow(ctx, this.player.x, this.level.parkour ? this.player.y + 1 : CONFIG.GROUND_Y, 7);
@@ -904,7 +930,8 @@ const Game = {
     ctx.textAlign = 'center';
     for (const a of this.ammoFx) {
       ctx.globalAlpha = Math.max(0, a.life / 800);
-      if (a.hp) { ctx.fillStyle = '#ff6b6b'; ctx.fillText('+' + a.hp + 'hp', a.x + 10, a.y); }
+      if (a.rocket) { ctx.fillStyle = '#ff8a3a'; ctx.fillText('+1 raket', a.x + 12, a.y); }
+      else if (a.hp) { ctx.fillStyle = '#ff6b6b'; ctx.fillText('+' + a.hp + 'hp', a.x + 10, a.y); }
       else if (a.n > 0) { ctx.fillStyle = '#ffe9a0'; ctx.fillText('+' + a.n, a.x + 10, a.y); }
     }
     ctx.globalAlpha = 1;

@@ -7,6 +7,7 @@ const SAVE_KEY = 'zombiedash_save_v1';
 const DEFAULT_SAVE = {
   coins: 0,
   ammo: 100,                // blijvende kogelvoorraad (carry-over tussen levels)
+  rockets: 0,               // blijvende raket-voorraad (Rocket Launcher)
   ownedWeapons: ['bat'],
   equippedMelee: 'bat',     // apart slot voor melee
   equippedRanged: null,     // apart slot voor vuurwapen (null = geen)
@@ -30,6 +31,7 @@ const Storage = {
       this.data.ownedCharacters = this.data.ownedCharacters || ['ryan'];
       this.data.progress = this.data.progress || { '1': 0 };
       if (typeof this.data.ammo !== 'number') this.data.ammo = STARTING_AMMO;
+      if (typeof this.data.rockets !== 'number') this.data.rockets = 0;
       if (typeof this.data.arenaBest !== 'number') this.data.arenaBest = 0;
       if (!this.data.arenaPlays) this.data.arenaPlays = { date: '', count: 0 };
       // migratie van oude opslag (één slot -> twee slots)
@@ -69,6 +71,14 @@ const Storage = {
     if (this.data.ammo >= AMMO_MAX) return false;
     if (!this.spendCoins(AMMO_PACK.cost)) return false;
     this.data.ammo = Math.min(AMMO_MAX, this.data.ammo + AMMO_PACK.amount);
+    this.save();
+    return true;
+  },
+  // ---- raketten ----
+  setRockets(n) { this.data.rockets = Math.max(0, Math.round(n)); this.save(); },
+  buyRocket() {
+    if (!this.spendCoins(ROCKET_COST)) return false;
+    this.data.rockets++;
     this.save();
     return true;
   },
