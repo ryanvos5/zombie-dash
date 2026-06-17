@@ -299,27 +299,27 @@ const Game = {
     if (!level.parkour && level.platforms) {
       let seed = level.id * 5179 + 11;
       const rnd = () => { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; };
-      let x = 240;                                  // eerste stuk = veilige vaste grond
-      while (x < level.length - 280) {
-        if (level.pits && rnd() < 0.55) {
-          // ravijn-gat: geen grond -> alleen oversteekbaar via platforms (val = dood)
-          const pitW = 72 + Math.floor(rnd() * 78);   // 72..150 breed
+      let x = 220;                                  // eerste stuk = veilige vaste grond
+      while (x < level.length - 240) {
+        if (level.pits && rnd() < 0.7) {
+          // groot ravijn-gat: geen grond -> alleen oversteekbaar via platforms (val = dood)
+          const pitW = 180 + Math.floor(rnd() * 220);  // 180..400 breed (flinke kloof)
           const x0 = Math.round(x), x1 = Math.round(x + pitW);
           this.pits.push({ x0, x1 });
-          // stapsteen-platforms over het gat (haalbaar met (dubbel-)jump)
-          const steps = Math.max(1, Math.round(pitW / 64));
+          // stapsteen-platforms over het gat (segmenten ~62px -> haalbaar met (dubbel-)jump)
+          const steps = Math.max(2, Math.round(pitW / 62));
           for (let s = 0; s < steps; s++) {
             const px = x0 + (pitW * (s + 0.5) / steps);
-            const py = CONFIG.GROUND_Y - (26 + Math.floor(rnd() * 38));   // 26..64 boven de grond
-            this.platforms.push({ x: Math.round(px), y: Math.round(py), w: Math.round(32 + rnd() * 18) });
+            const py = CONFIG.GROUND_Y - (24 + Math.floor(rnd() * 40));   // 24..64 boven de grond
+            this.platforms.push({ x: Math.round(px), y: Math.round(py), w: Math.round(34 + rnd() * 16) });
           }
-          x = x1 + 110 + Math.floor(rnd() * 120);     // vaste grond na het gat
+          x = x1 + 80 + Math.floor(rnd() * 90);        // korter stuk vaste grond na het gat
         } else {
           // los klim-/decoratief platform boven vaste grond
           const w = Math.round(40 + rnd() * 42);
           const py = Math.round(CONFIG.GROUND_Y - (30 + rnd() * 54));
           this.platforms.push({ x: Math.round(x), y: py, w });
-          x += w + 70 + Math.floor(rnd() * 100);
+          x += w + 60 + Math.floor(rnd() * 80);
         }
       }
       return;

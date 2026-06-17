@@ -391,8 +391,8 @@ function buildWorld3() {
       pits: true,                                        // ravijn-gaten: eronder vallen = dood (parkour nut)
       flyerChance: +(0.16 + t * 0.12).toFixed(2),        // af en toe vogels (0.16 -> 0.28)
       length,
-      zombieCount: Math.round(16 + i * 4),               // 16 -> 48
-      spawnEvery: Math.round(1700 - t * 650),            // 1700 -> 1050
+      zombieCount: Math.round(28 + i * 7),               // 28 -> 84 (veel meer zombies)
+      spawnEvery: Math.round(1300 - t * 600),            // 1300 -> 700 (sneller)
       zombieHp: Math.round(48 + i * 9),                  // 48 -> 120
       zombieSpeed: +(0.7 + t * 0.5).toFixed(2),          // 0.7 -> 1.20 (gecapt op MAX)
       runnerChance: +(0.10 + t * 0.22).toFixed(2),
@@ -400,7 +400,7 @@ function buildWorld3() {
       bruteChance: i >= 3 ? +(0.05 + t * 0.12).toFixed(2) : 0,
       doorChance: 0,                                     // jungle: zombies komen van rechts/uit het groen
       obstacleDensity: 0,                                // platforms i.p.v. straat-obstakels
-      maxAlive: Math.round(5 + i * 0.8),                 // 5 -> 11 tegelijk
+      maxAlive: Math.round(8 + i * 1.1),                 // 8 -> 18 tegelijk (drukker)
       reward: 90 + i * 20,                               // 90 -> 250
       midTime: Math.round(length * 12 + 6000),           // royale checkpoint-tijd (lang level)
     });
