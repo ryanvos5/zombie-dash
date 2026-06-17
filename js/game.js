@@ -524,8 +524,9 @@ const Game = {
       }
     }
 
-    // spawnen "wapenen" zodra de speler begint te lopen (rustige start, ook op boss-level)
-    if (!this.spawnArmed && (this.player.x > 76 || Input.state.left || Input.state.right)) this.spawnArmed = true;
+    // "wapenen" zodra de speler iets doet: lopen, schieten, slaan of springen
+    if (!this.spawnArmed && (this.player.x > 76 || Input.state.left || Input.state.right ||
+        Input.state.attack || Input.state.melee || Input.jumpPressed)) this.spawnArmed = true;
     this.updateSpawns(dt);
 
     // in de boss fight valt er regelmatig munitie uit de lucht boven de speler
