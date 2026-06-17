@@ -33,6 +33,7 @@ class Player {
     this.buffs = { rage: 0, speed: 0, shield: 0 }; // eindtijden van power-ups
     this.maxJumps = 1;   // wordt 2 in wereld 2 (dubbel-jump)
     this.jumps = 1;
+    this.jumping = false; // bezig met een (variabele) sprong
   }
 
   get height() { return this.ducking ? 20 : 29; }
@@ -90,6 +91,12 @@ class Player {
       this.vy = CONFIG.JUMP_VELOCITY;
       this.onGround = false;
       this.jumps--;
+      this.jumping = true;     // variabele spronghoogte: actief
+    }
+    // variabele spronghoogte: knop vroeg loslaten = sprong inkorten (lager springen)
+    if (this.jumping) {
+      if (this.vy >= 0) this.jumping = false;                 // top voorbij
+      else if (!inp.jump && this.vy < -6) { this.vy = -6; this.jumping = false; }
     }
     // zwaartekracht
     const prevFeetY = this.y;
