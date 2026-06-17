@@ -137,12 +137,13 @@ const ZOMBIE_TYPES = {
     ammoDrop: 14, ammoDropChance: 0.80, knockback: true, knockResist: 0.35, color: '#4e7c3a',
     knockPlayer: 14, healChance: 0.35,
   },
-  // mega-zombie eindbaas (level 10). Roept kleine zombies op.
+  // mega-zombie eindbaas (level 10). Roept kleine zombies op + spuugt projectielen.
   boss: {
     id: 'boss', hpMul: 1.0, speedMul: 0.32, dmg: 28, biteCd: 1200,
     reach: 16, lunge: true, lungeSpeed: 2.4, scale: 3.0, coin: 250,
     ammoDrop: 0, ammoDropChance: 0, knockback: true, knockResist: 0, // immuun voor knockback
     knockPlayer: 22, healChance: 0, spawner: true, color: '#3a6a2a',
+    shootEvery: 1250, shotSpeed: 3.6, shotDmg: 28, // zuur-projectielen: hard! spring eroverheen
   },
 };
 
@@ -156,7 +157,7 @@ const MAX_ZOMBIE_SPEED = 2.0;
 // EHBO-doosje geneest zo veel HP
 const HEALTH_PACK_HEAL = 28;
 // HP van de mega-zombie eindbaas
-const BOSS_HP = 1800;
+const BOSS_HP = 1700;
 
 /* ---------- THEMA'S (omgeving per wereldstuk) ----------
    sky: [boven, midden, onder]  far/near: gebouwkleuren  ground/groundTop: straat

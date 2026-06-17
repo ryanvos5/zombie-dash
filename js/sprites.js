@@ -504,6 +504,22 @@ const Sprites = {
     ctx.globalAlpha = 1;
   },
 
+  /* ---------- BAAS-PROJECTIEL (zuur) ---------- */
+  drawEnemyShot(ctx, x, y, spin) {
+    // gloed
+    ctx.globalAlpha = 0.3; ctx.fillStyle = '#8aff3a';
+    ctx.beginPath(); ctx.arc(x, y, 7, 0, Math.PI * 2); ctx.fill();
+    ctx.globalAlpha = 1;
+    // klodder
+    this.px(ctx, '#6abe30', x - 4, y - 3, 8, 6);
+    this.px(ctx, '#8aff3a', x - 3, y - 3, 5, 3);
+    this.px(ctx, '#3f7a18', x - 4, y + 2, 8, 1);
+    // spat-druppels (draaiend)
+    const o = Math.round(Math.sin(spin) * 2);
+    this.px(ctx, '#6abe30', x - 6, y + o, 2, 2);
+    this.px(ctx, '#6abe30', x + 4, y - o, 2, 2);
+  },
+
   /* ---------- KOGEL ---------- */
   drawBullet(ctx, x, y) {
     this.px(ctx, '#ffd24a', x, y, 4, 2);

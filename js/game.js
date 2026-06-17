@@ -7,7 +7,7 @@ const Game = {
   state: 'menu',          // menu | playing | paused | win | lose
   worldId: 1, level: null,
   player: null, zombies: [], bullets: [], particles: [], coinFx: [], ammoFx: [], ammoDrops: [], healthDrops: [], corpses: [], pendingZombies: [],
-  obstacles: [], powerUps: [],
+  obstacles: [], powerUps: [], enemyShots: [],
   boss: null, shake: 0, hordeLeft: 0, lastHazard: -9999,
   cam: { x: 0 },
   time: 0, dtScale: 1, lastTs: 0,
@@ -42,7 +42,7 @@ const Game = {
 
     this.player = new Player(Storage.data.equippedMelee, Storage.data.equippedRanged, Storage.data.equippedCharacter);
     this.zombies = []; this.bullets = []; this.particles = []; this.coinFx = []; this.ammoFx = []; this.ammoDrops = []; this.healthDrops = []; this.corpses = []; this.pendingZombies = [];
-    this.powerUps = [];
+    this.powerUps = []; this.enemyShots = [];
     this.boss = null; this.shake = 0; this.lastHazard = -9999;
     this.cam.x = 0;
     this.spawnTimer = 0; this.spawned = 0; this.spawnArmed = false;
@@ -316,6 +316,7 @@ const Game = {
     for (const d of this.ammoDrops) d.update(dt, this);
     for (const h of this.healthDrops) h.update(dt, this);
     for (const pu of this.powerUps) pu.update(dt, this);
+    for (const es of this.enemyShots) es.update(dt, this);
 
     // spikes/gaten: schade als je er op de grond op staat
     if (this.player.onGround && this.time - this.lastHazard > 500) {
@@ -341,6 +342,7 @@ const Game = {
     this.ammoDrops = this.ammoDrops.filter((d) => !d.dead);
     this.healthDrops = this.healthDrops.filter((h) => !h.dead);
     this.powerUps = this.powerUps.filter((pu) => !pu.dead);
+    this.enemyShots = this.enemyShots.filter((es) => es.alive);
 
     // munt-animatie frame
     this.coinAnimTimer += dt;
@@ -558,6 +560,8 @@ const Game = {
 
     // kogels
     for (const b of this.bullets) Sprites.drawBullet(ctx, b.x, b.y);
+    // baas-projectielen (zuur)
+    for (const es of this.enemyShots) Sprites.drawEnemyShot(ctx, es.x, es.y, es.spin);
 
     // speler (Ryan)
     if (this.player.onGround) Sprites.shadow(ctx, this.player.x, CONFIG.GROUND_Y, 7);

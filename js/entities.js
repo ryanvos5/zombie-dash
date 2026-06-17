@@ -207,6 +207,7 @@ class Zombie {
     this.lungeVx = 0;
 
     this.addTimer = 0; // timer voor de baas die adds oproept
+    this.shotTimer = 0; // timer voor baas-projectielen
 
     // hitbox (per type)
     this.reach = t.reach * t.scale;
@@ -214,17 +215,34 @@ class Zombie {
     else { this.cyOff = 16 * t.scale; this.halfH = 17 * t.scale; this.halfW = 7 * t.scale; }
   }
 
-  // baas roept kleine zombies op (max enkele tegelijk)
+  // baas roept kleine zombies op (max enkele tegelijk) — ook van achter de speler
   updateSpawner(dt, game) {
     this.addTimer += dt;
-    if (this.addTimer < 2600) return;
+    if (this.addTimer < 3200) return;
     this.addTimer = 0;
     const adds = game.zombies.filter((z) => z.alive && z.type.id !== 'boss').length;
-    if (adds >= 6) return;
+    if (adds >= 3) return;
     const type = Math.random() < 0.5 ? ZOMBIE_TYPES.walker : ZOMBIE_TYPES.runner;
-    const z = new Zombie(this.x - 20 + Math.random() * 40, game.level, type);
+    let sx;
+    if (Math.random() < 0.3) {
+      sx = Math.max(24, game.player.x - 45 - Math.random() * 25);  // achter de speler (verrassing)
+    } else {
+      sx = this.x - 20 + Math.random() * 40;                        // bij de baas
+    }
+    const z = new Zombie(sx, game.level, type);
     z.emerging = 250;
     game.pendingZombies.push(z); // na de update-lus toevoegen (veilig)
+  }
+
+  // baas spuugt zuur-projectielen naar de speler (sneller bij lage HP = enrage)
+  updateShooter(dt, game) {
+    const t = this.type;
+    this.shotTimer += dt;
+    const enrage = this.hp < this.maxHp * 0.4 ? 0.6 : 1;
+    if (this.shotTimer < t.shootEvery * enrage) return;
+    this.shotTimer = 0;
+    const dir = game.player.x < this.x ? -1 : 1;
+    game.enemyShots.push(new EnemyShot(this.x + dir * 22, CONFIG.GROUND_Y - 16, dir * t.shotSpeed, t.shotDmg));
   }
 
   get cy() { return this.y - this.cyOff; }
@@ -239,8 +257,9 @@ class Zombie {
 
     if (this.emerging > 0) this.emerging -= dt;
 
-    // de baas roept periodiek kleine zombies op
+    // de baas roept periodiek kleine zombies op + spuugt projectielen
     if (t.spawner) this.updateSpawner(dt, game);
+    if (t.shootEvery) this.updateShooter(dt, game);
 
     // zwaartekracht (voor springende crawlers)
     this.vy += CONFIG.GRAVITY * s;
@@ -366,6 +385,29 @@ class Bullet {
     }
     // explosief vat raken
     if (game.hitBarrels && game.hitBarrels(this.x, 10, game)) {
+      this.alive = false;
+    }
+  }
+}
+
+// vijandelijk projectiel (baas-zuur): spring eroverheen om te ontwijken
+class EnemyShot {
+  constructor(x, y, vx, dmg) {
+    this.x = x; this.y = y; this.vx = vx; this.dmg = dmg;
+    this.alive = true; this.life = 0; this.spin = 0;
+  }
+  update(dt, game) {
+    const s = game.dtScale;
+    this.x += this.vx * s;
+    this.life += dt; this.spin += dt * 0.02;
+    if (this.life > 4000 || this.x < 10 || this.x > game.level.length + 60) { this.alive = false; return; }
+    const p = game.player;
+    // raakt alleen als de speler niet hoog genoeg springt (spring = ontwijken)
+    const airHeight = CONFIG.GROUND_Y - p.y;
+    if (Math.abs(p.x - this.x) < 11 && airHeight < 22) {
+      p.takeDamage(this.dmg);
+      game.knockPlayer(Math.sign(this.vx), 8);
+      game.spawnBlood(this.x, this.y);
       this.alive = false;
     }
   }
