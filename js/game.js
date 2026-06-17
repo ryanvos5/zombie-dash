@@ -180,6 +180,7 @@ const Game = {
   // gaten met spikes (springen), en explosieve vaten (schieten)
   buildObstacles(level) {
     this.obstacles = [];
+    if (level.parkour) return;   // geen obstakels in de bergen (alleen platforms)
     let seed = level.id * 4099 + 31;
     const rnd = () => { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; };
     const density = level.obstacleDensity || 0.6;
@@ -213,7 +214,10 @@ const Game = {
       const gap = level.gapMin + rnd() * (level.gapMax - level.gapMin);
       const w = Math.max(34, level.platMin + rnd() * (level.platMax - level.platMin));
       x += gap + w / 2;
-      y += (rnd() - 0.5) * 2 * level.yJump;
+      // hoogteverschil: omhoog beperkt (altijd haalbaar met dubbel-jump), omlaag mag vrij
+      let dy = (rnd() - 0.5) * 2 * level.yJump;
+      if (dy < 0) dy = Math.max(dy, -18);
+      y += dy;
       y = Math.max(80, Math.min(CONFIG.GROUND_Y - 8, y));
       this.platforms.push({ x: Math.round(x), y: Math.round(y), w: Math.round(w) });
       x += w / 2;

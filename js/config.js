@@ -298,10 +298,11 @@ function buildWorld2() {
       zombieHp: Math.round(28 + i * 6),                 // 28 -> 76 (vogels zijn broos)
       zombieSpeed: +(0.8 + t * 0.5).toFixed(2),
       maxAlive: 2 + Math.floor(i / 3),                  // 2 -> 4 vogels tegelijk (niet te veel)
-      gapMin: 38 + i * 2, gapMax: 56 + i * 4,           // gaten 56 -> 88 (dubbel-jump haalt ~136)
-      platMin: 52 - i, platMax: 82 - i,                 // platforms iets smaller naar het eind
-      yJump: 16 + i * 2,                                // hoogteverschil tussen platforms
-      reward: 45 + i * 14,
+      // gaten: 66 -> 114. Enkele sprong haalt ~81, dus de grotere gaten VEREISEN dubbel-jump
+      gapMin: 44 + i * 3, gapMax: 66 + i * 6,
+      platMin: 48 - i, platMax: 74 - i,                 // smallere platforms (preciezer landen)
+      yJump: 18 + i * 3,                                // groter hoogteverschil (18 -> 42)
+      reward: 60 + i * 16,                              // munten bij het halen (60 -> 188)
     });
   }
   // level 10: BALLON-BOSS (parkour-arena, baas zweeft in een luchtballon)
