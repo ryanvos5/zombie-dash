@@ -551,6 +551,8 @@ const Game = {
       ducking: this.player.ducking,
       attacking: this.time < this.player.attackAnimUntil,
       weapon: swingingBat ? this.player.swingWeapon : this.player.weaponId,
+      build: this.player.build,
+      hair: this.player.hairStyle,
     });
 
     // zwevende munten

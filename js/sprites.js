@@ -15,10 +15,16 @@ const Sprites = {
      dir = 1 (rechts) of -1 (links),
      pose = { walkPhase, airborne, ducking, attacking, weapon } */
   drawCharacter(ctx, cx, footY, dir, pal, pose) {
-    const p = (c, x, y, w, h) => this.px(ctx, c, cx + x * dir - (dir < 0 ? w : 0), y, w, h);
     pose = pose || {};
     const duck = pose.ducking;
     const weapon = pose.weapon;
+    const bulky = pose.build === 'bulky';
+    const curly = pose.hair === 'curly';
+
+    // breedtes (fors = breder lijf)
+    const bh = bulky ? 6 : 5;   // halve romp-breedte
+    const hh = bulky ? 5 : 4;   // halve hoofd-breedte
+    const legW = bulky ? 4 : 3;
 
     // hoogtematen
     const legH = duck ? 4 : 9;
@@ -35,42 +41,54 @@ const Sprites = {
       const ph = pose.walkPhase || 0;
       swing = (ph === 1) ? 2 : (ph === 3) ? -2 : 0;
     }
-    // achterbeen
-    this.px(ctx, pal.pants, cx - 4, legTop, 3, legH);
-    this.px(ctx, pal.shoe, cx - 4 - swing, footY - 2, 4, 2);
-    // voorbeen
-    this.px(ctx, pal.pants, cx + 1, legTop, 3, legH);
-    this.px(ctx, pal.shoe, cx + 1 + swing, footY - 2, 4, 2);
+    this.px(ctx, pal.pants, cx - (legW + 1), legTop, legW, legH);          // achterbeen
+    this.px(ctx, pal.shoe, cx - (legW + 1) - swing, footY - 2, legW + 1, 2);
+    this.px(ctx, pal.pants, cx + 1, legTop, legW, legH);                   // voorbeen
+    this.px(ctx, pal.shoe, cx + 1 + swing, footY - 2, legW + 1, 2);
 
     // --- torso (shirt) ---
-    this.px(ctx, pal.shirt, cx - 5, torsoTop, 10, torsoH);
-    this.px(ctx, pal.shirtDark, cx - 5, torsoTop, 2, torsoH); // schaduw
+    this.px(ctx, pal.shirt, cx - bh, torsoTop, bh * 2, torsoH);
+    this.px(ctx, pal.shirtDark, cx - bh, torsoTop, 2, torsoH);             // schaduw
+    if (bulky) this.px(ctx, pal.shirtDark, cx - bh, torsoTop, bh * 2, 2);  // brede schouders
 
     // --- hoofd ---
-    this.px(ctx, pal.skin, cx - 4, headTop, 8, headH);
-    this.px(ctx, pal.skinDark, cx - 4, headTop, 2, headH);
-    // haar (natuurlijke look: bovenop + zijkanten + plukje)
-    this.px(ctx, pal.hair, cx - 5, headTop - 2, 10, 4);
-    this.px(ctx, pal.hair, cx - 5, headTop, 2, 4);             // links bakkebaard
-    this.px(ctx, pal.hair, cx + 3, headTop, 2, 4);             // rechts
-    this.px(ctx, pal.hairDark, cx - 5, headTop - 2, 10, 1);
-    this.px(ctx, pal.hair, cx + (dir > 0 ? 2 : -3), headTop - 3, 2, 2); // losse pluk
+    this.px(ctx, pal.skin, cx - hh, headTop, hh * 2, headH);
+    this.px(ctx, pal.skinDark, cx - hh, headTop, 2, headH);
+
+    // --- haar ---
+    if (curly) {
+      // bobbelige krullen bovenop + aan de zijkanten
+      for (let i = -hh - 1; i <= hh - 1; i += 2) {
+        this.px(ctx, pal.hair, cx + i, headTop - 3, 3, 4);
+        this.px(ctx, pal.hairDark, cx + i, headTop - 3, 3, 1);
+      }
+      this.px(ctx, pal.hair, cx - hh - 1, headTop, 2, 5);                  // linkerkrul
+      this.px(ctx, pal.hair, cx + hh - 1, headTop, 2, 5);                  // rechterkrul
+      this.px(ctx, pal.hair, cx - hh, headTop, hh * 2, 2);                 // pony
+    } else {
+      this.px(ctx, pal.hair, cx - hh - 1, headTop - 2, hh * 2 + 2, 4);
+      this.px(ctx, pal.hair, cx - hh - 1, headTop, 2, 4);                  // links bakkebaard
+      this.px(ctx, pal.hair, cx + hh - 1, headTop, 2, 4);                  // rechts
+      this.px(ctx, pal.hairDark, cx - hh - 1, headTop - 2, hh * 2 + 2, 1);
+      this.px(ctx, pal.hair, cx + (dir > 0 ? 2 : -3), headTop - 3, 2, 2);  // losse pluk
+    }
     // oog (kijkrichting)
     this.px(ctx, pal.eye, cx + (dir > 0 ? 1 : -2), headTop + 3, 2, 2);
 
     // --- arm + wapen ---
-    this.drawArmAndWeapon(ctx, cx, torsoTop, dir, pal, weapon, pose.attacking);
+    this.drawArmAndWeapon(ctx, cx, torsoTop, dir, pal, weapon, pose.attacking, bh);
   },
 
-  drawArmAndWeapon(ctx, cx, torsoTop, dir, pal, weaponId, attacking) {
+  drawArmAndWeapon(ctx, cx, torsoTop, dir, pal, weaponId, attacking, bh) {
     const armY = torsoTop + 3;
     const reach = attacking ? 9 : 5;
+    const sh = (bh || 5) - 2;   // schouder-offset (breder bij fors lijf)
     const w = WEAPONS[weaponId] || WEAPONS.bat;
 
     // arm (huidskleur)
-    this.px(ctx, pal.skin, cx + (dir > 0 ? 3 : -3 - reach), armY, reach + 3, 3);
+    this.px(ctx, pal.skin, cx + (dir > 0 ? sh : -sh - reach), armY, reach + 3, 3);
 
-    const handX = cx + (dir > 0 ? reach + 5 : -(reach + 5));
+    const handX = cx + (dir > 0 ? sh + reach + 2 : -(sh + reach + 2));
     const flip = dir;
 
     // wapen aan de hand

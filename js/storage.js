@@ -93,6 +93,21 @@ const Storage = {
     return w && (w.type === 'ranged' ? this.data.equippedRanged === id : this.data.equippedMelee === id);
   },
 
+  // ---- characters ----
+  ownsCharacter(id) { return this.data.ownedCharacters.includes(id); },
+  buyCharacter(id) {
+    const c = CHARACTERS[id];
+    if (!c || this.ownsCharacter(id)) return false;
+    if (!this.spendCoins(c.cost)) return false;
+    this.data.ownedCharacters.push(id);
+    this.save();
+    return true;
+  },
+  equipCharacter(id) {
+    if (!this.ownsCharacter(id)) return false;
+    this.data.equippedCharacter = id; this.save(); return true;
+  },
+
   // ---- levels ----
   highestCleared(worldId) { return this.data.progress[String(worldId)] || 0; },
   isLevelUnlocked(worldId, levelId) { return levelId <= this.highestCleared(worldId) + 1; },

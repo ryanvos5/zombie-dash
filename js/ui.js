@@ -16,7 +16,9 @@ const UI = {
       coinCount: $('coin-count'), weaponName: $('weapon-name'),
       ammoCount: $('ammo-count'), ammoNum: $('ammo-num'),
       menuCoins: $('menu-coin-count'), shopCoins: $('shop-coin-count'),
-      levelGrid: $('level-grid'), shopGrid: $('shop-grid'),
+      charCoins: $('char-coin-count'),
+      levelGrid: $('level-grid'), shopGrid: $('shop-grid'), charGrid: $('character-grid'),
+      character: $('character-screen'),
       winKills: $('win-kills'), winCoins: $('win-coins'),
       loseKills: $('lose-kills'), loseCoins: $('lose-coins'),
     };
@@ -24,6 +26,7 @@ const UI = {
     // menu knoppen
     $('btn-play').onclick = () => { this.renderLevels(); this.show('level'); };
     $('btn-shop').onclick = () => { this.renderShop(); this.show('shop'); };
+    $('btn-characters').onclick = () => { this.renderCharacters(); this.show('character'); };
     $('btn-win-shop').onclick = () => { this.renderShop(); this.show('shop'); };
     $('btn-next').onclick = () => Game.nextLevel();
     $('btn-retry').onclick = () => Game.retryLevel();
@@ -76,18 +79,11 @@ const UI = {
 
   // toon één scherm; regel HUD/touch/pauze zichtbaarheid
   show(name) {
-    ['menu', 'level', 'shop', 'win', 'lose'].forEach((s) => {
+    ['menu', 'level', 'shop', 'character', 'win', 'lose'].forEach((s) => {
       this.el[s].classList.toggle('hidden', s !== name);
     });
     const inGame = (name === 'game');
     document.body.classList.toggle('in-game', inGame);
-    if (name === 'game') {
-      this.el.menu.classList.add('hidden');
-      this.el.level.classList.add('hidden');
-      this.el.shop.classList.add('hidden');
-      this.el.win.classList.add('hidden');
-      this.el.lose.classList.add('hidden');
-    }
     this.el.hud.classList.toggle('hidden', !inGame);
     this.el.pause.classList.toggle('hidden', !inGame);
     this.el.touch.classList.toggle('hidden', !inGame || !Input.isTouch());
@@ -195,6 +191,60 @@ const UI = {
     aCard.appendChild(aInfo);
     aCard.appendChild(aBtn);
     grid.appendChild(aCard);
+  },
+
+  // ---------- CHARACTER SHOP ----------
+  renderCharacters() {
+    this.el.charCoins.textContent = Storage.data.coins;
+    const grid = this.el.charGrid;
+    grid.innerHTML = '';
+
+    CHARACTER_ORDER.forEach((cid) => {
+      const c = CHARACTERS[cid];
+      const owned = Storage.ownsCharacter(cid);
+      const equipped = Storage.data.equippedCharacter === cid;
+
+      const card = document.createElement('div');
+      card.className = 'shop-card' + (owned ? ' owned' : '');
+
+      // preview-tekening van het character
+      const canvas = document.createElement('canvas');
+      canvas.width = 110; canvas.height = 64;
+      const cctx = canvas.getContext('2d');
+      cctx.imageSmoothingEnabled = false;
+      cctx.save();
+      cctx.translate(55, 4); cctx.scale(1.4, 1.4);
+      Sprites.drawCharacter(cctx, 0, 38, 1, c.palette, {
+        weapon: 'bat', build: c.build, hair: c.hair,
+      });
+      cctx.restore();
+
+      // stats t.o.v. Ryan
+      const spd = c.speedMul >= 1 ? 'snel' : (c.speedMul >= 0.9 ? 'iets trager' : 'traag');
+      const mel = c.meleeMul > 1 ? `+${Math.round((c.meleeMul - 1) * 100)}%` : 'normaal';
+      const info = document.createElement('div');
+      info.innerHTML = `<div class="w-name">${c.name}</div>
+        <div class="w-stats">❤ <b>${c.maxHp}</b> · melee ${mel} · ${spd}<br>${c.desc}</div>`;
+
+      const btn = document.createElement('button');
+      btn.className = 'shop-buy';
+      if (equipped) {
+        btn.classList.add('equipped'); btn.textContent = 'UITGERUST';
+      } else if (owned) {
+        btn.classList.add('equip'); btn.textContent = 'UITRUSTEN';
+        btn.onclick = () => { Storage.equipCharacter(cid); this.renderCharacters(); };
+      } else if (Storage.data.coins >= c.cost) {
+        btn.classList.add('buy'); btn.textContent = `KOOP — ${c.cost} ●`;
+        btn.onclick = () => { if (Storage.buyCharacter(cid)) { Storage.equipCharacter(cid); this.renderCharacters(); } };
+      } else {
+        btn.classList.add('cant'); btn.textContent = `${c.cost} ● (te weinig)`;
+      }
+
+      card.appendChild(canvas);
+      card.appendChild(info);
+      card.appendChild(btn);
+      grid.appendChild(card);
+    });
   },
 
   // ---------- HUD (elke frame) ----------

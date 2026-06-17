@@ -10,21 +10,26 @@ class Player {
     this.vy = 0;
     this.onGround = true;
     this.dir = 1;
-    this.w = 12;
-    this.maxHp = 100;
-    this.hp = 100;
     this.meleeId = meleeId || 'bat';
     this.rangedId = rangedId || null;       // null = geen vuurwapen uitgerust
     // wapen dat standaard in de hand getoond wordt
     this.weaponId = this.rangedId || this.meleeId;
+    // character-eigenschappen
     this.charId = charId;
-    this.pal = CHARACTERS[charId].palette;
+    const ch = CHARACTERS[charId] || CHARACTERS.ryan;
+    this.pal = ch.palette;
+    this.build = ch.build || 'normal';
+    this.hairStyle = ch.hair || 'natural';
+    this.meleeMul = ch.meleeMul || 1;
+    this.maxHp = ch.maxHp || 100;
+    this.hp = this.maxHp;
+    this.speed = 2.2 * (ch.speedMul || 1);
+    this.w = this.build === 'bulky' ? 14 : 12;
     this.ducking = false;
     this.walkPhase = 0;
     this.walkTimer = 0;
     this.lastAttack = -9999;
     this.attackAnimUntil = 0;
-    this.speed = 2.2;
     this.buffs = { rage: 0, speed: 0, shield: 0 }; // eindtijden van power-ups
   }
 
@@ -128,7 +133,7 @@ class Player {
     this.swingWeapon = w.id;                 // welk wapen er nu gezwaaid wordt (voor de tekening)
     this.swingUntil = game.time + 140;
     const reach = w.range;
-    const dmg = w.damage * (this.hasBuff('rage', game.time) ? 2 : 1);
+    const dmg = w.damage * this.meleeMul * (this.hasBuff('rage', game.time) ? 2 : 1);
     for (const z of game.zombies) {
       if (!z.alive) continue;
       const dx = (z.x - this.x) * this.dir;

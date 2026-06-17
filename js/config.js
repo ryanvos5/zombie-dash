@@ -57,28 +57,37 @@ const WEAPONS = {
 const WEAPON_ORDER = ['bat', 'machete', 'pistol', 'uzi', 'ak47'];
 
 /* ---------- CHARACTERS ----------
-   palette wordt gebruikt door de sprite-tekenaar.
-   Later kun je hier nieuwe characters unlocken (cost > 0).
+   palette: kleuren voor de sprite-tekenaar
+   maxHp: levens   speedMul: loopsnelheid (1 = normaal)   meleeMul: melee-schade
+   build: 'normal' | 'bulky'   hair: 'natural' | 'curly'
 */
 const CHARACTERS = {
   ryan: {
     id: 'ryan', name: 'Ryan', cost: 0,
+    maxHp: 100, speedMul: 1.0, meleeMul: 1.0, build: 'normal', hair: 'natural',
     palette: {
-      hair: '#5a3a22',     // bruin haar
-      hairDark: '#3f2817',
-      skin: '#d8a878',
-      skinDark: '#b8895e',
-      eye: '#3a2414',      // bruine ogen
-      shirt: '#1c1c1c',    // zwarte kleding
-      shirtDark: '#0e0e0e',
-      pants: '#161616',
-      shoe: '#000000',
+      hair: '#5a3a22', hairDark: '#3f2817',
+      skin: '#d8a878', skinDark: '#b8895e',
+      eye: '#3a2414',                       // bruine ogen
+      shirt: '#1c1c1c', shirtDark: '#0e0e0e',
+      pants: '#161616', shoe: '#000000',
     },
-    desc: 'Bruin haar, bruine ogen, zwarte outfit.'
+    desc: 'Gebalanceerd. Snelste loper.'
   },
-  // voorbeeld voor later:
-  // max: { id:'max', name:'Max', cost: 500, palette:{...}, desc:'...' }
+  jenze: {
+    id: 'jenze', name: 'Jenze', cost: 450,
+    maxHp: 140, speedMul: 0.9, meleeMul: 1.3, build: 'bulky', hair: 'curly',
+    palette: {
+      hair: '#6b4426', hairDark: '#4a2e18',  // bruine krullen
+      skin: '#dcab7e', skinDark: '#bb8a5e',
+      eye: '#2f6fb0',                         // blauwe ogen
+      shirt: '#2a3340', shirtDark: '#1a2028', // stevige donkerblauwe outfit
+      pants: '#20262e', shoe: '#101418',
+    },
+    desc: 'Fors & taai: +40 HP, +30% melee, iets trager.'
+  },
 };
+const CHARACTER_ORDER = ['ryan', 'jenze'];
 
 /* ---------- LEVELS (Wereld 1: Verlaten Stad) ----------
    length: lengte van het level in px (hoe ver lopen)
