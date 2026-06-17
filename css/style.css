@@ -266,8 +266,6 @@ body.fs #fs-btn { color: var(--accent); border-color: var(--accent); }
   inset: 0;
   z-index: 40;
   display: flex;
-  align-items: center;
-  justify-content: center;
   background: radial-gradient(circle at 50% 30%, #1b2536, #0a0d12 80%);
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
@@ -277,6 +275,8 @@ body.fs #fs-btn { color: var(--accent); border-color: var(--accent); }
   padding-top: calc(20px + env(safe-area-inset-top));
   padding-bottom: calc(20px + env(safe-area-inset-bottom));
 }
+/* margin:auto centreert én is scroll-veilig (geen afgekapte titel bij overflow) */
+.screen-inner { margin: auto; }
 .screen-inner {
   text-align: center;
   width: min(720px, 100%);
@@ -379,6 +379,25 @@ body.fs #fs-btn { color: var(--accent); border-color: var(--accent); }
 .level-cell.cleared { border-color: var(--accent); }
 .level-cell .stars { font-size: 11px; color: var(--gold); margin-top: 2px; height: 12px; }
 .level-cell.locked .num::after { content: " 🔒"; font-size: 14px; }
+
+/* lage/landscape schermen: alles compacter zodat het binnen beeld past */
+@media (max-height: 520px) {
+  .screen-inner { padding: 8px; }
+  .screen-title { font-size: 22px; margin-bottom: 2px; }
+  .screen-sub { font-size: 10px; margin-bottom: 8px; }
+  .level-grid { gap: 8px; margin: 8px auto; max-width: 520px; }
+  .level-cell .num { font-size: 16px; }
+  .level-cell .stars { font-size: 9px; }
+  .level-cell .lvl-badge { font-size: 7px; top: 2px; }
+  .back-btn { margin-top: 10px; padding: 7px 16px; font-size: 12px; }
+  .game-title { font-size: 40px; }
+  .subtitle { margin: 6px 0 16px; }
+  .big-btn { padding: 11px; font-size: 16px; }
+  .menu-buttons { gap: 9px; }
+  .menu-coins, .shop-coins { margin-top: 12px; }
+  .shop-grid { gap: 8px; margin: 10px auto; max-width: 560px; }
+  .shop-card { padding: 9px; }
+}
 .level-cell .lvl-badge {
   position: absolute;
   top: 3px;
