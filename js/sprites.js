@@ -121,9 +121,60 @@ const Sprites = {
   drawZombie(ctx, cx, footY, dir, z) {
     const id = (z && z.type) ? z.type.id : 'walker';
     if (id === 'boss') return this.drawBoss(ctx, cx, footY, dir, z);
+    if (id === 'balloon') return this.drawBalloon(ctx, cx, footY, dir, z);
+    if (id === 'flyer') return this.drawFlyer(ctx, cx, footY, dir, z);
     if (id === 'brute') return this.drawBrute(ctx, cx, footY, dir, z);
     if (id === 'crawler') return this.drawCrawler(ctx, cx, footY, dir, z);
     return this.drawWalker(ctx, cx, footY, dir, z);
+  },
+
+  // gemuteerde zombie-vogel (cy = midden, want flyers hebben cyOff 0)
+  drawFlyer(ctx, cx, cy, dir, z) {
+    const flap = ((z && z.walkPhase) % 2 === 0) ? -3 : 1;
+    this.px(ctx, '#5a7a3a', cx - 7, cy - 1 + flap, 6, 2);   // vleugel achter
+    this.px(ctx, '#5a7a3a', cx + 1, cy - 1 + flap, 6, 2);   // vleugel voor
+    this.px(ctx, '#6a8c4a', cx - 4, cy - 3, 8, 6);          // lijf
+    this.px(ctx, '#4e6a32', cx - 4, cy + 2, 8, 1);          // buik-schaduw
+    this.px(ctx, '#2e3a22', cx - dir * 6, cy, 3, 2);        // staart
+    const hx = cx + dir * 4;                                 // kop richting speler
+    this.px(ctx, '#6a8c4a', hx - 1, cy - 4, 4, 4);
+    this.px(ctx, '#caa84a', hx + dir * 2, cy - 2, 2, 2);     // snavel
+    this.px(ctx, '#ff3838', hx + (dir > 0 ? 0 : 1), cy - 3, 1, 1); // rood oog
+    this.px(ctx, '#8a2222', cx - 1, cy, 2, 1);              // bloedvlek
+  },
+
+  // eindbaas: zombie in een luchtballon
+  drawBalloon(ctx, cx, cy, dir, z) {
+    // ballon-bol met strepen
+    const top = cy - 20;
+    ctx.fillStyle = '#b33a3a'; ctx.beginPath(); ctx.ellipse(cx, top, 19, 22, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#8a2626';
+    for (let i = -2; i <= 2; i++) this.px(ctx, '#8a2626', cx + i * 7 - 1, top - 20, 2, 40);
+    ctx.fillStyle = '#d9d0b0'; this.px(ctx, '#d9d0b0', cx - 4, top - 22, 8, 3); // bovenkapje
+    // touwen
+    this.px(ctx, '#2a2018', cx - 8, cy - 2, 1, 9);
+    this.px(ctx, '#2a2018', cx + 7, cy - 2, 1, 9);
+    // mand
+    this.px(ctx, '#6b4a2a', cx - 10, cy + 7, 20, 9);
+    this.px(ctx, '#54381f', cx - 10, cy + 13, 20, 3);
+    // zombie in de mand
+    this.px(ctx, '#4a7a2e', cx - 5, cy - 2, 10, 10);        // torso
+    this.px(ctx, '#5a8a3a', cx - 4, cy - 9, 8, 8);          // kop
+    this.px(ctx, '#3a5a22', cx - 4, cy - 10, 8, 2);         // haar
+    this.px(ctx, '#ff3030', cx + (dir > 0 ? 1 : -2), cy - 6, 2, 2); // rood oog
+    this.px(ctx, '#5a8a3a', cx + (dir > 0 ? 5 : -9), cy - 1, 4, 3); // gestrekte arm
+  },
+
+  // zwevend parkour-platform (rotsrichel)
+  drawPlatform(ctx, cx, y, w) {
+    const x = Math.round(cx - w / 2);
+    w = Math.round(w);
+    this.px(ctx, '#5c7e5a', x, y - 1, w, 2);     // mossige/grasrand bovenop
+    this.px(ctx, '#4a5e72', x, y + 1, w, 3);     // steen-topvlak
+    this.px(ctx, '#384a5c', x, y + 4, w, 9);     // steen-body
+    this.px(ctx, '#28323e', x, y + 11, w, 4);    // schaduw onderkant
+    this.px(ctx, '#2a3540', x + 3, y + 5, 2, 5); // textuur
+    this.px(ctx, '#2a3540', x + w - 6, y + 6, 2, 4);
   },
 
   // kleurvariatie per zombie

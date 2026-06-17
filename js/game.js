@@ -7,7 +7,7 @@ const Game = {
   state: 'menu',          // menu | playing | paused | win | lose
   worldId: 1, level: null,
   player: null, zombies: [], bullets: [], particles: [], coinFx: [], ammoFx: [], ammoDrops: [], healthDrops: [], corpses: [], pendingZombies: [],
-  obstacles: [], powerUps: [], enemyShots: [],
+  obstacles: [], powerUps: [], enemyShots: [], platforms: [],
   boss: null, shake: 0, hordeLeft: 0, lastHazard: -9999, bossAmmoTimer: 0,
   cam: { x: 0 },
   time: 0, dtScale: 1, lastTs: 0,
@@ -39,10 +39,14 @@ const Game = {
     const level = world.levels.find((l) => l.id === levelId);
     this.worldId = worldId;
     this.level = level;
+    UI.viewWorld = worldId; // level-select toont daarna deze wereld
 
     this.player = new Player(Storage.data.equippedMelee, Storage.data.equippedRanged, Storage.data.equippedCharacter);
+    // dubbel-jump vanaf wereld 2
+    this.player.maxJumps = worldId >= DOUBLE_JUMP_FROM_WORLD ? 2 : 1;
+    this.player.jumps = this.player.maxJumps;
     this.zombies = []; this.bullets = []; this.particles = []; this.coinFx = []; this.ammoFx = []; this.ammoDrops = []; this.healthDrops = []; this.corpses = []; this.pendingZombies = [];
-    this.powerUps = []; this.enemyShots = [];
+    this.powerUps = []; this.enemyShots = []; this.platforms = [];
     this.boss = null; this.shake = 0; this.lastHazard = -9999; this.bossAmmoTimer = 0;
     this.cam.x = 0;
     this.spawnTimer = 0; this.spawned = 0; this.spawnArmed = false;
@@ -54,11 +58,24 @@ const Game = {
 
     this.buildBackdrop(level);
     this.buildObstacles(level);
+    this.buildPlatforms(level);
 
-    // boss-level: plaats de mega-zombie rechts van de speler
+    // parkour: zet de speler op het startplatform
+    if (level.parkour && this.platforms.length) {
+      const p0 = this.platforms[0];
+      this.player.x = p0.x; this.player.y = p0.y; this.player.onGround = true;
+    }
+
+    // boss-level: plaats de eindbaas
     if (level.isBoss) {
-      const boss = new Zombie(this.player.x + 240, level, ZOMBIE_TYPES.boss);
-      boss.maxHp = BOSS_HP; boss.hp = BOSS_HP;
+      let boss;
+      if (level.balloonBoss) {
+        boss = new Zombie(this.player.x + 160, level, ZOMBIE_TYPES.balloon);
+        boss.maxHp = BALLOON_HP; boss.hp = BALLOON_HP; boss.y = 80;
+      } else {
+        boss = new Zombie(this.player.x + 240, level, ZOMBIE_TYPES.boss);
+        boss.maxHp = BOSS_HP; boss.hp = BOSS_HP;
+      }
       this.boss = boss;
       this.zombies.push(boss);
     }
@@ -104,6 +121,26 @@ const Game = {
     const rnd = () => { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; };
 
     const theme = THEMES[level.theme] || THEMES.city;
+
+    // berg-thema: driehoekige toppen i.p.v. gebouwen
+    if (theme.mountains) {
+      const far = [], near = [];
+      let mx = -80;
+      while (mx < level.length + 300) {
+        const w = 120 + Math.floor(rnd() * 120), h = 90 + Math.floor(rnd() * 80);
+        far.push({ x: mx, w, h, c: theme.far[Math.floor(rnd() * theme.far.length)] });
+        mx += w * 0.6;
+      }
+      mx = -60;
+      while (mx < level.length + 200) {
+        const w = 90 + Math.floor(rnd() * 90), h = 70 + Math.floor(rnd() * 90);
+        near.push({ x: mx, w, h, c: theme.near[Math.floor(rnd() * theme.near.length)], snow: rnd() > 0.5 });
+        mx += w * 0.55;
+      }
+      this.backdrop = { mountains: true, far, near, doors: [], lamps: [] };
+      return;
+    }
+
     // verre laag (donker, klein, sterke parallax)
     const far = [];
     const farColors = theme.far;
@@ -159,6 +196,42 @@ const Game = {
         this.obstacles.push({ type: 'barrel', x, w: 12, hp: 1, dead: false });
       }
       x += Math.round((150 + rnd() * 200) / density); // dichter bij hogere density
+    }
+  },
+
+  // zwevende parkour-platforms genereren (wereld 2). Gaten = ravijn (val = dood).
+  buildPlatforms(level) {
+    this.platforms = [];
+    if (!level.parkour) return;
+    let seed = level.id * 7321 + 17;
+    const rnd = () => { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; };
+    let y = CONFIG.GROUND_Y - 34;
+    // breed, veilig startplatform
+    this.platforms.push({ x: 44, y: y, w: 78 });
+    let x = 44 + 39;
+    while (x < level.length - 70) {
+      const gap = level.gapMin + rnd() * (level.gapMax - level.gapMin);
+      const w = Math.max(34, level.platMin + rnd() * (level.platMax - level.platMin));
+      x += gap + w / 2;
+      y += (rnd() - 0.5) * 2 * level.yJump;
+      y = Math.max(80, Math.min(CONFIG.GROUND_Y - 8, y));
+      this.platforms.push({ x: Math.round(x), y: Math.round(y), w: Math.round(w) });
+      x += w / 2;
+    }
+    // breed eindplatform bij de finish
+    this.platforms.push({ x: level.length, y: Math.max(92, Math.min(CONFIG.GROUND_Y - 12, y)), w: 86 });
+  },
+
+  // bergtop (driehoek) tekenen
+  drawPeak(ctx, sx, w, h, color, snow) {
+    const baseY = CONFIG.GROUND_Y, topY = baseY - h, cx = sx + w / 2;
+    ctx.fillStyle = color;
+    ctx.beginPath(); ctx.moveTo(sx, baseY); ctx.lineTo(cx, topY); ctx.lineTo(sx + w, baseY); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = 'rgba(0,0,0,0.18)';
+    ctx.beginPath(); ctx.moveTo(cx, topY); ctx.lineTo(sx + w, baseY); ctx.lineTo(cx, baseY); ctx.closePath(); ctx.fill();
+    if (snow) {
+      ctx.fillStyle = '#e8eef4';
+      ctx.beginPath(); ctx.moveTo(cx, topY); ctx.lineTo(cx - w * 0.13, topY + h * 0.2); ctx.lineTo(cx + w * 0.13, topY + h * 0.2); ctx.closePath(); ctx.fill();
     }
   },
 
@@ -275,6 +348,15 @@ const Game = {
     if (this.spawnTimer < interval) return;
     this.spawnTimer = 0;
 
+    // parkour-levels: alleen vliegende zombie-vogels (uit de lucht, rechts)
+    if (this.level.flyerOnly) {
+      const z = new Zombie(this.cam.x + CONFIG.VIEW_W + 20, this.level, ZOMBIE_TYPES.flyer);
+      z.y = 64 + Math.random() * 64;
+      this.zombies.push(z);
+      this.spawned++;
+      return;
+    }
+
     // probeer uit een deur in beeld te komen, anders vanaf de rechterkant
     let spawned = false;
     if (Math.random() < this.level.doorChance) {
@@ -371,6 +453,11 @@ const Game = {
     let target = this.player.x - CONFIG.VIEW_W * 0.35;
     this.cam.x = Math.max(0, Math.min(this.level.length - CONFIG.VIEW_W + 60, target));
 
+    // in het ravijn gevallen = direct dood (parkour)
+    if (this.level.parkour && this.player.y > FALL_DEATH_Y && this.state === 'playing') {
+      this.player.hp = 0;
+    }
+
     // win / verlies
     if (this.player.hp <= 0) {
       this.lose();
@@ -423,32 +510,49 @@ const Game = {
     ctx.save();
     ctx.translate(shx, shy);
 
-    // sterren (statisch t.o.v. lucht)
-    for (let i = 0; i < 40; i++) {
-      const sx = (i * 97) % W, sy = (i * 53) % 120;
-      Sprites.px(ctx, i % 5 ? '#3a4660' : '#aeb8d0', sx, sy, 1, 1);
+    if (!theme.mountains) {
+      // sterren (statisch t.o.v. lucht)
+      for (let i = 0; i < 40; i++) {
+        const sx = (i * 97) % W, sy = (i * 53) % 120;
+        Sprites.px(ctx, i % 5 ? '#3a4660' : '#aeb8d0', sx, sy, 1, 1);
+      }
+      // maan met gloed
+      ctx.globalAlpha = 0.18; Sprites.px(ctx, '#e8e2c8', W - 76, 24, 34, 34); ctx.globalAlpha = 1;
+      Sprites.px(ctx, '#e8e2c8', W - 70, 30, 22, 22);
+      Sprites.px(ctx, '#1a2438', W - 64, 26, 10, 22);
+    } else {
+      // berg-thema: zon + wolken
+      ctx.globalAlpha = 0.2; Sprites.px(ctx, '#fff0c0', W - 72, 22, 32, 32); ctx.globalAlpha = 1;
+      Sprites.px(ctx, '#ffe9a0', W - 66, 28, 20, 20);
+      ctx.globalAlpha = 0.5; ctx.fillStyle = '#cfe0ee';
+      for (let i = 0; i < 5; i++) { const cx2 = (i * 140 - this.cam.x * 0.15) % (W + 120) - 60, cy2 = 24 + (i % 3) * 18; ctx.fillRect(cx2, cy2, 34, 7); ctx.fillRect(cx2 + 8, cy2 - 4, 22, 7); }
+      ctx.globalAlpha = 1;
     }
-    // maan met gloed
-    ctx.globalAlpha = 0.18; Sprites.px(ctx, '#e8e2c8', W - 76, 24, 34, 34); ctx.globalAlpha = 1;
-    Sprites.px(ctx, '#e8e2c8', W - 70, 30, 22, 22);
-    Sprites.px(ctx, '#1a2438', W - 64, 26, 10, 22);
 
     if (!this.level) return;
 
-    // ---- verre gebouwen (sterke parallax) ----
+    // ---- verre laag (sterke parallax) ----
     const camFar = this.cam.x * 0.35;
     for (const b of this.backdrop.far) {
       const sx = b.x - camFar;
       if (sx + b.w < 0 || sx > W) continue;
-      Sprites.px(ctx, b.c, sx, CONFIG.GROUND_Y - b.h, b.w, b.h);
+      if (this.backdrop.mountains) this.drawPeak(ctx, sx, b.w, b.h, b.c, false);
+      else Sprites.px(ctx, b.c, sx, CONFIG.GROUND_Y - b.h, b.w, b.h);
     }
     // mist-strook tussen lagen
     ctx.globalAlpha = 0.25;
-    Sprites.px(ctx, '#2a3346', 0, CONFIG.GROUND_Y - 40, W, 40);
+    Sprites.px(ctx, theme.mountains ? '#9fb6cc' : '#2a3346', 0, CONFIG.GROUND_Y - 40, W, 40);
     ctx.globalAlpha = 1;
 
-    // ---- nabije gebouwen (lichte parallax) met ramen + deuren ----
+    // ---- nabije laag (lichte parallax) ----
     const camNear = this.cam.x * 0.82;
+    if (this.backdrop.mountains) {
+      for (const b of this.backdrop.near) {
+        const sx = b.x - camNear;
+        if (sx + b.w < -10 || sx > W + 10) continue;
+        this.drawPeak(ctx, sx, b.w, b.h, b.c, b.snow);
+      }
+    } else
     for (const b of this.backdrop.near) {
       const sx = b.x - camNear;
       if (sx + b.w < -10 || sx > W + 10) continue;
@@ -484,38 +588,49 @@ const Game = {
     ctx.save();
     ctx.translate(-this.cam.x, 0);
 
-    // stoep + straat (thema-kleuren)
-    Sprites.px(ctx, theme.groundTop, this.cam.x, CONFIG.GROUND_Y, W, 6);    // stoeprand
-    Sprites.px(ctx, theme.ground, this.cam.x, CONFIG.GROUND_Y + 6, W, H);   // ondergrond
-    Sprites.px(ctx, theme.lamp, this.cam.x, CONFIG.GROUND_Y, W, 1);         // lichte rand
-    ctx.globalAlpha = 0.25;
-    Sprites.px(ctx, theme.lamp, this.cam.x, CONFIG.GROUND_Y + 1, W, 1);
-    ctx.globalAlpha = 1;
-    for (let gx = Math.floor(this.cam.x / 30) * 30; gx < this.cam.x + W; gx += 30) {
-      Sprites.px(ctx, theme.groundTop, gx, CONFIG.GROUND_Y + 16, 14, 2);    // strepen/tegels
-      Sprites.px(ctx, '#00000033', gx + 7, CONFIG.GROUND_Y + 26, 2, 2);     // gruis
-    }
-
-    // straatlantaarns + lichtpoel
-    for (const lp of this.backdrop.lamps) {
-      if (lp.x < this.cam.x - 20 || lp.x > this.cam.x + W + 20) continue;
-      Sprites.px(ctx, '#2a2e36', lp.x, CONFIG.GROUND_Y - 54, 3, 54);        // paal
-      Sprites.px(ctx, '#2a2e36', lp.x - 6, CONFIG.GROUND_Y - 54, 14, 3);    // arm
-      Sprites.px(ctx, theme.lamp, lp.x - 7, CONFIG.GROUND_Y - 52, 5, 4);    // lamp
-      ctx.globalAlpha = 0.10;
-      ctx.fillStyle = theme.lamp;
-      ctx.beginPath();
-      ctx.moveTo(lp.x - 5, CONFIG.GROUND_Y - 50);
-      ctx.lineTo(lp.x - 26, CONFIG.GROUND_Y + 6);
-      ctx.lineTo(lp.x + 22, CONFIG.GROUND_Y + 6);
-      ctx.closePath(); ctx.fill();
+    if (this.level.parkour) {
+      // ravijn: donkere afgrond onderin (val = dood)
+      Sprites.px(ctx, '#0c121c', this.cam.x, CONFIG.GROUND_Y - 2, W, H);
+      ctx.globalAlpha = 0.6; Sprites.px(ctx, '#05070c', this.cam.x, CONFIG.GROUND_Y + 22, W, H); ctx.globalAlpha = 1;
+      // zwevende platforms
+      for (const pf of this.platforms) {
+        if (pf.x + pf.w / 2 < this.cam.x - 12 || pf.x - pf.w / 2 > this.cam.x + W + 12) continue;
+        Sprites.drawPlatform(ctx, pf.x, pf.y, pf.w);
+      }
+    } else {
+      // stoep + straat (thema-kleuren)
+      Sprites.px(ctx, theme.groundTop, this.cam.x, CONFIG.GROUND_Y, W, 6);    // stoeprand
+      Sprites.px(ctx, theme.ground, this.cam.x, CONFIG.GROUND_Y + 6, W, H);   // ondergrond
+      Sprites.px(ctx, theme.lamp, this.cam.x, CONFIG.GROUND_Y, W, 1);         // lichte rand
+      ctx.globalAlpha = 0.25;
+      Sprites.px(ctx, theme.lamp, this.cam.x, CONFIG.GROUND_Y + 1, W, 1);
       ctx.globalAlpha = 1;
+      for (let gx = Math.floor(this.cam.x / 30) * 30; gx < this.cam.x + W; gx += 30) {
+        Sprites.px(ctx, theme.groundTop, gx, CONFIG.GROUND_Y + 16, 14, 2);    // strepen/tegels
+        Sprites.px(ctx, '#00000033', gx + 7, CONFIG.GROUND_Y + 26, 2, 2);     // gruis
+      }
+      // straatlantaarns + lichtpoel
+      for (const lp of this.backdrop.lamps) {
+        if (lp.x < this.cam.x - 20 || lp.x > this.cam.x + W + 20) continue;
+        Sprites.px(ctx, '#2a2e36', lp.x, CONFIG.GROUND_Y - 54, 3, 54);
+        Sprites.px(ctx, '#2a2e36', lp.x - 6, CONFIG.GROUND_Y - 54, 14, 3);
+        Sprites.px(ctx, theme.lamp, lp.x - 7, CONFIG.GROUND_Y - 52, 5, 4);
+        ctx.globalAlpha = 0.10;
+        ctx.fillStyle = theme.lamp;
+        ctx.beginPath();
+        ctx.moveTo(lp.x - 5, CONFIG.GROUND_Y - 50);
+        ctx.lineTo(lp.x - 26, CONFIG.GROUND_Y + 6);
+        ctx.lineTo(lp.x + 22, CONFIG.GROUND_Y + 6);
+        ctx.closePath(); ctx.fill();
+        ctx.globalAlpha = 1;
+      }
     }
 
-    // finish — stok met wapperende vlag (laatste level = doodskop-variant)
+    // finish — stok met wapperende vlag (op het eindplatform bij parkour)
     const fx = this.level.length;
     const isLast = this.level.id === WORLDS.find((w) => w.id === this.worldId).levels.length;
-    Sprites.drawFlag(ctx, fx, CONFIG.GROUND_Y, this.time, isLast);
+    const flagY = (this.level.parkour && this.platforms.length) ? this.platforms[this.platforms.length - 1].y : CONFIG.GROUND_Y;
+    if (!this.level.isBoss) Sprites.drawFlag(ctx, fx, flagY, this.time, isLast);
 
     // partikels (achter entiteiten)
     for (const p of this.particles) {
@@ -583,8 +698,8 @@ const Game = {
     // baas-projectielen (zuur)
     for (const es of this.enemyShots) Sprites.drawEnemyShot(ctx, es.x, es.y, es.spin);
 
-    // speler (Ryan)
-    if (this.player.onGround) Sprites.shadow(ctx, this.player.x, CONFIG.GROUND_Y, 7);
+    // speler (Ryan) — schaduw op de grond, of op het platform bij parkour
+    if (this.player.onGround) Sprites.shadow(ctx, this.player.x, this.level.parkour ? this.player.y + 1 : CONFIG.GROUND_Y, 7);
     const swingingBat = this.time < (this.player.swingUntil || 0) && this.player.swingWeapon;
     Sprites.drawCharacter(ctx, this.player.x, this.player.y, this.player.dir, this.player.pal, {
       walkPhase: this.player.walkPhase,
@@ -624,9 +739,10 @@ const Game = {
       ctx.fillStyle = '#3a0d0d'; ctx.fillRect(bx, by, bw, 5);
       ctx.fillStyle = '#d94343'; ctx.fillRect(bx, by, bw * Math.max(0, this.boss.hp / this.boss.maxHp), 5);
       ctx.fillStyle = '#ff8a8a'; ctx.font = 'bold 8px "Courier New", monospace';
-      ctx.textAlign = 'center'; ctx.fillText('☠ MEGA ZOMBIE ☠', W / 2, by - 4);
+      ctx.textAlign = 'center';
+      ctx.fillText(this.level.balloonBoss ? '🎈 BALLON ZOMBIE 🎈' : '☠ MEGA ZOMBIE ☠', W / 2, by - 4);
       ctx.fillStyle = '#ffd24a'; ctx.font = '7px "Courier New", monospace';
-      ctx.fillText('▼ raak alleen het HOOFD — spring!', W / 2, by + 15);
+      ctx.fillText(this.level.balloonBoss ? 'spring en schiet de ballon neer!' : '▼ raak alleen het HOOFD — spring!', W / 2, by + 15);
       ctx.textAlign = 'left';
     }
 

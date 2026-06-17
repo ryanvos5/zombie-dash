@@ -104,9 +104,27 @@ const UI = {
     if (name === 'menu') this.el.menuCoins.textContent = Storage.data.coins;
   },
 
+  // wereld 2 is pas open als wereld 1 (incl. boss) is uitgespeeld
+  worldUnlocked(worldId) { return worldId === 1 || Storage.highestCleared(worldId - 1) >= 10; },
+
   // ---------- LEVEL SELECT ----------
   renderLevels() {
-    const world = WORLDS[0];
+    if (!this.viewWorld || !this.worldUnlocked(this.viewWorld)) this.viewWorld = 1;
+    // wereld-tabs
+    const tabs = document.getElementById('world-tabs');
+    tabs.innerHTML = '';
+    WORLDS.forEach((w) => {
+      const open = this.worldUnlocked(w.id);
+      const tab = document.createElement('button');
+      tab.className = 'world-tab' + (w.id === this.viewWorld ? ' active' : '') + (open ? '' : ' locked');
+      tab.textContent = open ? ('Wereld ' + w.id) : ('Wereld ' + w.id + ' 🔒');
+      if (open) tab.onclick = () => { this.viewWorld = w.id; this.renderLevels(); };
+      tabs.appendChild(tab);
+    });
+
+    const world = WORLDS.find((w) => w.id === this.viewWorld);
+    document.getElementById('world-sub').textContent = 'Wereld ' + world.id + ' — ' + world.name;
+
     const grid = this.el.levelGrid;
     grid.innerHTML = '';
     const cleared = Storage.highestCleared(world.id);
@@ -117,7 +135,8 @@ const UI = {
       cell.className = 'level-cell' + (unlocked ? '' : ' locked') + (isCleared ? ' cleared' : '');
       const badge = lv.mode === 'horde' ? '<div class="lvl-badge">HORDE</div>'
         : lv.mode === 'melee' ? '<div class="lvl-badge">MELEE</div>'
-        : lv.mode === 'boss' ? '<div class="lvl-badge boss">BOSS</div>' : '';
+        : lv.mode === 'boss' ? '<div class="lvl-badge boss">BOSS</div>'
+        : lv.parkour ? '<div class="lvl-badge">PARKOUR</div>' : '';
       cell.innerHTML = `${badge}<div class="num">${lv.id}</div><div class="stars">${isCleared ? '★' : ''}</div>`;
       if (unlocked) cell.onclick = () => Game.startLevel(world.id, lv.id);
       grid.appendChild(cell);

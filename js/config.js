@@ -145,6 +145,19 @@ const ZOMBIE_TYPES = {
     knockPlayer: 22, healChance: 0, spawner: true, color: '#3a6a2a',
     shootEvery: 1600, shotSpeed: 3.4, shotDmg: 14, // zuur-projectielen: spring eroverheen
   },
+  // gemuteerde zombie-vogel (wereld 2): vliegt, dook naar de speler
+  flyer: {
+    id: 'flyer', hpMul: 0.5, speedMul: 1.25, dmg: 9, biteCd: 800,
+    reach: 18, lunge: false, scale: 1.0, coin: 13, ammoDrop: 5, ammoDropChance: 0.45,
+    flying: true, color: '#6a8c4a', knockChance: 0.12, knockPlayer: 5, healChance: 0.06,
+  },
+  // eindbaas wereld 2: zombie in een luchtballon (zweeft, gooit bommen, roept vogels op)
+  balloon: {
+    id: 'balloon', hpMul: 1.0, speedMul: 0.45, dmg: 22, biteCd: 1400,
+    reach: 22, lunge: false, scale: 1.0, coin: 350, ammoDrop: 0, ammoDropChance: 0,
+    flying: true, boss: true, knockback: true, knockResist: 0,
+    spawner: true, shootEvery: 1700, shotSpeed: 3.2, shotDmg: 16, color: '#3a6a2a',
+  },
 };
 
 // munitie: beginvoorraad bij een nieuw spel (blijft daarna behouden tussen levels)
@@ -158,6 +171,12 @@ const MAX_ZOMBIE_SPEED = 2.0;
 const HEALTH_PACK_HEAL = 28;
 // HP van de mega-zombie eindbaas
 const BOSS_HP = 1000;
+// HP van de ballon-eindbaas (wereld 2)
+const BALLOON_HP = 900;
+// vanaf deze wereld kun je dubbel springen
+const DOUBLE_JUMP_FROM_WORLD = 2;
+// onder deze y val je in het ravijn (instant dood) — alleen in parkour-levels
+const FALL_DEATH_Y = CONFIG.VIEW_H - 2;
 
 /* ---------- THEMA'S (omgeving per wereldstuk) ----------
    sky: [boven, midden, onder]  far/near: gebouwkleuren  ground/groundTop: straat
@@ -186,6 +205,14 @@ const THEMES = {
     sky: ['#0e1416', '#13201f', '#182826'], far: ['#142022', '#172a2c', '#101e20'],
     near: ['#1f3034', '#244044', '#1a2e30', '#284044'], ground: '#1a201f', groundTop: '#243030',
     lamp: '#7affd0', weather: 'rain',
+  },
+  mountain: {
+    name: 'De Bergen',
+    sky: ['#2a3e5e', '#456589', '#7fa0bd'],            // berglucht (ochtendgloren)
+    far: ['#3c5070', '#34465f', '#46607f'],            // verre toppen
+    near: ['#4a627e', '#3e5169', '#56708c', '#48607a'],// dichtere bergen
+    ground: '#2a3850', groundTop: '#3a4e68',
+    lamp: '#ffe6a0', weather: null, mountains: true,
   },
 };
 
@@ -254,6 +281,42 @@ function buildWorld1() {
   return levels;
 }
 
+/* ---------- WERELD 2: DE BERGEN (parkour) ----------
+   parkour: true  -> platforms in de lucht, val = dood (ravijn), dubbel-jump aan
+   flyerOnly: true -> alleen vliegende zombie-vogels (af en toe)
+   gap/platW/yRange sturen de platform-generator in game.buildPlatforms() */
+function buildWorld2() {
+  const levels = [];
+  for (let i = 0; i < 9; i++) {
+    const t = i / 8;
+    levels.push({
+      id: i + 1, name: 'Berg ' + (i + 1), theme: 'mountain', mode: 'reach',
+      parkour: true, flyerOnly: true,
+      length: Math.round(1500 + i * 220),               // 1500 -> 3260
+      zombieCount: 999,                                  // doorlopend (vogels)
+      spawnEvery: Math.round(3000 - t * 1100),          // 3000ms -> 1900ms (af en toe)
+      zombieHp: Math.round(28 + i * 6),                 // 28 -> 76 (vogels zijn broos)
+      zombieSpeed: +(0.8 + t * 0.5).toFixed(2),
+      maxAlive: 2 + Math.floor(i / 3),                  // 2 -> 4 vogels tegelijk (niet te veel)
+      gapMin: 38 + i * 2, gapMax: 56 + i * 4,           // gaten 56 -> 88 (dubbel-jump haalt ~136)
+      platMin: 52 - i, platMax: 82 - i,                 // platforms iets smaller naar het eind
+      yJump: 16 + i * 2,                                // hoogteverschil tussen platforms
+      reward: 45 + i * 14,
+    });
+  }
+  // level 10: BALLON-BOSS (parkour-arena, baas zweeft in een luchtballon)
+  levels.push({
+    id: 10, name: 'BALLON BOSS', theme: 'mountain', mode: 'boss', isBoss: true,
+    parkour: true, balloonBoss: true,
+    length: 1300, zombieCount: 0, spawnEvery: 999999,
+    zombieHp: 34, zombieSpeed: 1.1, maxAlive: 4,
+    gapMin: 40, gapMax: 60, platMin: 70, platMax: 100, yJump: 18,
+    reward: 400,
+  });
+  return levels;
+}
+
 const WORLDS = [
   { id: 1, name: 'Verlaten Stad', levels: buildWorld1() },
+  { id: 2, name: 'De Bergen', levels: buildWorld2() },
 ];

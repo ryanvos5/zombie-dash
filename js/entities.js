@@ -31,6 +31,8 @@ class Player {
     this.lastAttack = -9999;
     this.attackAnimUntil = 0;
     this.buffs = { rage: 0, speed: 0, shield: 0 }; // eindtijden van power-ups
+    this.maxJumps = 1;   // wordt 2 in wereld 2 (dubbel-jump)
+    this.jumps = 1;
   }
 
   get height() { return this.ducking ? 20 : 29; }
@@ -83,13 +85,15 @@ class Player {
     // botsing met obstakels (auto's blokkeren staand, lage balken blokkeren tenzij je duikt)
     if (game.obstacles) this.resolveObstacles(game, prevX);
 
-    // springen
-    if (Input.jumpPressed && this.onGround && !this.ducking) {
+    // springen (met dubbel-jump vanaf wereld 2)
+    if (Input.jumpPressed && !this.ducking && this.jumps > 0) {
       this.vy = CONFIG.JUMP_VELOCITY;
       this.onGround = false;
+      this.jumps--;
     }
     // zwaartekracht
     const prevFeetY = this.y;
+    const wasGround = this.onGround;
     this.onGround = false;
     this.vy += CONFIG.GRAVITY * s;
     this.y += this.vy * s;
@@ -103,10 +107,20 @@ class Player {
         }
       }
     }
-    // gewone grond
-    if (this.y >= CONFIG.GROUND_Y) {
+    // op zwevende parkour-platforms landen (eenrichtings)
+    if (this.vy >= 0 && game.platforms) {
+      for (const pf of game.platforms) {
+        if (Math.abs(this.x - pf.x) < pf.w / 2 + this.w / 2 && prevFeetY <= pf.y + 3 && this.y >= pf.y) {
+          this.y = pf.y; this.vy = 0; this.onGround = true;
+        }
+      }
+    }
+    // gewone grond (NIET in parkour-levels — daar is een ravijn)
+    if (!game.level.parkour && this.y >= CONFIG.GROUND_Y) {
       this.y = CONFIG.GROUND_Y; this.vy = 0; this.onGround = true;
     }
+    // bij landing de sprongen weer opladen
+    if (this.onGround) this.jumps = this.maxJumps;
 
     // loop-animatie
     if (moving && this.onGround) {
@@ -225,6 +239,16 @@ class Zombie {
 
     // zwakke plek (alleen de baas): je kunt 'm enkel op het HOOFD raken
     if (t.id === 'boss') { this.weakTop = -98; this.weakBot = -44; this.weakHalfW = 16; }
+
+    // vliegende types: starten in de lucht met een eigen (centraal) hitbox
+    if (t.flying) {
+      this.onGround = false;
+      this.y = 90;
+      this.cyOff = 0;
+      this.halfH = t.boss ? 24 : 11;
+      this.halfW = t.boss ? 22 : 11;
+      this.reach = t.reach;
+    }
   }
 
   // is een treffer op positie (px,py) een kop-treffer? (alleen voor de baas)
@@ -247,20 +271,36 @@ class Zombie {
     } else {
       sx = this.x - 20 + Math.random() * 40;                        // bij de baas
     }
-    const z = new Zombie(sx, game.level, type);
+    let z;
+    if (this.type.id === 'balloon') {
+      // ballon roept zombie-vogels op (in de lucht)
+      z = new Zombie(game.player.x + (Math.random() - 0.5) * 120, game.level, ZOMBIE_TYPES.flyer);
+      z.y = 70 + Math.random() * 50;
+    } else {
+      z = new Zombie(sx, game.level, type);
+    }
     z.emerging = 250;
     game.pendingZombies.push(z); // na de update-lus toevoegen (veilig)
   }
 
-  // baas spuugt zuur-projectielen naar de speler (sneller bij lage HP = enrage)
+  // baas spuugt projectielen — grond-baas spuugt zuur, ballon dropt bommen op de speler
   updateShooter(dt, game) {
     const t = this.type;
     this.shotTimer += dt;
     const enrage = this.hp < this.maxHp * 0.4 ? 0.6 : 1;
     if (this.shotTimer < t.shootEvery * enrage) return;
     this.shotTimer = 0;
-    const dir = game.player.x < this.x ? -1 : 1;
-    game.enemyShots.push(new EnemyShot(this.x + dir * 22, CONFIG.GROUND_Y - 16, dir * t.shotSpeed, t.shotDmg));
+    const p = game.player;
+    if (t.flying) {
+      // ballon: bom richting de speler (ontwijk door weg te bewegen)
+      const dxp = p.x - this.x, dyp = (p.y - 16) - this.y, d = Math.hypot(dxp, dyp) || 1;
+      const sh = new EnemyShot(this.x, this.y + 8, (dxp / d) * t.shotSpeed, t.shotDmg);
+      sh.vyShot = (dyp / d) * t.shotSpeed; sh.aimed = true;
+      game.enemyShots.push(sh);
+    } else {
+      const dir = p.x < this.x ? -1 : 1;
+      game.enemyShots.push(new EnemyShot(this.x + dir * 22, CONFIG.GROUND_Y - 16, dir * t.shotSpeed, t.shotDmg));
+    }
   }
 
   get cy() { return this.y - this.cyOff; }
@@ -278,6 +318,33 @@ class Zombie {
     // de baas roept periodiek kleine zombies op + spuugt projectielen
     if (t.spawner) this.updateSpawner(dt, game);
     if (t.shootEvery) this.updateShooter(dt, game);
+
+    // ---- VLIEGENDE types (zombie-vogels & ballon-baas) ----
+    if (t.flying) {
+      this.onGround = false;
+      this.dir = player.x < this.x ? -1 : 1;
+      if (t.boss) {
+        // ballon: zweef hoog, drift langzaam zodat hij ~boven de speler blijft + bobt
+        const targetY = 80 + Math.sin(game.time / 800) * 10;
+        this.y += Math.max(-0.6 * s, Math.min(0.6 * s, targetY - this.y));
+        if (Math.abs(this.x - player.x) > 50) this.x += this.dir * this.speed * s;
+        else this.x += Math.sin(game.time / 1000) * 0.4 * s;
+      } else {
+        // vogel: duik richting de speler (x én y), met wat gewiebel
+        const dxp = player.x - this.x, dyp = (player.y - 16) - this.y;
+        const d = Math.hypot(dxp, dyp) || 1;
+        this.x += (dxp / d) * this.speed * s;
+        this.y += (dyp / d) * this.speed * 0.65 * s + Math.sin(game.time / 180 + this.tint) * 0.4;
+        if (Math.abs(player.x - this.x) < this.reach && Math.abs((player.y - 16) - this.y) < 18 &&
+            game.time - this.lastBite > t.biteCd) {
+          this.bite(game, player);
+        }
+      }
+      this.walkTimer += dt;
+      if (this.walkTimer > 110) { this.walkTimer = 0; this.walkPhase = (this.walkPhase + 1) % 4; }
+      if (this.hitFlash > 0) this.hitFlash -= dt;
+      return;
+    }
 
     // zwaartekracht (voor springende crawlers)
     this.vy += CONFIG.GRAVITY * s;
@@ -424,23 +491,31 @@ class Bullet {
   }
 }
 
-// vijandelijk projectiel (baas-zuur): spring eroverheen om te ontwijken
+// vijandelijk projectiel. grond-zuur: spring eroverheen. aimed (ballon-bom): ontwijk door weg te bewegen.
 class EnemyShot {
   constructor(x, y, vx, dmg) {
-    this.x = x; this.y = y; this.vx = vx; this.dmg = dmg;
+    this.x = x; this.y = y; this.vx = vx; this.vyShot = 0; this.dmg = dmg;
+    this.aimed = false;
     this.alive = true; this.life = 0; this.spin = 0;
   }
   update(dt, game) {
     const s = game.dtScale;
     this.x += this.vx * s;
+    this.y += this.vyShot * s;
     this.life += dt; this.spin += dt * 0.02;
-    if (this.life > 4000 || this.x < 10 || this.x > game.level.length + 60) { this.alive = false; return; }
+    if (this.life > 5000 || this.x < 6 || this.x > game.level.length + 60 || this.y > CONFIG.VIEW_H + 10) { this.alive = false; return; }
     const p = game.player;
-    // raakt alleen als de speler niet hoog genoeg springt (spring = ontwijken)
-    const airHeight = CONFIG.GROUND_Y - p.y;
-    if (Math.abs(p.x - this.x) < 11 && airHeight < 22) {
+    let hit;
+    if (this.aimed) {
+      // gerichte bom: treft op nabijheid (ontwijk door weg te bewegen/springen)
+      hit = Math.abs(p.x - this.x) < 12 && Math.abs((p.y - 16) - this.y) < 14;
+    } else {
+      // grond-zuur op torso-hoogte: spring eroverheen (airHeight > 22 = mis)
+      hit = Math.abs(p.x - this.x) < 11 && (CONFIG.GROUND_Y - p.y) < 22;
+    }
+    if (hit) {
       p.takeDamage(this.dmg);
-      game.knockPlayer(Math.sign(this.vx), 8);
+      game.knockPlayer(Math.sign(this.vx) || 1, 8);
       game.spawnBlood(this.x, this.y);
       this.alive = false;
     }
