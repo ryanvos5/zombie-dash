@@ -18,7 +18,9 @@ const UI = {
       menuCoins: $('menu-coin-count'), shopCoins: $('shop-coin-count'),
       charCoins: $('char-coin-count'),
       levelGrid: $('level-grid'), shopGrid: $('shop-grid'), charGrid: $('character-grid'),
-      character: $('character-screen'),
+      character: $('character-screen'), arena: $('arena-screen'),
+      arenaRound: $('arena-round'), arenaCoins: $('arena-coins'), arenaBest: $('arena-best'),
+      arenaLeft: $('arena-left'), arenaRecord: $('arena-record'),
       winKills: $('win-kills'), winCoins: $('win-coins'),
       loseKills: $('lose-kills'), loseCoins: $('lose-coins'), loseTitle: $('lose-title'),
     };
@@ -28,6 +30,8 @@ const UI = {
     $('btn-shop').onclick = () => { this.renderShop(); this.show('shop'); };
     $('btn-characters').onclick = () => { this.renderCharacters(); this.show('character'); };
     $('btn-win-shop').onclick = () => { this.renderShop(); this.show('shop'); };
+    $('btn-arena').onclick = () => this.startArena();
+    $('btn-arena-again').onclick = () => this.startArena();
     $('btn-next').onclick = () => Game.nextLevel();
     $('btn-retry').onclick = () => Game.retryLevel();
 
@@ -89,8 +93,31 @@ const UI = {
   },
 
   // toon één scherm; regel HUD/touch/pauze zichtbaarheid
+  // Zombie Knock-out starten (met dagelijkse limiet)
+  startArena() {
+    const left = Storage.arenaPlaysLeft();
+    if (left <= 0) {
+      alert('Je hebt vandaag al ' + ARENA_PLAYS_PER_DAY + ' keer Zombie Knock-out gespeeld. Kom morgen terug!');
+      return;
+    }
+    Game.startArena();
+  },
+
+  showArenaOver(stats) {
+    this.el.arenaRound.textContent = stats.round;
+    this.el.arenaCoins.textContent = stats.coins;
+    this.el.arenaBest.textContent = stats.best;
+    this.el.arenaLeft.textContent = Storage.arenaPlaysLeft();
+    this.el.arenaRecord.classList.toggle('hidden', !stats.record);
+    // knop uitschakelen als er geen pogingen meer zijn
+    const again = document.getElementById('btn-arena-again');
+    if (Storage.arenaPlaysLeft() <= 0) { again.classList.add('cant'); again.disabled = true; }
+    else { again.classList.remove('cant'); again.disabled = false; }
+    this.show('arena');
+  },
+
   show(name) {
-    ['menu', 'level', 'shop', 'character', 'win', 'lose'].forEach((s) => {
+    ['menu', 'level', 'shop', 'character', 'arena', 'win', 'lose'].forEach((s) => {
       this.el[s].classList.toggle('hidden', s !== name);
     });
     const inGame = (name === 'game');
@@ -101,7 +128,10 @@ const UI = {
 
     // muntentellers bijwerken
     this.el.menuCoins.textContent = Storage.data.coins;
-    if (name === 'menu') this.el.menuCoins.textContent = Storage.data.coins;
+    if (name === 'menu') {
+      const ab = document.getElementById('btn-arena');
+      if (ab) ab.textContent = 'ZOMBIE KNOCK-OUT (' + Storage.arenaPlaysLeft() + '×)';
+    }
   },
 
   // wereld 2 is pas open als wereld 1 (incl. boss) is uitgespeeld
@@ -280,10 +310,16 @@ const UI = {
   // ---------- HUD (elke frame) ----------
   updateHUD(game) {
     const lv = game.level;
-    const prog = Math.max(0, Math.min(1, (game.player.x - 60) / (lv.length - 60)));
+    let prog;
+    if (lv.arena) {
+      prog = game.roundTarget ? Math.max(0, Math.min(1, game.roundKills / game.roundTarget)) : 0;
+      this.el.levelName.textContent = 'ARENA';
+    } else {
+      prog = Math.max(0, Math.min(1, (game.player.x - 60) / (lv.length - 60)));
+      this.el.levelName.textContent = 'LEVEL ' + lv.id;
+    }
     this.el.progressFill.style.width = (prog * 100) + '%';
     this.el.progressPlayer.style.left = (prog * 100) + '%';
-    this.el.levelName.textContent = 'LEVEL ' + lv.id;
     this.el.healthFill.style.width = (game.player.hp / game.player.maxHp * 100) + '%';
     this.el.coinCount.textContent = game.runCoins;
     // melee-wapen altijd tonen (is altijd beschikbaar)

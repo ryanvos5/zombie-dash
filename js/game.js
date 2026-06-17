@@ -9,6 +9,7 @@ const Game = {
   player: null, zombies: [], bullets: [], particles: [], coinFx: [], ammoFx: [], ammoDrops: [], healthDrops: [], corpses: [], pendingZombies: [],
   obstacles: [], powerUps: [], enemyShots: [], platforms: [],
   boss: null, shake: 0, hordeLeft: 0, lastHazard: -9999, bossAmmoTimer: 0,
+  round: 1, roundTarget: 0, roundKills: 0, roundSpawned: 0, roundBreak: 0,
   cam: { x: 0 },
   time: 0, dtScale: 1, lastTs: 0,
   spawnTimer: 0, spawned: 0, spawnArmed: false,
@@ -90,6 +91,50 @@ const Game = {
     UI.show('game');
   },
 
+  // ---------- ZOMBIE KNOCK-OUT (arena) ----------
+  startArena() {
+    Storage.useArenaPlay();
+    this.worldId = 0;
+    this.level = ARENA_LEVEL;
+    UI.viewWorld = 1;
+    this.player = new Player(Storage.data.equippedMelee, Storage.data.equippedRanged, Storage.data.equippedCharacter);
+    this.player.maxJumps = 1; this.player.jumps = 1;
+    this.player.x = ARENA_LEVEL.length / 2; // midden van de arena
+    this.zombies = []; this.bullets = []; this.particles = []; this.coinFx = []; this.ammoFx = []; this.ammoDrops = []; this.healthDrops = []; this.corpses = []; this.pendingZombies = [];
+    this.powerUps = []; this.enemyShots = []; this.platforms = []; this.obstacles = [];
+    this.boss = null; this.shake = 0; this.bossAmmoTimer = 0;
+    this.cam.x = 0; this.spawnTimer = 0; this.spawned = 0; this.spawnArmed = true;
+    this.runCoins = 0; this.runKills = 0;
+    this.ammo = ARENA_START_AMMO;
+    this.time = 0;
+    this.theme = THEMES.arena;
+    this.buildBackdrop(ARENA_LEVEL);
+    this.beginRound(1);
+    this.state = 'playing';
+    Input.clear();
+    const ps = document.getElementById('pause-screen'); if (ps) ps.classList.add('hidden');
+    UI.show('game');
+  },
+
+  beginRound(round) {
+    this.round = round;
+    const r = arenaRound(round);
+    this.roundCfg = r;
+    // pas de "level"-spawnparameters aan voor deze ronde
+    this.level.zombieHp = r.zombieHp;
+    this.level.zombieSpeed = r.zombieSpeed;
+    this.level.runnerChance = r.runnerChance;
+    this.level.crawlerChance = r.crawlerChance;
+    this.level.bruteChance = r.bruteChance;
+    this.level.maxAlive = r.maxAlive;
+    this.level.spawnEvery = r.spawnEvery;
+    this.roundTarget = r.target;
+    this.roundKills = 0;
+    this.roundSpawned = 0;
+    this.roundBreak = 0;
+    this.spawnTimer = 0;
+  },
+
   nextLevel() {
     const world = WORLDS.find((w) => w.id === this.worldId);
     const next = this.level.id + 1;
@@ -124,6 +169,9 @@ const Game = {
     const rnd = () => { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; };
 
     const theme = THEMES[level.theme] || THEMES.city;
+
+    // arena: geen gebouwen (eigen scene wordt in render getekend)
+    if (theme.isArena) { this.backdrop = { arena: true, far: [], near: [], doors: [], lamps: [] }; return; }
 
     // berg-thema: driehoekige toppen i.p.v. gebouwen
     if (theme.mountains) {
@@ -309,6 +357,7 @@ const Game = {
   onZombieKilled(z, reward) {
     this.runCoins += reward;
     this.runKills += 1;
+    if (this.level.arena) this.roundKills += 1;
     // lijk blijft op de grond liggen (oudste opruimen bij te veel)
     this.corpses.push({ x: z.x, dir: z.dir, type: z.type, tint: z.tint, flip: Math.random() < 0.5 });
     if (this.corpses.length > 60) this.corpses.shift();
@@ -341,6 +390,24 @@ const Game = {
 
   // ---------- spawnen ----------
   updateSpawns(dt) {
+    // ----- ARENA: spawnt van beide kanten, per ronde een vast aantal -----
+    if (this.level.arena) {
+      if (this.roundBreak > 0) return;                 // pauze tussen rondes
+      if (this.roundSpawned >= this.roundTarget) return; // alles van deze ronde is al gespawnd
+      const alive = this.zombies.reduce((n, z) => n + (z.alive ? 1 : 0), 0);
+      if (alive >= this.level.maxAlive) return;
+      this.spawnTimer += dt;
+      if (this.spawnTimer < this.level.spawnEvery) return;
+      this.spawnTimer = 0;
+      // van links of rechts, net buiten beeld
+      const fromLeft = Math.random() < 0.5;
+      const sx = fromLeft ? (this.cam.x - 16) : (this.cam.x + CONFIG.VIEW_W + 16);
+      const z = new Zombie(Math.max(20, Math.min(this.level.length + 20, sx)), this.level);
+      this.zombies.push(z);
+      this.roundSpawned++;
+      return;
+    }
+
     if (this.level.mode === 'boss') return;         // de baas regelt zijn eigen adds
     if (!this.spawnArmed) { this.spawnTimer = 0; return; }
 
@@ -441,8 +508,8 @@ const Game = {
     if (this.shake > 0) this.shake = Math.max(0, this.shake - dt * 0.04);
 
     // opruimen (de baas wordt nooit weggecullt)
-    // in kill-all blijven levende zombies bestaan (ze achtervolgen je), anders cull links buiten beeld
-    this.zombies = this.zombies.filter((z) => z.alive && (z === this.boss || this.level.killAll || z.x > this.cam.x - 60));
+    // in kill-all/arena blijven levende zombies bestaan (ze achtervolgen je), anders cull links buiten beeld
+    this.zombies = this.zombies.filter((z) => z.alive && (z === this.boss || this.level.killAll || this.level.arena || z.x > this.cam.x - 60));
     this.bullets = this.bullets.filter((b) => b.alive);
     this.particles = this.particles.filter((p) => p.life > 0);
     this.coinFx = this.coinFx.filter((c) => c.life > 0);
@@ -476,6 +543,22 @@ const Game = {
     // in het ravijn gevallen = direct dood (parkour)
     if (this.level.parkour && this.player.y > FALL_DEATH_Y && this.state === 'playing') {
       this.player.hp = 0;
+    }
+
+    // ----- ARENA: rondes + game over -----
+    if (this.level.arena) {
+      if (this.player.hp <= 0) { this.arenaOver(); }
+      else if (this.roundBreak > 0) {
+        this.roundBreak -= dt;
+        if (this.roundBreak <= 0) this.beginRound(this.round + 1);
+      } else if (this.roundSpawned >= this.roundTarget && this.roundKills >= this.roundTarget) {
+        // ronde voltooid: bonus + korte pauze
+        this.runCoins += this.roundCfg.bonus;
+        this.coinFx.push({ x: this.player.x, y: this.player.y - 30, vy: -0.8, life: 900 });
+        this.roundBreak = 2400;
+      }
+      UI.updateHUD(this);
+      return;
     }
 
     // win / verlies
@@ -512,6 +595,15 @@ const Game = {
 
   // aantal nog te doden zombies (kill-all-levels)
   zombiesRemaining() { return Math.max(0, this.level.zombieCount - this.runKills); },
+
+  // arena voorbij: munten behoud je, highscore bijwerken
+  arenaOver() {
+    if (this.state !== 'playing') return;
+    this.state = 'lose';
+    Storage.addCoins(this.runCoins);
+    const record = Storage.setArenaBest(this.round);
+    UI.showArenaOver({ round: this.round, coins: this.runCoins, best: Storage.data.arenaBest, record: record });
+  },
 
   // ---------- render ----------
   render() {
@@ -608,6 +700,28 @@ const Game = {
       }
     }
 
+    // arena-scene (tribunes + hek + spotlights), in scherm-ruimte
+    if (this.backdrop.arena) {
+      const gy = CONFIG.GROUND_Y;
+      // tribune-publiek (donkere bolletjes in rijen)
+      for (let row = 0; row < 3; row++) {
+        const ry = gy - 92 + row * 12;
+        for (let cx2 = (row * 9) - (this.cam.x * 0.2 % 18); cx2 < W; cx2 += 18) {
+          Sprites.px(ctx, row % 2 ? '#1c2030' : '#232838', cx2, ry, 6, 7);
+          Sprites.px(ctx, '#3a4258', cx2 + 1, ry, 4, 3);
+        }
+      }
+      // hek/balustrade voor de tribune
+      Sprites.px(ctx, '#3a3326', 0, gy - 52, W, 4);
+      for (let px = 0; px < W; px += 12) Sprites.px(ctx, '#2a2620', px, gy - 52, 2, 16);
+      // spotlights van bovenaf
+      ctx.globalAlpha = 0.12; ctx.fillStyle = '#ffe9a0';
+      [W * 0.22, W * 0.5, W * 0.78].forEach((lx) => {
+        ctx.beginPath(); ctx.moveTo(lx, 0); ctx.lineTo(lx - 40, gy); ctx.lineTo(lx + 40, gy); ctx.closePath(); ctx.fill();
+      });
+      ctx.globalAlpha = 1;
+    }
+
     // grond (wereld-ruimte)
     ctx.save();
     ctx.translate(-this.cam.x, 0);
@@ -652,9 +766,10 @@ const Game = {
 
     // finish — stok met wapperende vlag (op het eindplatform bij parkour)
     const fx = this.level.length;
-    const isLast = this.level.id === WORLDS.find((w) => w.id === this.worldId).levels.length;
+    const wWorld = WORLDS.find((w) => w.id === this.worldId);
+    const isLast = wWorld && this.level.id === wWorld.levels.length;
     const flagY = (this.level.parkour && this.platforms.length) ? this.platforms[this.platforms.length - 1].y : CONFIG.GROUND_Y;
-    if (!this.level.isBoss) Sprites.drawFlag(ctx, fx, flagY, this.time, isLast);
+    if (!this.level.isBoss && !this.level.arena) Sprites.drawFlag(ctx, fx, flagY, this.time, isLast);
 
     // checkpoint-vlag halverwege
     if (this.level.midTime) Sprites.drawCheckpoint(ctx, Math.round(this.level.length * 0.5), CONFIG.GROUND_Y, this.time, this.midReached);
@@ -771,6 +886,25 @@ const Game = {
       ctx.fillStyle = '#ffd24a'; ctx.font = '7px "Courier New", monospace';
       ctx.fillText(this.level.balloonBoss ? 'spring en schiet de ballon neer!' : '▼ raak alleen het HOOFD — spring!', W / 2, by + 15);
       ctx.textAlign = 'left';
+    }
+
+    // arena-HUD: ronde + voortgang + record
+    if (this.level.arena) {
+      ctx.textAlign = 'center';
+      ctx.font = 'bold 12px "Courier New", monospace';
+      ctx.fillStyle = '#000'; ctx.fillText('RONDE ' + this.round, W / 2 + 1, 31);
+      ctx.fillStyle = '#ffd24a'; ctx.fillText('RONDE ' + this.round, W / 2, 30);
+      ctx.font = 'bold 9px "Courier New", monospace';
+      if (this.roundBreak > 0) {
+        ctx.fillStyle = '#6abe30'; ctx.fillText('RONDE VOLTOOID! +' + this.roundCfg.bonus + ' ●', W / 2, 44);
+      } else {
+        const left = Math.max(0, this.roundTarget - this.roundKills);
+        ctx.fillStyle = '#ff8a6a'; ctx.fillText('nog ' + left + ' zombies', W / 2, 44);
+      }
+      ctx.font = '8px "Courier New", monospace'; ctx.fillStyle = '#8b97aa';
+      ctx.fillText('record: ronde ' + Storage.data.arenaBest, W / 2, 56);
+      ctx.textAlign = 'left';
+      // muntenteller staat al in de HUD (runCoins)
     }
 
     // zombies-over teller (kill-all)

@@ -65,6 +65,7 @@
         <p class="subtitle">Wereld 1 — Verlaten Stad</p>
         <div class="menu-buttons">
           <button id="btn-play" class="big-btn">SPELEN</button>
+          <button id="btn-arena" class="big-btn arena">ZOMBIE KNOCK-OUT</button>
           <button id="btn-shop" class="big-btn secondary">WAPENSHOP</button>
           <button id="btn-characters" class="big-btn secondary">CHARACTERS</button>
         </div>
@@ -116,6 +117,24 @@
           <button id="btn-next" class="big-btn">VOLGENDE LEVEL</button>
           <button id="btn-win-shop" class="big-btn secondary">SHOP</button>
           <button class="back-btn" data-back="level">◀ LEVELS</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== Zombie Knock-out: game over ===== -->
+    <div id="arena-screen" class="screen hidden">
+      <div class="screen-inner">
+        <h2 class="screen-title lose">KNOCK-OUT!</h2>
+        <div id="arena-record" class="arena-record hidden">🏆 NIEUW RECORD!</div>
+        <div class="result-stats">
+          <div>Ronde bereikt: <span id="arena-round">1</span></div>
+          <div>Munten verdiend: <span id="arena-coins">0</span> ●</div>
+          <div>Record: ronde <span id="arena-best">0</span></div>
+        </div>
+        <div class="arena-plays">Pogingen vandaag over: <span id="arena-left">0</span></div>
+        <div class="menu-buttons">
+          <button id="btn-arena-again" class="big-btn arena">NOG EEN KEER</button>
+          <button class="back-btn" data-back="menu">◀ MENU</button>
         </div>
       </div>
     </div>

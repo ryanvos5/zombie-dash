@@ -324,6 +324,13 @@ body.is-touch #hud { justify-content: flex-start; gap: 8px; }
   border-color: #4a5670;
   box-shadow: 0 4px 0 #1a1f2b;
 }
+.big-btn.arena {
+  background: linear-gradient(180deg, #e08a2a, #b35a18);
+  border-color: #7a3a10;
+  box-shadow: 0 4px 0 #7a3a10;
+}
+.arena-record { color: var(--gold); font-weight: bold; letter-spacing: 1px; margin: 6px 0; }
+.arena-plays { color: var(--text-dim); font-size: 13px; margin-top: 8px; }
 
 .menu-coins, .shop-coins {
   margin-top: 22px;

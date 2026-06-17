@@ -14,6 +14,8 @@ const DEFAULT_SAVE = {
   equippedCharacter: 'ryan',
   // hoogst voltooide level per wereld: { "1": 0 } -> nog niets, level 1 speelbaar
   progress: { '1': 0 },
+  arenaBest: 0,                 // hoogste ronde in Zombie Knock-out
+  arenaPlays: { date: '', count: 0 }, // dagelijkse speel-limiet
 };
 
 const Storage = {
@@ -28,6 +30,8 @@ const Storage = {
       this.data.ownedCharacters = this.data.ownedCharacters || ['ryan'];
       this.data.progress = this.data.progress || { '1': 0 };
       if (typeof this.data.ammo !== 'number') this.data.ammo = STARTING_AMMO;
+      if (typeof this.data.arenaBest !== 'number') this.data.arenaBest = 0;
+      if (!this.data.arenaPlays) this.data.arenaPlays = { date: '', count: 0 };
       // migratie van oude opslag (één slot -> twee slots)
       if (this.data.equippedMelee === undefined) this.data.equippedMelee = 'bat';
       if (this.data.equippedRanged === undefined) this.data.equippedRanged = null;
@@ -106,6 +110,24 @@ const Storage = {
   equipCharacter(id) {
     if (!this.ownsCharacter(id)) return false;
     this.data.equippedCharacter = id; this.save(); return true;
+  },
+
+  // ---- arena (Zombie Knock-out) ----
+  todayStr() { try { return new Date().toISOString().slice(0, 10); } catch (e) { return 'x'; } },
+  arenaPlaysLeft() {
+    const d = this.todayStr();
+    if (this.data.arenaPlays.date !== d) return ARENA_PLAYS_PER_DAY;
+    return Math.max(0, ARENA_PLAYS_PER_DAY - this.data.arenaPlays.count);
+  },
+  useArenaPlay() {
+    const d = this.todayStr();
+    if (this.data.arenaPlays.date !== d) this.data.arenaPlays = { date: d, count: 0 };
+    this.data.arenaPlays.count++;
+    this.save();
+  },
+  setArenaBest(round) {
+    if (round > this.data.arenaBest) { this.data.arenaBest = round; this.save(); return true; }
+    return false;
   },
 
   // ---- levels ----

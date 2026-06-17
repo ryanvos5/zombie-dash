@@ -214,6 +214,13 @@ const THEMES = {
     ground: '#2a3850', groundTop: '#3a4e68',
     lamp: '#ffe6a0', weather: null, mountains: true,
   },
+  arena: {
+    name: 'Arena',
+    sky: ['#10121a', '#181b26', '#222636'],
+    far: ['#1c1f2a'], near: ['#2a2e3c'],
+    ground: '#241f18', groundTop: '#3a3022',
+    lamp: '#ffd24a', weather: null, isArena: true,
+  },
 };
 
 /* ---------- POWER-UPS ---------- */
@@ -324,3 +331,27 @@ const WORLDS = [
   { id: 1, name: 'Verlaten Stad', levels: buildWorld1() },
   { id: 2, name: 'De Bergen', levels: buildWorld2() },
 ];
+
+/* ---------- ZOMBIE KNOCK-OUT (arena wave-survival) ---------- */
+const ARENA_PLAYS_PER_DAY = 3;   // max keer per dag
+const ARENA_START_AMMO = 150;    // startmunitie per potje (los van je voorraad)
+// het "level"-object voor de arena (bounded, geen finish/checkpoint)
+const ARENA_LEVEL = {
+  id: 0, name: 'Arena', theme: 'arena', mode: 'arena', arena: true,
+  length: 600, doorChance: 0, obstacleDensity: 0,
+};
+// per-ronde-instellingen (elke ronde zwaarder)
+function arenaRound(round) {
+  const t = round - 1;
+  return {
+    target: 4 + Math.round(t * 1.5),                          // te doden zombies deze ronde
+    zombieHp: 28 + t * 9,
+    zombieSpeed: +Math.min(MAX_ZOMBIE_SPEED, 0.7 + t * 0.05).toFixed(2),
+    runnerChance: round >= 2 ? Math.min(0.4, 0.08 + t * 0.04) : 0,
+    crawlerChance: round >= 4 ? Math.min(0.35, 0.05 + t * 0.03) : 0,
+    bruteChance: round >= 6 ? Math.min(0.28, 0.03 + t * 0.025) : 0,
+    maxAlive: Math.min(11, 3 + Math.floor(t * 0.7)),
+    spawnEvery: Math.max(450, 1300 - t * 70),
+    bonus: 20 + round * 10,                                   // munten per voltooide ronde
+  };
+}
