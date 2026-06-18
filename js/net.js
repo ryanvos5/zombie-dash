@@ -149,6 +149,28 @@ const Net = {
     return data || [];
   },
 
+  // eigen positie op de ranglijst (of null als niet ingelogd / geen rij)
+  async getMyRank(sortBy) {
+    if (!this.ready || !this.user) return null;
+    const { data, error } = await this.sb.rpc('get_my_rank', { sort_by: sortBy || 'xp' });
+    if (error) { console.warn('[Net] getMyRank', error); return null; }
+    return (data && data[0]) || null;
+  },
+
+  // ---- Knock-out dag-limiet via account (reset 06:00 Amsterdam) ----
+  async arenaPlaysLeft() {
+    if (!this.ready || !this.user) return null;          // niet ingelogd
+    const { data, error } = await this.sb.rpc('arena_plays_left');
+    if (error) { console.warn('[Net] arenaPlaysLeft', error); return null; }
+    return data;
+  },
+  async arenaUsePlay() {
+    if (!this.ready || !this.user) return null;
+    const { data, error } = await this.sb.rpc('arena_use_play');
+    if (error) throw error;
+    return data;                                          // resterend, of -1 als op
+  },
+
   _refreshUI() { if (window.UI && UI.refreshAuthUI) UI.refreshAuthUI(); },
 
   // ============ 1 vs 1 MULTIPLAYER (Supabase Realtime) ============

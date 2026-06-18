@@ -100,8 +100,8 @@ const Game = {
   },
 
   // ---------- ZOMBIE KNOCK-OUT (arena) ----------
+  // (de dag-poging is al verbruikt door UI.startArena — account of lokale fallback)
   startArena() {
-    Storage.useArenaPlay();
     this.worldId = 0;
     this.level = ARENA_LEVEL;
     UI.viewWorld = 1;

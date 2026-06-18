@@ -425,6 +425,19 @@ body.is-touch #hud { justify-content: flex-start; gap: 8px; }
 /* ====== Account / inloggen ====== */
 .account-bar { margin-top: 10px; display: flex; flex-direction: column; align-items: center; gap: 2px; }
 .account-status { color: var(--gold); font-size: 13px; letter-spacing: 1px; }
+.xp-bar-wrap {
+  position: relative; width: 180px; height: 14px; margin: 4px auto 2px;
+  background: #11151e; border: 2px solid #2a3242; border-radius: 7px; overflow: hidden;
+}
+.xp-bar-fill {
+  position: absolute; left: 0; top: 0; bottom: 0; width: 0%;
+  background: linear-gradient(180deg, #5ad06a, #2e8c3a); transition: width 0.4s ease;
+}
+.xp-bar-label {
+  position: relative; z-index: 1; display: block; text-align: center;
+  font-size: 9px; line-height: 14px; color: #fff; text-shadow: 0 1px 0 #000; letter-spacing: 0.5px;
+}
+.lb-sep { text-align: center; color: var(--text-dim); font-size: 12px; padding: 2px; letter-spacing: 3px; }
 .auth-box { width: min(340px, 92%); }
 .auth-sub { color: var(--text-dim); font-size: 12px; margin: 6px 0 14px; line-height: 1.4; }
 #auth-fields { display: flex; flex-direction: column; gap: 10px; }

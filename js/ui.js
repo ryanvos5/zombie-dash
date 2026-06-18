@@ -123,25 +123,59 @@ const UI = {
   },
 
   // toon één scherm; regel HUD/touch/pauze zichtbaarheid
-  // Zombie Knock-out starten (met dagelijkse limiet)
-  startArena() {
-    const left = Storage.arenaPlaysLeft();
-    if (left <= 0) {
-      alert('Je hebt vandaag al ' + ARENA_PLAYS_PER_DAY + ' keer Zombie Knock-out gespeeld. Kom morgen terug!');
+  // Zombie Knock-out starten — dag-limiet via ACCOUNT (cache wissen helpt niet)
+  async startArena() {
+    // ingelogd: server bepaalt of je nog mag (atomair verbruiken)
+    if (window.Net && Net.ready && Net.isLoggedIn()) {
+      let left;
+      try { left = await Net.arenaUsePlay(); }
+      catch (e) { alert('Kon de daglimiet niet controleren: ' + (e.message || e)); return; }
+      if (left === -1) {
+        alert('Je hebt vandaag al ' + ARENA_PLAYS_PER_DAY + ' keer Zombie Knock-out gespeeld.\nDe limiet reset elke ochtend om 06:00.');
+        return;
+      }
+      this._arenaLeft = left;
+      Game.startArena();
       return;
     }
+    // niet ingelogd: verplicht inloggen zodat de daglimiet eerlijk telt (niet te omzeilen)
+    if (window.Net && Net.ready) {
+      alert('Log in met een account om Zombie Knock-out te spelen.\nZo geldt de daglimiet (3× per dag, reset 06:00) eerlijk voor iedereen.');
+      this.openAuth('login');
+      return;
+    }
+    // server onbereikbaar: lokale fallback zodat het offline speelbaar blijft
+    const left = Storage.arenaPlaysLeft();
+    if (left <= 0) { alert('Je hebt vandaag al ' + ARENA_PLAYS_PER_DAY + ' keer gespeeld. Kom morgen terug!'); return; }
+    Storage.useArenaPlay();
+    this._arenaLeft = left - 1;
     Game.startArena();
+  },
+
+  // tekst van de Knock-out-menuknop bijwerken (resterende pogingen)
+  updateArenaButton() {
+    const ab = document.getElementById('btn-arena');
+    if (!ab) return;
+    if (window.Net && Net.ready && Net.isLoggedIn()) {
+      ab.textContent = 'ZOMBIE KNOCK-OUT';
+      Net.arenaPlaysLeft().then((n) => { if (n != null) ab.textContent = 'ZOMBIE KNOCK-OUT (' + n + '×)'; }).catch(() => {});
+    } else if (window.Net && Net.ready) {
+      ab.textContent = 'ZOMBIE KNOCK-OUT 🔒';
+    } else {
+      ab.textContent = 'ZOMBIE KNOCK-OUT (' + Storage.arenaPlaysLeft() + '×)';
+    }
   },
 
   showArenaOver(stats) {
     this.el.arenaRound.textContent = stats.round;
     this.el.arenaCoins.textContent = stats.coins;
     this.el.arenaBest.textContent = stats.best;
-    this.el.arenaLeft.textContent = Storage.arenaPlaysLeft();
+    const left = (typeof this._arenaLeft === 'number') ? this._arenaLeft : Storage.arenaPlaysLeft();
+    this.el.arenaLeft.textContent = left;
     this.el.arenaRecord.classList.toggle('hidden', !stats.record);
     // knop uitschakelen als er geen pogingen meer zijn
     const again = document.getElementById('btn-arena-again');
-    if (Storage.arenaPlaysLeft() <= 0) { again.classList.add('cant'); again.disabled = true; }
+    if (left <= 0) { again.classList.add('cant'); again.disabled = true; }
     else { again.classList.remove('cant'); again.disabled = false; }
     this.show('arena');
   },
@@ -159,16 +193,34 @@ const UI = {
     const btnOut = document.getElementById('btn-logout');
     if (!status || !btnAcc || !btnOut) return;
     const inLogged = window.Net && Net.isLoggedIn && Net.isLoggedIn();
+    const xpWrap = document.getElementById('xp-bar-wrap');
     if (inLogged) {
       status.textContent = '👤 ' + Net.nickname() + ' · Lvl ' + playerLevel(Storage.data.xp || 0);
       status.classList.remove('hidden');
       btnOut.classList.remove('hidden');
       btnAcc.classList.add('hidden');
+      if (xpWrap) { xpWrap.classList.remove('hidden'); this.renderXpBar(); }
     } else {
       status.classList.add('hidden');
       btnOut.classList.add('hidden');
       btnAcc.classList.remove('hidden');
+      if (xpWrap) xpWrap.classList.add('hidden');
     }
+    this.updateArenaButton();
+  },
+
+  // XP-balk: voortgang binnen het huidige level
+  renderXpBar() {
+    const fill = document.getElementById('xp-bar-fill');
+    const label = document.getElementById('xp-bar-label');
+    if (!fill || !label) return;
+    const xp = Storage.data.xp || 0;
+    const L = playerLevel(xp);
+    const start = xpForLevel(L), next = xpForLevel(L + 1);
+    const into = xp - start, need = next - start;
+    const pct = Math.max(0, Math.min(100, Math.round((into / need) * 100)));
+    fill.style.width = pct + '%';
+    label.textContent = 'Lvl ' + L + ' · ' + into + '/' + need + ' XP';
   },
 
   openAuth(mode) {
@@ -235,19 +287,36 @@ const UI = {
     msg.textContent = '';
     const myNick = (window.Net && Net.isLoggedIn()) ? Net.nickname() : null;
     const statLabel = sortBy === 'arena' ? 'ronde' : sortBy === 'wins' ? 'wins' : 'XP';
-    rows.forEach((r, i) => {
-      const lvl = playerLevel(r.xp || 0);
-      const stat = sortBy === 'arena' ? (r.arena_best || 0) : sortBy === 'wins' ? (r.mp_wins || 0) : (r.xp || 0);
+    const statOf = (r) => sortBy === 'arena' ? (r.arena_best || 0) : sortBy === 'wins' ? (r.mp_wins || 0) : (r.xp || 0);
+    const makeRow = (r, rankText, me) => {
       const row = document.createElement('div');
-      row.className = 'lb-row' + (myNick && r.nickname === myNick ? ' me' : '');
-      const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : (i + 1) + '.';
+      row.className = 'lb-row' + (me ? ' me' : '');
       row.innerHTML =
-        '<span class="lb-rank">' + medal + '</span>' +
+        '<span class="lb-rank">' + rankText + '</span>' +
         '<span class="lb-name">' + this._esc(r.nickname) + '</span>' +
-        '<span class="lb-lvl">Lvl ' + lvl + '</span>' +
-        '<span class="lb-stat">' + stat + ' ' + statLabel + '</span>';
-      list.appendChild(row);
+        '<span class="lb-lvl">Lvl ' + playerLevel(r.xp || 0) + '</span>' +
+        '<span class="lb-stat">' + statOf(r) + ' ' + statLabel + '</span>';
+      return row;
+    };
+    let meShown = false;
+    rows.forEach((r, i) => {
+      const me = myNick && r.nickname === myNick;
+      if (me) meShown = true;
+      const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : (i + 1) + '.';
+      list.appendChild(makeRow(r, medal, me));
     });
+    // sta je niet in de getoonde top? toon je eigen rij apart onderaan
+    if (myNick && !meShown && window.Net) {
+      try {
+        const mine = await Net.getMyRank(sortBy);
+        if (mine) {
+          const sep = document.createElement('div');
+          sep.className = 'lb-sep'; sep.textContent = '• • •';
+          list.appendChild(sep);
+          list.appendChild(makeRow(mine, mine.rank + '.', true));
+        }
+      } catch (e) { /* stil */ }
+    }
   },
 
   _esc(s) { const d = document.createElement('div'); d.textContent = s == null ? '' : String(s); return d.innerHTML; },
@@ -363,10 +432,7 @@ const UI = {
 
     // muntentellers bijwerken
     this.el.menuCoins.textContent = Storage.data.coins;
-    if (name === 'menu') {
-      const ab = document.getElementById('btn-arena');
-      if (ab) ab.textContent = 'ZOMBIE KNOCK-OUT (' + Storage.arenaPlaysLeft() + '×)';
-    }
+    if (name === 'menu') this.updateArenaButton();
   },
 
   // wereld 2 is pas open als wereld 1 (incl. boss) is uitgespeeld
