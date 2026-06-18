@@ -65,6 +65,7 @@ const UI = {
     this.authMode = 'login';
     $('btn-account').onclick = () => this.openAuth('login');
     $('btn-logout').onclick = () => { if (window.Net) Net.logout(); };
+    $('btn-nick').onclick = () => this.promptNickname();
     $('btn-auth-close').onclick = () => $('auth-screen').classList.add('hidden');
     $('btn-auth-toggle').onclick = () => this.openAuth(this.authMode === 'login' ? 'register' : 'login');
     $('btn-auth-submit').onclick = () => this.submitAuth();
@@ -194,19 +195,44 @@ const UI = {
     if (!status || !btnAcc || !btnOut) return;
     const inLogged = window.Net && Net.isLoggedIn && Net.isLoggedIn();
     const xpWrap = document.getElementById('xp-bar-wrap');
+    const btnNick = document.getElementById('btn-nick');
     if (inLogged) {
       status.textContent = '👤 ' + Net.nickname() + ' · Lvl ' + playerLevel(Storage.data.xp || 0);
       status.classList.remove('hidden');
       btnOut.classList.remove('hidden');
       btnAcc.classList.add('hidden');
+      if (btnNick) btnNick.classList.remove('hidden');
       if (xpWrap) { xpWrap.classList.remove('hidden'); this.renderXpBar(); }
     } else {
       status.classList.add('hidden');
       btnOut.classList.add('hidden');
       btnAcc.classList.remove('hidden');
+      if (btnNick) btnNick.classList.add('hidden');
       if (xpWrap) xpWrap.classList.add('hidden');
     }
     this.updateArenaButton();
+  },
+
+  // heeft de ingelogde speler een echte nickname? (anders valt nickname() terug op de e-mail)
+  _hasNickname() {
+    return !!(window.Net && Net.user && Net.user.user_metadata && Net.user.user_metadata.nickname);
+  },
+
+  async promptNickname() {
+    const cur = this._hasNickname() ? Net.nickname() : '';
+    const nick = window.prompt('Kies je speler-naam (zo sta je op de leaderboard):', cur);
+    if (nick == null) return;                       // geannuleerd
+    if (!nick.trim()) { alert('Naam mag niet leeg zijn.'); return; }
+    try { await Net.setNickname(nick); this.syncCoins(); }
+    catch (e) { alert('Kon de naam niet opslaan: ' + (e.message || e)); }
+  },
+
+  // na (her)inloggen: vraag een naam als die nog ontbreekt
+  afterNetLogin() {
+    this.refreshAuthUI();
+    if (window.Net && Net.isLoggedIn() && !this._hasNickname()) {
+      setTimeout(() => this.promptNickname(), 400);
+    }
   },
 
   // XP-balk: voortgang binnen het huidige level

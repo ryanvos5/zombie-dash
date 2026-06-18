@@ -88,17 +88,33 @@ const Net = {
   async afterLogin() {
     await this.ensureProfile();
     await this.loadCloudSave();
+    if (window.UI && UI.afterNetLogin) UI.afterNetLogin();
   },
 
   async ensureProfile() {
     if (!this.user) return;
     const nick = (this.user.user_metadata && this.user.user_metadata.nickname) || null;
+    const row = { id: this.user.id, updated_at: new Date().toISOString() };
+    if (nick) row.nickname = nick;   // alleen zetten als we een naam hebben (bestaande naam niet wissen)
     try {
-      await this.sb.from('game_profiles').upsert(
-        { id: this.user.id, nickname: nick, updated_at: new Date().toISOString() },
-        { onConflict: 'id' }
-      );
+      await this.sb.from('game_profiles').upsert(row, { onConflict: 'id' });
     } catch (e) { console.warn('[Net] ensureProfile', e); }
+  },
+
+  // nickname instellen/wijzigen (auth-metadata + leaderboard-rij)
+  async setNickname(nick) {
+    nick = (nick || '').trim();
+    if (!nick) throw new Error('Vul een naam in.');
+    if (nick.length > 20) nick = nick.slice(0, 20);
+    if (!this.user) throw new Error('Je bent niet ingelogd.');
+    const { error: e1 } = await this.sb.auth.updateUser({ data: { nickname: nick } });
+    if (e1) throw e1;
+    const { error: e2 } = await this.sb.from('game_profiles')
+      .update({ nickname: nick, updated_at: new Date().toISOString() }).eq('id', this.user.id);
+    if (e2) throw e2;
+    if (this.user.user_metadata) this.user.user_metadata.nickname = nick;
+    this._refreshUI();
+    return nick;
   },
 
   // ---- cloud-opslag ----
