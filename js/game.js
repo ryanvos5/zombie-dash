@@ -1117,24 +1117,35 @@ const Game = {
   },
 
   // ============ 1 vs 1 VERSUS ============
-  startVersus(role) {
+  startVersus(role, opts) {
+    opts = opts || {};
+    const map = VERSUS_MAPS.find((m) => m.id === opts.mapId) || VERSUS_MAPS[0];
+    const mode = opts.mode === 'both' ? 'both' : 'melee';
+    this.vsMap = map; this.vsMode = mode;
     this.worldId = -1;
     this.level = { versus: true, parkour: true, mode: 'versus', length: CONFIG.VIEW_W, isBoss: false };
-    this.player = new Player(Storage.data.equippedMelee, null, Storage.data.equippedCharacter);
+    const rangedId = mode === 'both' ? Storage.data.equippedRanged : null;
+    this.player = new Player(Storage.data.equippedMelee, rangedId, Storage.data.equippedCharacter);
     this.player.maxJumps = 2; this.player.jumps = 2;
     this.player.knockVx = 0; this.player.dead = false; this.player.respawnInvuln = 0;
     this.zombies = []; this.bullets = []; this.particles = []; this.coinFx = []; this.ammoFx = [];
     this.ammoDrops = []; this.healthDrops = []; this.corpses = []; this.pendingZombies = [];
     this.powerUps = []; this.enemyShots = []; this.obstacles = []; this.rocketShots = []; this.platforms = [];
+    this.ghostBullets = [];                      // visuele kogels van de tegenstander
+    this.ammo = mode === 'both' ? 999 : 0;       // onbeperkte munitie in versus
+    this.rockets = 0;
     this.boss = null; this.shake = 0; this.cam.x = 0; this.time = 0; this.dtScale = 1;
-    this.buildVersusPlatforms();
-    const sp = role === 'host' ? { x: 78, y: 140, dir: 1 } : { x: 282, y: 140, dir: -1 };
+    this.buildVersusPlatforms(map);
+    const base = role === 'host' ? map.spawnL : map.spawnR;
+    const sp = { x: base.x, y: base.y, dir: role === 'host' ? 1 : -1 };
     this.player.x = sp.x; this.player.y = sp.y; this.player.dir = sp.dir; this.player.onGround = true;
+    const rb = role === 'host' ? map.spawnR : map.spawnL;
     this.vs = {
       role, spawn: sp, myScore: 0, oppScore: 0, target: 5,
       countdown: 3000, lastSwing: 0, netTimer: 0, over: false,
+      roundFreezeUntil: 0, roundMsg: '',
       remote: {
-        x: role === 'host' ? 282 : 78, y: 140, tx: role === 'host' ? 282 : 78, ty: 140,
+        x: rb.x, y: rb.y, tx: rb.x, ty: rb.y,
         dir: role === 'host' ? -1 : 1, walkPhase: 0, attacking: false, swingWeapon: null,
         alive: true, charId: 'ryan', lastSeen: 0,
       },
@@ -1144,20 +1155,29 @@ const Game = {
       onHit: (p) => this.onVersusHit(p),
       onFell: () => this.onVersusFell(),
       onBurn: () => this.onVersusBurn(),
+      onShot: (p) => this.onVersusShot(p),
     });
     this.state = 'versus';
     Input.clear();
     UI.showVersus();
   },
 
-  buildVersusPlatforms() {
-    this.platforms = [
-      { x: 78, y: 140, w: 74 },    // links (spawn host)
-      { x: 282, y: 140, w: 74 },   // rechts (spawn guest)
-      { x: 180, y: 104, w: 64 },   // midden, hoog (dubbel-jump nodig)
-      { x: 130, y: 169, w: 44 },   // laag links
-      { x: 230, y: 169, w: 44 },   // laag rechts
-    ];
+  buildVersusPlatforms(map) {
+    // platforms klonen met basis-positie (bx/by) zodat bewegende platforms kunnen oscilleren
+    this.platforms = (map.platforms || []).map((p) => ({
+      x: p.x, y: p.y, w: p.w, bx: p.x, by: p.y, mv: p.mv || null, dx: 0, dy: 0,
+    }));
+  },
+
+  // bewegende platforms updaten (+ delta voor het meedragen van de speler)
+  updateVersusPlatforms() {
+    for (const p of this.platforms) {
+      if (!p.mv) { p.dx = 0; p.dy = 0; continue; }
+      const off = Math.sin(this.time * p.mv.speed + (p.mv.phase || 0)) * p.mv.amp;
+      const nx = p.mv.axis === 'x' ? p.bx + off : p.bx;
+      const ny = p.mv.axis === 'y' ? p.by + off : p.by;
+      p.dx = nx - p.x; p.dy = ny - p.y; p.x = nx; p.y = ny;
+    }
   },
 
   updateVersus(dt) {
@@ -1166,11 +1186,28 @@ const Game = {
     this.dtScale = Math.min(3, dt / 16.6667);
     const v = this.vs;
 
-    if (v.countdown > 0) { v.countdown -= dt; }      // korte aftelling vóór de start
+    // ronde-freeze: even stilstaan met grote "wint de ronde"-tekst
+    if (v.roundFreezeUntil > this.time) {
+      for (const p of this.particles) p.update(dt, this);
+      this.particles = this.particles.filter((p) => p.life > 0);
+      if (this.shake > 0) this.shake = Math.max(0, this.shake - dt * 0.04);
+      if (window.UI && UI.updateVersusHUD) UI.updateVersusHUD(v);
+      return;
+    } else if (v.roundMsg) {                          // freeze net afgelopen -> nieuwe ronde
+      v.roundMsg = '';
+      this.respawnLocal();
+      v.remote.alive = true;
+    }
+
+    this.updateVersusPlatforms();
+
+    if (v.countdown > 0) { v.countdown -= dt; }       // korte aftelling vóór de start
     else {
       if (this.player.respawnInvuln > 0) this.player.respawnInvuln -= dt;
-      this.player.update(dt, this);                  // eigen speler: volledige besturing/fysica
+      this.player.update(dt, this);                   // eigen speler: volledige besturing/fysica
+      this.carryOnPlatform();                          // meebewegen met bewegend platform
       this.checkVersusHit();
+      if (this.vsMode === 'both') this.updateVersusBullets(dt);   // kogels (beide-wapens)
       // Vince-vuuraura raakt de tegenstander -> stuur een burn (max ~1x/0.6s)
       if (this.player.fireAura && this.player._auraOn && v.remote.alive &&
           Math.abs(v.remote.x - this.player.x) < 24 && Math.abs(v.remote.y - this.player.y) < 26) {
@@ -1178,6 +1215,12 @@ const Game = {
       }
       // eraf gevallen of doodgebrand -> punt voor de tegenstander
       if (!this.player.dead && (this.player.y > FALL_DEATH_Y || this.player.hp <= 0)) this.localFell();
+    }
+
+    // ghost-kogels van de tegenstander (alleen visueel)
+    if (this.ghostBullets && this.ghostBullets.length) {
+      for (const b of this.ghostBullets) { b.x += b.vx * this.dtScale; b.life -= dt; }
+      this.ghostBullets = this.ghostBullets.filter((b) => b.life > 0 && b.x > -12 && b.x < CONFIG.VIEW_W + 12);
     }
 
     // partikels
@@ -1195,6 +1238,48 @@ const Game = {
     r.y += (r.ty - r.y) * 0.35;
 
     if (window.UI && UI.updateVersusHUD) UI.updateVersusHUD(v);
+  },
+
+  // speler meedragen op een horizontaal bewegend platform
+  carryOnPlatform() {
+    const p = this.player;
+    if (!p.onGround) return;
+    for (const pf of this.platforms) {
+      if (pf.dx && Math.abs(p.x - pf.x) < pf.w / 2 + p.w / 2 && Math.abs(p.y - pf.y) < 4) {
+        p.x += pf.dx; break;
+      }
+    }
+  },
+
+  // kogels in 'beide wapens'-modus: aankondigen, bewegen, treffers op de tegenstander
+  updateVersusBullets(dt) {
+    const r = this.vs.remote;
+    for (const b of this.bullets) {
+      if (!b._announced) {
+        if (window.Net) Net.versusSend('shot', { x: Math.round(b.x), y: Math.round(b.y), vx: +b.vx.toFixed(2) });
+        b._announced = true;
+      }
+    }
+    for (const b of this.bullets) b.update(dt, this);   // beweegt (geen zombies in versus)
+    for (const b of this.bullets) {
+      if (b.alive && r.alive && Math.abs(b.x - r.x) < 11 && Math.abs(b.y - (r.y - 16)) < 16) {
+        b.alive = false;
+        if (window.Net) Net.versusSend('hit', { dir: Math.sign(b.vx) || 1, power: 9, vy: -3 });
+        this.spawnBlood(b.x, b.y);
+      }
+    }
+    this.bullets = this.bullets.filter((b) => b.alive);
+  },
+
+  onVersusShot(p) {
+    if (!this.ghostBullets) this.ghostBullets = [];
+    if (this.ghostBullets.length < 40) this.ghostBullets.push({ x: p.x, y: p.y, vx: p.vx, life: 1200 });
+  },
+
+  beginRoundFreeze(msg) {
+    this.vs.roundFreezeUntil = this.time + 2200;       // ~2,2s freeze
+    this.vs.roundMsg = msg;
+    this.shake = Math.max(this.shake, 7);
   },
 
   checkVersusHit() {
@@ -1224,11 +1309,12 @@ const Game = {
   },
 
   localFell() {
+    if (this.vs.roundFreezeUntil > this.time) return;   // al in een ronde-freeze
     this.player.dead = true;
     this.vs.oppScore++;
     if (window.Net) Net.versusSend('fell', {});
     if (this.vs.oppScore >= this.vs.target) { this.endVersus(false); return; }
-    this.respawnLocal();
+    this.beginRoundFreeze('TEGENSTANDER wint de ronde');
   },
   respawnLocal() {
     const sp = this.vs.spawn;
@@ -1239,8 +1325,10 @@ const Game = {
   },
 
   onVersusFell() {
+    if (this.vs.roundFreezeUntil > this.time) return;
     this.vs.myScore++;
-    if (this.vs.myScore >= this.vs.target) this.endVersus(true);
+    if (this.vs.myScore >= this.vs.target) { this.endVersus(true); return; }
+    this.beginRoundFreeze('JIJ wint de ronde!');
   },
 
   onVersusBurn() {
@@ -1292,21 +1380,29 @@ const Game = {
   renderVersus() {
     if (!this.vs) return;
     const ctx = this.ctx, W = CONFIG.VIEW_W, H = CONFIG.VIEW_H;
-    // lucht (jungle-arena)
+    const map = this.vsMap || VERSUS_MAPS[0];
+    // lucht (map-thema)
     const sky = ctx.createLinearGradient(0, 0, 0, H);
-    sky.addColorStop(0, '#16331f'); sky.addColorStop(0.6, '#1f472a'); sky.addColorStop(1, '#0c1a12');
+    sky.addColorStop(0, map.sky[0]); sky.addColorStop(1, map.sky[1]);
     ctx.fillStyle = sky; ctx.fillRect(0, 0, W, H);
 
     const shx = this.shake > 0 ? Math.round((Math.random() - 0.5) * this.shake) : 0;
     const shy = this.shake > 0 ? Math.round((Math.random() - 0.5) * this.shake) : 0;
     ctx.save(); ctx.translate(shx, shy);
 
-    // afgrond onderin
-    ctx.fillStyle = '#06090d'; ctx.fillRect(0, CONFIG.GROUND_Y - 2, W, H);
+    // afgrond onderin (map-thema)
+    ctx.fillStyle = map.void || '#06090d'; ctx.fillRect(0, CONFIG.GROUND_Y - 2, W, H);
     ctx.globalAlpha = 0.5; ctx.fillStyle = '#04060a'; ctx.fillRect(0, CONFIG.GROUND_Y + 18, W, H); ctx.globalAlpha = 1;
 
-    // platforms
-    for (const pf of this.platforms) Sprites.drawPlatform(ctx, pf.x, pf.y, pf.w);
+    // platforms (bewegende krijgen een pijltjes-hint)
+    for (const pf of this.platforms) {
+      Sprites.drawPlatform(ctx, pf.x, pf.y, pf.w);
+      if (pf.mv) { ctx.globalAlpha = 0.5; Sprites.px(ctx, '#ffe9a0', pf.x - 1, pf.y - 5, 2, 2); ctx.globalAlpha = 1; }
+    }
+
+    // kogels (beide-wapens): eigen + ghost van de tegenstander
+    if (this.bullets) for (const b of this.bullets) Sprites.px(ctx, '#ffe27a', b.x - 1, b.y - 1, 3, 2);
+    if (this.ghostBullets) for (const b of this.ghostBullets) Sprites.px(ctx, '#ff8a4a', b.x - 1, b.y - 1, 3, 2);
 
     // partikels
     for (const p of this.particles) {

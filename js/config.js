@@ -375,6 +375,48 @@ function playerLevel(xp) {
 }
 function xpForLevel(L) { return 75 * L * (L - 1); }   // totale XP nodig voor level L
 
+/* ---------- 1 vs 1 MAPS ----------
+   Elke map past op één scherm (geen camera-scroll, beide spelers altijd in beeld).
+   platform: { x, y, w, mv? } — mv = { axis:'x'|'y', amp, speed, phase } beweegt het platform.
+   sky = [boven, onder] kleuren, void = afgrond-kleur onderin. */
+const VERSUS_MAPS = [
+  {
+    id: 'jungle', name: 'Jungle', sky: ['#16331f', '#0c1a12'], void: '#06090d', plat: 'leaf',
+    spawnL: { x: 78, y: 140 }, spawnR: { x: 282, y: 140 },
+    platforms: [
+      { x: 78, y: 140, w: 74 }, { x: 282, y: 140, w: 74 }, { x: 180, y: 104, w: 64 },
+      { x: 130, y: 169, w: 44 }, { x: 230, y: 169, w: 44 },
+    ],
+  },
+  {
+    id: 'bergen', name: 'De Bergen', sky: ['#2a3e5e', '#1a2436'], void: '#0a1018', plat: 'rock',
+    spawnL: { x: 60, y: 150 }, spawnR: { x: 300, y: 150 },
+    platforms: [
+      { x: 60, y: 150, w: 58 }, { x: 300, y: 150, w: 58 }, { x: 180, y: 150, w: 56 },
+      { x: 120, y: 112, w: 44 }, { x: 240, y: 112, w: 44 }, { x: 180, y: 76, w: 50 },
+    ],
+  },
+  {
+    id: 'stad', name: 'Stad', sky: ['#1a2438', '#0d1018'], void: '#05070c', plat: 'metal',
+    spawnL: { x: 66, y: 160 }, spawnR: { x: 294, y: 160 },
+    platforms: [
+      { x: 66, y: 160, w: 76 }, { x: 294, y: 160, w: 76 },
+      { x: 130, y: 120, w: 46, mv: { axis: 'x', amp: 26, speed: 0.0016, phase: 0 } },
+      { x: 230, y: 120, w: 46, mv: { axis: 'x', amp: 26, speed: 0.0016, phase: 3.14 } },
+      { x: 180, y: 86, w: 50 },
+    ],
+  },
+  {
+    id: 'lava', name: 'Vulkaan', sky: ['#3a1410', '#1a0805'], void: '#5a1408', plat: 'obsidian',
+    spawnL: { x: 64, y: 150 }, spawnR: { x: 296, y: 150 },
+    platforms: [
+      { x: 64, y: 150, w: 60 }, { x: 296, y: 150, w: 60 },
+      { x: 180, y: 120, w: 54, mv: { axis: 'y', amp: 30, speed: 0.0015, phase: 0 } },
+      { x: 120, y: 168, w: 40 }, { x: 240, y: 168, w: 40 },
+    ],
+  },
+];
+
 function buildWorld1() {
   const levels = [];
   const themeFor = (id) => id <= 3 ? 'city' : id <= 6 ? 'park' : id <= 9 ? 'graveyard' : 'sewer';

@@ -87,7 +87,11 @@ const UI = {
     $('btn-vs-quit').onclick = () => Game.quitVersus();
     $('btn-vs-again').onclick = () => { document.getElementById('versus-result').classList.add('hidden'); this.openVersusLobby(); };
     $('btn-vs-menu').onclick = () => { document.getElementById('versus-result').classList.add('hidden'); this.show('menu'); };
-    $('btn-vs-back').onclick = () => { if (window.Net) Net.leaveVersus(); this._vsStarted = false; this.show('menu'); };
+    $('btn-vs-back').onclick = () => { this.leaveLobby(); this.show('menu'); };
+    $('btn-vs-ready').onclick = () => this.toggleReady();
+    document.querySelectorAll('.vs-mode-btn').forEach((b) => {
+      b.onclick = () => this.setVoteMode(b.dataset.mode);
+    });
 
     // spel updaten (verse versie laden zonder het icoon te verwijderen)
     $('btn-update').onclick = () => this.forceUpdate();
@@ -369,8 +373,7 @@ const UI = {
 
   // ---- 1 VS 1 LOBBY / SPEL ----
   openVersusLobby() {
-    if (window.Net) Net.leaveVersus();
-    this._vsStarted = false;
+    this.leaveLobby();
     document.getElementById('versus-lobby').classList.remove('hidden');
     document.getElementById('versus-wait').classList.add('hidden');
     document.getElementById('versus-result').classList.add('hidden');
@@ -382,11 +385,17 @@ const UI = {
   _versusCbs() {
     return {
       onMatch: (role) => this._onVersusMatch(role),
+      onLobby: (p) => this.onLobbyUpdate(p),
+      onBegin: (p) => this.onLobbyBegin(p),
       onState: (s) => Game.onVersusState(s),
       onHit: (p) => Game.onVersusHit(p),
       onFell: () => Game.onVersusFell(),
       onBurn: () => Game.onVersusBurn(),
-      onPeerLeft: () => { if (Game.state === 'versus') Game.endVersus(true); },
+      onShot: (p) => Game.onVersusShot(p),
+      onPeerLeft: () => {
+        if (Game.state === 'versus' || Game.state === 'versusOver') Game.endVersus(true);
+        else { const ps = document.getElementById('vs-peer-status'); if (ps) ps.textContent = 'Tegenstander is weg…'; this._peer = null; document.getElementById('vs-lobby-opts').classList.add('hidden'); this.cancelCountdown(); }
+      },
     };
   },
 
@@ -397,10 +406,7 @@ const UI = {
     try {
       this._vsRole = 'host';
       const code = await Net.versusHost(this._versusCbs());
-      document.getElementById('vs-room-code').textContent = code;
-      document.getElementById('versus-lobby').classList.add('hidden');
-      document.getElementById('versus-wait').classList.remove('hidden');
-      msg.textContent = '';
+      this._enterRoom(code);
     } catch (e) { msg.style.color = '#ff6a6a'; msg.textContent = '⚠ ' + (e.message || e); }
   },
 
@@ -412,16 +418,132 @@ const UI = {
     msg.style.color = ''; msg.textContent = 'Verbinden…';
     try {
       this._vsRole = 'guest';
-      await Net.versusJoin(code, this._versusCbs());
-      msg.style.color = '#7ad06a'; msg.textContent = 'Verbonden! Wachten op de start…';
+      const c = await Net.versusJoin(code, this._versusCbs());
+      this._enterRoom(c);
     } catch (e) { msg.style.color = '#ff6a6a'; msg.textContent = '⚠ ' + (e.message || e); }
   },
 
-  _onVersusMatch(role) {
-    // start zodra de host-handshake rond is
+  // in een kamer: toon code, wacht op tegenstander
+  _enterRoom(code) {
+    this._vsStarted = false; this._peer = null; this._myReady = false;
+    this._myVote = { map: VERSUS_MAPS[0].id, mode: 'melee' };
+    document.getElementById('versus-msg').textContent = '';
+    document.getElementById('versus-lobby').classList.add('hidden');
+    document.getElementById('versus-wait').classList.remove('hidden');
+    document.getElementById('vs-room-code').textContent = code;
+    document.getElementById('vs-peer-status').textContent = 'Wachten op tegenstander…';
+    document.getElementById('vs-lobby-opts').classList.add('hidden');
+  },
+
+  // tegenstander aanwezig -> open de vote-lobby (NIET meteen starten)
+  _onVersusMatch() {
+    document.getElementById('vs-peer-status').textContent = '✅ Tegenstander aanwezig!';
+    document.getElementById('vs-lobby-opts').classList.remove('hidden');
+    this.renderMapVote();
+    this.refreshLobby();
+    this.broadcastLobby();        // deel mijn (standaard) keuze
+  },
+
+  renderMapVote() {
+    const list = document.getElementById('vs-map-list');
+    list.innerHTML = '';
+    VERSUS_MAPS.forEach((m) => {
+      const b = document.createElement('button');
+      b.className = 'vs-map-btn' + (this._myVote.map === m.id ? ' picked' : '');
+      b.dataset.map = m.id;
+      b.innerHTML = '<span class="vs-map-name">' + m.name + '</span><span class="vs-map-votes" data-mv="' + m.id + '"></span>';
+      b.onclick = () => this.setVoteMap(m.id);
+      list.appendChild(b);
+    });
+  },
+
+  setVoteMap(id) {
+    if (this._myReady) return;          // tijdens ready niet wisselen
+    this._myVote.map = id;
+    this.renderMapVote(); this.refreshLobby(); this.broadcastLobby();
+  },
+  setVoteMode(mode) {
+    if (this._myReady) return;
+    this._myVote.mode = mode;
+    this.refreshLobby(); this.broadcastLobby();
+  },
+  toggleReady() {
+    this._myReady = !this._myReady;
+    this.broadcastLobby(); this.refreshLobby(); this.checkBothReady();
+  },
+
+  broadcastLobby() {
+    if (window.Net) Net.versusSend('lobby', { map: this._myVote.map, mode: this._myVote.mode, ready: !!this._myReady });
+  },
+  onLobbyUpdate(p) {
+    this._peer = { map: p.map, mode: p.mode, ready: !!p.ready };
+    // tegenstander aanwezig -> zorg dat de opts zichtbaar zijn
+    if (document.getElementById('vs-lobby-opts').classList.contains('hidden')) this._onVersusMatch();
+    this.refreshLobby(); this.checkBothReady();
+  },
+
+  refreshLobby() {
+    // map-stemmen tonen
+    VERSUS_MAPS.forEach((m) => {
+      const el = document.querySelector('[data-mv="' + m.id + '"]');
+      if (!el) return;
+      let n = 0; if (this._myVote.map === m.id) n++; if (this._peer && this._peer.map === m.id) n++;
+      el.textContent = n ? '●'.repeat(n) : '';
+    });
+    document.querySelectorAll('.vs-map-btn').forEach((b) => b.classList.toggle('picked', b.dataset.map === this._myVote.map));
+    document.querySelectorAll('.vs-mode-btn').forEach((b) => b.classList.toggle('active', b.dataset.mode === this._myVote.mode));
+    const ready = document.getElementById('btn-vs-ready');
+    ready.textContent = this._myReady ? '✔ READY (klik om te annuleren)' : 'READY';
+    ready.classList.toggle('on', this._myReady);
+    const st = document.getElementById('vs-ready-status');
+    const peerReady = this._peer && this._peer.ready;
+    st.textContent = 'Jij: ' + (this._myReady ? 'klaar' : 'kiezen…') + '   •   Tegenstander: ' + (this._peer ? (peerReady ? 'klaar' : 'kiezen…') : '—');
+  },
+
+  checkBothReady() {
+    if (this._myReady && this._peer && this._peer.ready) this.startCountdown();
+    else this.cancelCountdown();
+  },
+
+  startCountdown() {
+    if (this._cdTimer) return;          // al bezig
+    this._cdLeft = 5000;
+    const tick = () => {
+      this._cdLeft -= 200;
+      const st = document.getElementById('vs-ready-status');
+      if (st) st.textContent = 'Start over ' + Math.ceil(this._cdLeft / 1000) + 's…';
+      if (this._cdLeft <= 0) {
+        clearInterval(this._cdTimer); this._cdTimer = null;
+        if (this._vsRole === 'host') this.resolveAndBegin();   // host beslist de map/modus
+        else { if (st) st.textContent = 'Starten…'; }          // gast wacht op 'begin'
+      }
+    };
+    this._cdTimer = setInterval(tick, 200);
+  },
+  cancelCountdown() {
+    if (this._cdTimer) { clearInterval(this._cdTimer); this._cdTimer = null; }
+  },
+
+  // host kiest de definitieve map + modus en stuurt 'begin'
+  resolveAndBegin() {
+    const mine = this._myVote, peer = this._peer || mine;
+    const map = (mine.map === peer.map) ? mine.map : (Math.random() < 0.5 ? mine.map : peer.map);
+    const mode = (mine.mode === peer.mode) ? mine.mode : (Math.random() < 0.5 ? mine.mode : peer.mode);
+    if (window.Net) Net.versusSend('begin', { map, mode });
+    this._beginMatch(map, mode);
+  },
+  onLobbyBegin(p) { this._beginMatch(p.map, p.mode); },
+  _beginMatch(map, mode) {
     if (this._vsStarted) return;
     this._vsStarted = true;
-    Game.startVersus(role || this._vsRole || 'host');
+    this.cancelCountdown();
+    Game.startVersus(this._vsRole || 'host', { mapId: map, mode: mode });
+  },
+
+  leaveLobby() {
+    this.cancelCountdown();
+    this._vsStarted = false; this._peer = null; this._myReady = false;
+    if (window.Net) Net.leaveVersus();
   },
 
   showVersus() {
@@ -445,9 +567,19 @@ const UI = {
       if (v.countdown > 0) { cd.classList.remove('hidden'); cd.textContent = Math.ceil(v.countdown / 1000); }
       else cd.classList.add('hidden');
     }
+    // grote "wint de ronde"-banner tijdens de freeze
+    const rb = document.getElementById('vs-round-banner');
+    if (rb) {
+      if (v.roundMsg && v.roundFreezeUntil > Game.time) {
+        rb.classList.remove('hidden');
+        rb.textContent = v.roundMsg;
+        rb.className = 'vs-round-banner ' + (v.roundMsg.indexOf('JIJ') === 0 ? 'win' : 'lose');
+      } else rb.classList.add('hidden');
+    }
   },
 
   showVersusResult(won, myScore, oppScore, xpGained) {
+    const rb = document.getElementById('vs-round-banner'); if (rb) rb.classList.add('hidden');
     document.getElementById('versus-hud').classList.add('hidden');
     document.body.classList.remove('in-game');
     this.el.touch.classList.add('hidden');

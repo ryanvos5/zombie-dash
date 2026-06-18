@@ -11,7 +11,7 @@
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="theme-color" content="#0d0f14" />
   <title>Topleven Adventures — Wereld 1</title>
-  <link rel="stylesheet" href="css/style.css?v=timo1" />
+  <link rel="stylesheet" href="css/style.css?v=mp2" />
 </head>
 <body>
   <div id="game-root">
@@ -177,9 +177,19 @@
           <div id="versus-msg" class="auth-msg"></div>
         </div>
         <div id="versus-wait" class="hidden">
-          <p class="vs-wait-label">Jouw kamercode:</p>
-          <div id="vs-room-code" class="vs-room-code">----</div>
-          <p class="vs-wait-sub">Geef deze code aan je tegenstander en wacht tot die meedoet…</p>
+          <p class="vs-wait-label">Kamercode: <span id="vs-room-code" class="vs-code-inline">----</span></p>
+          <p id="vs-peer-status" class="vs-wait-sub">Wachten op tegenstander…</p>
+          <div id="vs-lobby-opts" class="hidden">
+            <p class="vs-section">Stem op een map:</p>
+            <div id="vs-map-list" class="vs-map-list"></div>
+            <p class="vs-section">Wapens:</p>
+            <div class="vs-mode-row">
+              <button class="vs-mode-btn active" data-mode="melee">Alleen melee</button>
+              <button class="vs-mode-btn" data-mode="both">Beide wapens</button>
+            </div>
+            <button id="btn-vs-ready" class="big-btn">READY</button>
+            <p id="vs-ready-status" class="vs-wait-sub"></p>
+          </div>
         </div>
         <button class="back-btn" id="btn-vs-back" data-back="menu">◀ TERUG</button>
       </div>
@@ -207,6 +217,7 @@
       <span id="vs-score-them">0</span>
       <button id="btn-vs-quit" title="Stoppen">✕</button>
       <div id="vs-countdown" class="vs-countdown hidden"></div>
+      <div id="vs-round-banner" class="vs-round-banner hidden"></div>
     </div>
 
     <!-- ===== Level voltooid ===== -->
@@ -287,14 +298,14 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
-  <script src="js/config.js?v=timo1"></script>
-  <script src="js/storage.js?v=timo1"></script>
-  <script src="js/net.js?v=timo1"></script>
-  <script src="js/input.js?v=timo1"></script>
-  <script src="js/sprites.js?v=timo1"></script>
-  <script src="js/entities.js?v=timo1"></script>
-  <script src="js/ui.js?v=timo1"></script>
-  <script src="js/game.js?v=timo1"></script>
-  <script src="js/main.js?v=timo1"></script>
+  <script src="js/config.js?v=mp2"></script>
+  <script src="js/storage.js?v=mp2"></script>
+  <script src="js/net.js?v=mp2"></script>
+  <script src="js/input.js?v=mp2"></script>
+  <script src="js/sprites.js?v=mp2"></script>
+  <script src="js/entities.js?v=mp2"></script>
+  <script src="js/ui.js?v=mp2"></script>
+  <script src="js/game.js?v=mp2"></script>
+  <script src="js/main.js?v=mp2"></script>
 </body>
 </html>
