@@ -53,6 +53,36 @@ const Storage = {
     try { localStorage.setItem(SAVE_KEY, JSON.stringify(this.data)); } catch (e) {}
   },
 
+  // voortgang herstellen via een URL-link, bv:
+  //   ?restore=coins:5000,w1:10,w2:10,w3:0,weapons:all,chars:all,ammo:300
+  // (werkt ook op iOS zonder console; neemt steeds de hoogste/meeste waarde)
+  applyRestoreFromURL() {
+    let q = '';
+    try { q = (location.search || '').replace(/^\?/, ''); } catch (e) { return false; }
+    if (!q) return false;
+    let restore = '';
+    q.split('&').forEach((kv) => {
+      const i = kv.indexOf('=');
+      const k = decodeURIComponent(i < 0 ? kv : kv.slice(0, i));
+      const v = i < 0 ? '' : decodeURIComponent(kv.slice(i + 1));
+      if (k === 'restore') restore = v;
+    });
+    if (!restore) return false;
+    let changed = false;
+    restore.split(',').forEach((pair) => {
+      const [key, valRaw] = pair.split(':');
+      const val = valRaw || '';
+      if (key === 'coins') { this.data.coins = Math.max(this.data.coins || 0, parseInt(val, 10) || 0); changed = true; }
+      else if (key === 'ammo') { this.data.ammo = Math.max(this.data.ammo || 0, parseInt(val, 10) || 0); changed = true; }
+      else if (key === 'rockets') { this.data.rockets = Math.max(this.data.rockets || 0, parseInt(val, 10) || 0); changed = true; }
+      else if (/^w\d+$/.test(key)) { const w = key.slice(1); this.data.progress[w] = Math.max(this.data.progress[w] || 0, parseInt(val, 10) || 0); changed = true; }
+      else if (key === 'weapons') { const ids = val === 'all' ? WEAPON_ORDER.slice() : val.split('|'); for (const id of ids) if (WEAPONS[id] && !this.data.ownedWeapons.includes(id)) this.data.ownedWeapons.push(id); changed = true; }
+      else if (key === 'chars') { const ids = val === 'all' ? CHARACTER_ORDER.slice() : val.split('|'); for (const id of ids) if (CHARACTERS[id] && !this.data.ownedCharacters.includes(id)) this.data.ownedCharacters.push(id); changed = true; }
+    });
+    if (changed) this.save();
+    return changed;
+  },
+
   reset() {
     this.data = JSON.parse(JSON.stringify(DEFAULT_SAVE));
     this.save();
