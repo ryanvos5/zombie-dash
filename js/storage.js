@@ -68,6 +68,10 @@ const Storage = {
       if (k === 'restore') restore = v;
     });
     if (!restore) return false;
+    // eenmalig per unieke link: voorkomt dat munten bij elke (koude) start "terugkomen"
+    let already = '';
+    try { already = localStorage.getItem('zombiedash_restored') || ''; } catch (e) {}
+    if (already === restore) return false;
     let changed = false;
     restore.split(',').forEach((pair) => {
       const [key, valRaw] = pair.split(':');
@@ -79,7 +83,10 @@ const Storage = {
       else if (key === 'weapons') { const ids = val === 'all' ? WEAPON_ORDER.slice() : val.split('|'); for (const id of ids) if (WEAPONS[id] && !this.data.ownedWeapons.includes(id)) this.data.ownedWeapons.push(id); changed = true; }
       else if (key === 'chars') { const ids = val === 'all' ? CHARACTER_ORDER.slice() : val.split('|'); for (const id of ids) if (CHARACTERS[id] && !this.data.ownedCharacters.includes(id)) this.data.ownedCharacters.push(id); changed = true; }
     });
-    if (changed) this.save();
+    if (changed) {
+      this.save();
+      try { localStorage.setItem('zombiedash_restored', restore); } catch (e) {}
+    }
     return changed;
   },
 
