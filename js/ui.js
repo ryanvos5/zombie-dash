@@ -649,6 +649,9 @@ const UI = {
     this.el.pause.classList.toggle('hidden', !inGame);
     this.el.touch.classList.toggle('hidden', !inGame || !Input.isTouch());
     if (!inGame) { this.el.tutorialBox.classList.add('hidden'); this.el.banner.classList.add('hidden'); }
+    // versus-HUD nooit laten hangen op een gewoon scherm (score/HP-balken/✕)
+    const vh = document.getElementById('versus-hud'); if (vh) vh.classList.add('hidden');
+    const vrb = document.getElementById('vs-round-banner'); if (vrb) vrb.classList.add('hidden');
 
     // muntentellers bijwerken
     this.el.menuCoins.textContent = Storage.data.coins;
