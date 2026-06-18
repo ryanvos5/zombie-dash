@@ -51,6 +51,23 @@ const Storage = {
 
   save() {
     try { localStorage.setItem(SAVE_KEY, JSON.stringify(this.data)); } catch (e) {}
+    try { if (window.Net && Net.queueCloudSave) Net.queueCloudSave(); } catch (e) {}
+  },
+
+  // cloud-save samenvoegen met de lokale stand: neem overal het BESTE,
+  // zodat je op geen enkel toestel voortgang verliest bij het inloggen.
+  mergeCloud(cloud) {
+    if (!cloud) return;
+    const d = this.data;
+    d.coins = Math.max(d.coins || 0, cloud.coins || 0);
+    d.ammo = Math.max(d.ammo || 0, cloud.ammo || 0);
+    d.rockets = Math.max(d.rockets || 0, cloud.rockets || 0);
+    d.arenaBest = Math.max(d.arenaBest || 0, cloud.arenaBest || 0);
+    for (const w of (cloud.ownedWeapons || [])) if (!d.ownedWeapons.includes(w)) d.ownedWeapons.push(w);
+    for (const c of (cloud.ownedCharacters || [])) if (!d.ownedCharacters.includes(c)) d.ownedCharacters.push(c);
+    const cp = cloud.progress || {};
+    for (const k of Object.keys(cp)) d.progress[k] = Math.max(d.progress[k] || 0, cp[k] || 0);
+    this.save();
   },
 
   // voortgang herstellen via een URL-link, bv:

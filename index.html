@@ -11,7 +11,7 @@
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="theme-color" content="#0d0f14" />
   <title>Topleven Adventures — Wereld 1</title>
-  <link rel="stylesheet" href="css/style.css?v=world3g" />
+  <link rel="stylesheet" href="css/style.css?v=accounts1" />
 </head>
 <body>
   <div id="game-root">
@@ -82,7 +82,31 @@
           <button id="btn-characters" class="big-btn secondary">CHARACTERS</button>
         </div>
         <div class="menu-coins">Munten: <span id="menu-coin-count">0</span> ●</div>
+        <div id="account-bar" class="account-bar">
+          <button id="btn-account" class="text-btn">🔐 Inloggen / account</button>
+          <span id="account-status" class="account-status hidden"></span>
+          <button id="btn-logout" class="text-btn hidden">Uitloggen</button>
+        </div>
         <button id="btn-newgame" class="text-btn">Nieuw spel (wis voortgang)</button>
+      </div>
+    </div>
+
+    <!-- ===== Account (inloggen / registreren) ===== -->
+    <div id="auth-screen" class="overlay hidden">
+      <div class="overlay-box auth-box">
+        <h2 class="screen-title" id="auth-title">INLOGGEN</h2>
+        <p class="auth-sub">Optioneel — zo blijft je voortgang op elk toestel bewaard.</p>
+        <div id="auth-fields">
+          <input id="auth-nick" class="auth-input hidden" type="text" autocomplete="username" placeholder="Nickname" maxlength="20" />
+          <input id="auth-email" class="auth-input" type="email" autocomplete="email" placeholder="E-mail" />
+          <input id="auth-pass" class="auth-input" type="password" autocomplete="current-password" placeholder="Wachtwoord (min. 6 tekens)" />
+        </div>
+        <div id="auth-msg" class="auth-msg"></div>
+        <div class="menu-buttons">
+          <button id="btn-auth-submit" class="big-btn">INLOGGEN</button>
+          <button id="btn-auth-toggle" class="text-btn">Nog geen account? Registreren</button>
+          <button id="btn-auth-close" class="text-btn">Annuleren</button>
+        </div>
       </div>
     </div>
 
@@ -191,13 +215,15 @@
     </div>
   </div>
 
-  <script src="js/config.js?v=world3g"></script>
-  <script src="js/storage.js?v=world3g"></script>
-  <script src="js/input.js?v=world3g"></script>
-  <script src="js/sprites.js?v=world3g"></script>
-  <script src="js/entities.js?v=world3g"></script>
-  <script src="js/ui.js?v=world3g"></script>
-  <script src="js/game.js?v=world3g"></script>
-  <script src="js/main.js?v=world3g"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+  <script src="js/config.js?v=accounts1"></script>
+  <script src="js/storage.js?v=accounts1"></script>
+  <script src="js/net.js?v=accounts1"></script>
+  <script src="js/input.js?v=accounts1"></script>
+  <script src="js/sprites.js?v=accounts1"></script>
+  <script src="js/entities.js?v=accounts1"></script>
+  <script src="js/ui.js?v=accounts1"></script>
+  <script src="js/game.js?v=accounts1"></script>
+  <script src="js/main.js?v=accounts1"></script>
 </body>
 </html>

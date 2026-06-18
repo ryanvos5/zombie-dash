@@ -60,6 +60,15 @@ const UI = {
       }
     };
 
+    // ---- account (inloggen / registreren) ----
+    this.authMode = 'login';
+    $('btn-account').onclick = () => this.openAuth('login');
+    $('btn-logout').onclick = () => { if (window.Net) Net.logout(); };
+    $('btn-auth-close').onclick = () => $('auth-screen').classList.add('hidden');
+    $('btn-auth-toggle').onclick = () => this.openAuth(this.authMode === 'login' ? 'register' : 'login');
+    $('btn-auth-submit').onclick = () => this.submitAuth();
+    this.refreshAuthUI();
+
     // fullscreen
     const fsBtn = document.getElementById('fs-btn');
     if (fsBtn) fsBtn.onclick = () => this.toggleFullscreen();
@@ -116,6 +125,76 @@ const UI = {
     if (Storage.arenaPlaysLeft() <= 0) { again.classList.add('cant'); again.disabled = true; }
     else { again.classList.remove('cant'); again.disabled = false; }
     this.show('arena');
+  },
+
+  // ---- ACCOUNT-UI ----
+  syncCoins() {
+    if (this.el.menuCoins) this.el.menuCoins.textContent = Storage.data.coins;
+    if (this.el.shopCoins) this.el.shopCoins.textContent = Storage.data.coins;
+    if (this.el.charCoins) this.el.charCoins.textContent = Storage.data.coins;
+  },
+
+  refreshAuthUI() {
+    const status = document.getElementById('account-status');
+    const btnAcc = document.getElementById('btn-account');
+    const btnOut = document.getElementById('btn-logout');
+    if (!status || !btnAcc || !btnOut) return;
+    const inLogged = window.Net && Net.isLoggedIn && Net.isLoggedIn();
+    if (inLogged) {
+      status.textContent = '👤 ' + Net.nickname();
+      status.classList.remove('hidden');
+      btnOut.classList.remove('hidden');
+      btnAcc.classList.add('hidden');
+    } else {
+      status.classList.add('hidden');
+      btnOut.classList.add('hidden');
+      btnAcc.classList.remove('hidden');
+    }
+  },
+
+  openAuth(mode) {
+    this.authMode = mode;
+    const isReg = mode === 'register';
+    document.getElementById('auth-title').textContent = isReg ? 'REGISTREREN' : 'INLOGGEN';
+    document.getElementById('btn-auth-submit').textContent = isReg ? 'ACCOUNT AANMAKEN' : 'INLOGGEN';
+    document.getElementById('btn-auth-toggle').textContent = isReg ? 'Al een account? Inloggen' : 'Nog geen account? Registreren';
+    document.getElementById('auth-nick').classList.toggle('hidden', !isReg);
+    document.getElementById('auth-pass').setAttribute('autocomplete', isReg ? 'new-password' : 'current-password');
+    document.getElementById('auth-msg').textContent = '';
+    document.getElementById('auth-screen').classList.remove('hidden');
+  },
+
+  async submitAuth() {
+    const msg = document.getElementById('auth-msg');
+    const email = document.getElementById('auth-email').value;
+    const pass = document.getElementById('auth-pass').value;
+    const nick = document.getElementById('auth-nick').value;
+    const submitBtn = document.getElementById('btn-auth-submit');
+    if (!email || !pass) { msg.textContent = 'Vul e-mail en wachtwoord in.'; return; }
+    if (this.authMode === 'register' && !nick) { msg.textContent = 'Kies een nickname.'; return; }
+    if (pass.length < 6) { msg.textContent = 'Wachtwoord moet minstens 6 tekens zijn.'; return; }
+    msg.style.color = ''; msg.textContent = 'Bezig…'; submitBtn.disabled = true;
+    try {
+      if (this.authMode === 'register') {
+        const res = await Net.register(email, nick, pass);
+        if (res.confirmed) {
+          msg.style.color = '#7ad06a'; msg.textContent = '✅ Account aangemaakt!';
+          setTimeout(() => { document.getElementById('auth-screen').classList.add('hidden'); this.syncCoins(); }, 800);
+        } else {
+          msg.style.color = '#7ad06a';
+          msg.textContent = '✅ Bevestig je e-mail via de link die we stuurden, en log daarna in.';
+        }
+      } else {
+        await Net.login(email, pass);
+        msg.style.color = '#7ad06a'; msg.textContent = '✅ Ingelogd!';
+        setTimeout(() => { document.getElementById('auth-screen').classList.add('hidden'); this.syncCoins(); }, 700);
+      }
+    } catch (e) {
+      msg.style.color = '#ff6a6a';
+      msg.textContent = '⚠ ' + (e && e.message ? e.message : 'Er ging iets mis.');
+    } finally {
+      submitBtn.disabled = false;
+    }
   },
 
   show(name) {
@@ -431,3 +510,4 @@ const UI = {
     this.show('lose');
   },
 };
+window.UI = UI;   // zodat window.UI-checks (o.a. in net.js) werken
