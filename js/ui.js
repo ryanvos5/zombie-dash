@@ -556,7 +556,7 @@ const UI = {
     if (game.boss && game.boss.alive) {
       main = lv.balloonBoss ? '🎈 BALLON ZOMBIE' : lv.apeBoss ? '🦍 MEGA ZOMBIE-AAP' : '☠ MEGA ZOMBIE';
       sub = lv.balloonBoss ? 'spring & schiet de ballon neer!'
-        : lv.apeBoss ? 'ontwijk de sprong & sla terug!'
+        : lv.apeBoss ? (game.boss.enraged ? '🔥 RAZEND! spring weg van de schokgolf!' : 'ontwijk de sprong + spring bij de landing!')
         : 'raak alleen het HOOFD — spring!';
       cls = 'danger';
       bossFrac = Math.max(0, game.boss.hp / game.boss.maxHp);

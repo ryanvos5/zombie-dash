@@ -416,10 +416,19 @@ const Sprites = {
 
   /* ---------- MEGA ZOMBIE-AAP (wereld 3 boss) ---------- */
   drawApe(ctx, cx, footY, dir, z) {
-    const fur = '#3a5a2a', furDk = '#27411c', furLt = '#4e7236';
+    const enraged = z && z.enraged;
+    const fur = enraged ? '#5a3424' : '#3a5a2a', furDk = enraged ? '#3e2014' : '#27411c', furLt = enraged ? '#a8603a' : '#4e7236';
     const skin = '#6a8a4a', blood = '#7a1f1f', bone = '#d2ccb0';
     const crouch = z && z.crouchT > 0;        // ineengedoken vóór de sprong
     const air = z && !z.onGround;              // mid-sprong (armen omhoog)
+    // razende rode gloed
+    if (enraged) {
+      ctx.save();
+      ctx.globalAlpha = 0.18 + 0.1 * Math.sin((z._frameT || footY * 7) / 80);
+      ctx.fillStyle = '#ff3018';
+      ctx.beginPath(); ctx.ellipse(cx, footY - 44, 34, 56, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+    }
     const ph = (z && z.walkPhase) || 0;
     const sw = (ph === 1) ? 4 : (ph === 3) ? -4 : 0;
 

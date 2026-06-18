@@ -435,33 +435,47 @@ class Zombie {
 
     // ---- MEGA ZOMBIE-AAP: springt in één keer naar de speler toe ----
     if (t.apeLeap) {
-      if (this.apeCd == null) this.apeCd = 1200;
+      const enraged = this.hp < this.maxHp * 0.4;          // razend bij weinig leven
+      this.enraged = enraged;
+      this._frameT = game.time;                            // voor de pulserende enrage-gloed
+      if (this.apeCd == null) this.apeCd = 900;
       if (!this.onGround) {
         this.x += (this.leapVx || 0) * s;                 // boog richting de speler
       } else if (this.leapVx) {
-        // net geland na een sprong -> schokgolf; alleen schade bij ECHT contact
+        // LANDING: dreun + SCHOKGOLF over de grond -> spring eroverheen of je krijgt schade
         this.leapVx = 0;
-        game.shake = Math.max(game.shake, 9);
-        for (let k = 0; k < 8; k++) game.spawnBlood(this.x + (Math.random() - 0.5) * 30, CONFIG.GROUND_Y);
-        if (this.apeTouches(player)) { player.takeDamage(t.dmg); this.lastBite = game.time; }
+        game.shake = Math.max(game.shake, 12);
+        const shockR = 86;
+        for (let k = 0; k < 14; k++) game.spawnBlood(this.x + (Math.random() - 0.5) * shockR * 2, CONFIG.GROUND_Y);
+        if (this.apeTouches(player)) {
+          player.takeDamage(t.dmg); this.lastBite = game.time;            // direct lijf-contact
+        } else if (player.onGround && Math.abs(this.x - player.x) < shockR) {
+          player.takeDamage(Math.round(t.dmg * 0.6)); this.lastBite = game.time;  // grond-schokgolf
+          game.knockPlayer(player.x < this.x ? -1 : 1, 9);
+        }
+        // razend: vrijwel meteen weer aanvallen (ketting-sprongen)
+        this.apeCd = enraged ? 300 + Math.random() * 300 : 900 + Math.random() * 800;
       } else if (this.crouchT > 0) {
         this.crouchT -= dt;                                // ineengedoken (telegraaf vóór de sprong)
         if (this.crouchT <= 0) {
           const dxp = player.x - this.x;
-          this.vy = -10.5;                                 // hoge sprong
-          const airFrames = (2 * 10.5) / CONFIG.GRAVITY;   // ~35 frames in de lucht
-          this.leapVx = Math.max(-7.5, Math.min(7.5, dxp / airFrames));
+          const vyJump = enraged ? -11.5 : -10.5;          // hoge sprong
+          this.vy = vyJump;
+          const airFrames = (2 * Math.abs(vyJump)) / CONFIG.GRAVITY;
+          const maxVx = enraged ? 9.5 : 7.5;
+          this.leapVx = Math.max(-maxVx, Math.min(maxVx, dxp / airFrames));
           this.onGround = false;
         }
       } else {
         this.apeCd -= dt;
         if (this.apeTouches(player) && game.time - this.lastBite > t.biteCd) {
           player.takeDamage(t.dmg); this.lastBite = game.time;  // alleen bij echt contact
-        } else if (this.apeCd <= 0 && dist > 38) {
-          this.crouchT = 300;                              // duik ineen om te springen
-          this.apeCd = 2000 + Math.random() * 1400;        // pauze tot de volgende sprong
+        } else if (this.apeCd <= 0 && dist > 30) {
+          this.crouchT = enraged ? 190 : 280;             // korter telegraaf bij razend
+          this.apeCd = enraged ? 600 + Math.random() * 500 : 1400 + Math.random() * 900;
         } else {
-          this.x += this.dir * this.speed * s;             // sjok langzaam naderbij
+          const sp = this.speed * (enraged ? 1.7 : 1.25);  // sneller naderbij
+          this.x += this.dir * sp * s;
           this.separate(game, s);
         }
       }

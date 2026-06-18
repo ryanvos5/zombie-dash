@@ -196,7 +196,7 @@ const ZOMBIE_TYPES = {
   },
   // eindbaas wereld 3: mega zombie-aap die in één sprong naar de speler toe duikt
   ape: {
-    id: 'ape', hpMul: 1.0, speedMul: 0.5, dmg: 30, biteCd: 900,
+    id: 'ape', hpMul: 1.0, speedMul: 0.7, dmg: 36, biteCd: 700,
     reach: 30, lunge: false, apeLeap: true, scale: 2.8, coin: 450,
     ammoDrop: 0, ammoDropChance: 0, knockback: true, knockResist: 0,
     healChance: 0, color: '#3a5a2a',
@@ -217,7 +217,7 @@ const BOSS_HP = 1000;
 // HP van de ballon-eindbaas (wereld 2)
 const BALLOON_HP = 900;
 // HP van de mega zombie-aap (wereld 3)
-const APE_HP = 1200;
+const APE_HP = 1800;
 // vanaf deze wereld kun je dubbel springen
 const DOUBLE_JUMP_FROM_WORLD = 2;
 // onder deze y val je in het ravijn (instant dood) — alleen in parkour-levels
