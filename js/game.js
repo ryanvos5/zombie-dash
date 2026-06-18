@@ -1141,8 +1141,9 @@ const Game = {
     this.player.x = sp.x; this.player.y = sp.y; this.player.dir = sp.dir; this.player.onGround = true;
     const rb = role === 'host' ? map.spawnR : map.spawnL;
     this.vs = {
-      role, spawn: sp, myScore: 0, oppScore: 0, target: 5,
-      countdown: 3000, lastSwing: 0, netTimer: 0, over: false,
+      role, spawn: sp, botSpawn: { x: rb.x, y: rb.y, dir: role === 'host' ? -1 : 1 },
+      myScore: 0, oppScore: 0, target: 5,
+      countdown: 3000, lastSwing: 0, botLastSwing: 0, netTimer: 0, over: false,
       roundFreezeUntil: 0, roundMsg: '',
       remote: {
         x: rb.x, y: rb.y, tx: rb.x, ty: rb.y,
@@ -1150,13 +1151,30 @@ const Game = {
         alive: true, charId: 'ryan', lastSeen: 0,
       },
     };
-    if (window.Net) Net.setVersusCallbacks({
-      onState: (s) => this.onVersusState(s),
-      onHit: (p) => this.onVersusHit(p),
-      onFell: () => this.onVersusFell(),
-      onBurn: () => this.onVersusBurn(),
-      onShot: (p) => this.onVersusShot(p),
-    });
+
+    // ----- tegen de BOT (lokaal, geen XP) -----
+    this.vsBot = !!opts.bot;
+    this.bot = null;
+    if (this.vsBot) {
+      const ids = CHARACTER_ORDER.slice();
+      const botChar = ids[Math.floor(Math.random() * ids.length)] || 'ryan';
+      const melees = ['bat', 'machete', 'sword', 'axe', 'mace', 'katana'];
+      const botMelee = melees[Math.floor(Math.random() * melees.length)];
+      const b = new Player(botMelee, null, botChar);
+      b.maxJumps = 2; b.jumps = 2; b.knockVx = 0; b.dead = false; b.respawnInvuln = 0;
+      b.x = rb.x; b.y = rb.y; b.dir = this.vs.botSpawn.dir; b.onGround = true;
+      b._think = 0; b._jumpCd = 0;
+      this.bot = b;
+      this.vs.remote.charId = botChar;
+    } else if (window.Net) {
+      Net.setVersusCallbacks({
+        onState: (s) => this.onVersusState(s),
+        onHit: (p) => this.onVersusHit(p),
+        onFell: () => this.onVersusFell(),
+        onBurn: () => this.onVersusBurn(),
+        onShot: (p) => this.onVersusShot(p),
+      });
+    }
     this.state = 'versus';
     Input.clear();
     UI.showVersus();
@@ -1196,7 +1214,7 @@ const Game = {
     } else if (v.roundMsg) {                          // freeze net afgelopen -> nieuwe ronde
       v.roundMsg = '';
       this.respawnLocal();
-      v.remote.alive = true;
+      if (this.vsBot) this.respawnBot(); else v.remote.alive = true;
     }
 
     this.updateVersusPlatforms();
@@ -1206,12 +1224,14 @@ const Game = {
       if (this.player.respawnInvuln > 0) this.player.respawnInvuln -= dt;
       this.player.update(dt, this);                   // eigen speler: volledige besturing/fysica
       this.carryOnPlatform();                          // meebewegen met bewegend platform
+      if (this.vsBot) this.updateBot(dt);              // de AI-tegenstander
       this.checkVersusHit();
       if (this.vsMode === 'both') this.updateVersusBullets(dt);   // kogels (beide-wapens)
-      // Vince-vuuraura raakt de tegenstander -> stuur een burn (max ~1x/0.6s)
+      // Vince-vuuraura raakt de tegenstander
       if (this.player.fireAura && this.player._auraOn && v.remote.alive &&
           Math.abs(v.remote.x - this.player.x) < 24 && Math.abs(v.remote.y - this.player.y) < 26) {
-        if (this.time >= (v.burnSentAt || 0)) { v.burnSentAt = this.time + 600; if (window.Net) Net.versusSend('burn', {}); }
+        if (this.vsBot) { if (this.bot && this.bot.respawnInvuln <= 0) this.bot.burnUntil = this.time + 3000; }
+        else if (this.time >= (v.burnSentAt || 0)) { v.burnSentAt = this.time + 600; if (window.Net) Net.versusSend('burn', {}); }
       }
       // eraf gevallen of doodgebrand -> punt voor de tegenstander
       if (!this.player.dead && (this.player.y > FALL_DEATH_Y || this.player.hp <= 0)) this.localFell();
@@ -1292,11 +1312,119 @@ const Game = {
       const reach = 36;                              // ruime melee-reach in versus
       const dx = (r.x - p.x) * p.dir;
       if (dx > -10 && dx < reach && Math.abs(r.y - p.y) < 30) {
-        Net.versusSend('hit', { dir: p.dir, power: 15, vy: -5.5 });   // GROTE knockback
+        const kdir = (r.x >= p.x ? 1 : -1);
+        if (this.vsBot) this.applyHitToBot(kdir, 15, -5.5);          // bot wegslaan
+        else Net.versusSend('hit', { dir: p.dir, power: 15, vy: -5.5 });
         this.spawnBlood(r.x, r.y - 16);
         this.shake = Math.max(this.shake, 6);
       }
     }
+  },
+
+  // ===== BOT (lokale AI-tegenstander) =====
+  updateBot(dt) {
+    const b = this.bot, v = this.vs;
+    if (b.respawnInvuln > 0) b.respawnInvuln -= dt;
+    const inp = this.botThink();
+    b.update(dt, this, inp);
+    // bot meebewegen op een horizontaal platform
+    if (b.onGround) for (const pf of this.platforms) {
+      if (pf.dx && Math.abs(b.x - pf.x) < pf.w / 2 + b.w / 2 && Math.abs(b.y - pf.y) < 4) { b.x += pf.dx; break; }
+    }
+    // bot-stand spiegelen naar de 'remote' (voor tekening + treffer-checks)
+    const r = v.remote;
+    r.x = r.tx = b.x; r.y = r.ty = b.y; r.dir = b.dir; r.onGround = b.onGround;
+    r.attacking = this.time < b.attackAnimUntil; r.swingWeapon = (this.time < (b.swingUntil || 0)) ? b.swingWeapon : null;
+    r.walkPhase = b.walkPhase; r.alive = !b.dead; r.charId = b.charId;
+
+    // bot's mep raakt de speler?
+    const bsw = b.swingUntil || 0;
+    if (bsw && bsw !== v.botLastSwing && this.time < bsw) {
+      v.botLastSwing = bsw;
+      const dxp = (this.player.x - b.x) * b.dir;
+      if (dxp > -10 && dxp < 36 && Math.abs(this.player.y - b.y) < 30 && this.player.respawnInvuln <= 0 && !this.player.dead) {
+        const kd = this.player.x >= b.x ? 1 : -1;
+        this.onVersusHit({ dir: kd, power: 15, vy: -5.5 });
+        this.shake = Math.max(this.shake, 6);
+      }
+    }
+    // bot's Vince-aura laat de speler branden
+    if (b.fireAura && b._auraOn && this.player.respawnInvuln <= 0 &&
+        Math.abs(this.player.x - b.x) < 24 && Math.abs(this.player.y - b.y) < 26) {
+      this.player.burnUntil = this.time + 3000;
+    }
+    // bot eraf gevallen of doodgebrand -> punt voor de speler
+    if (!b.dead && (b.y > FALL_DEATH_Y || b.hp <= 0)) { b.dead = true; this.onVersusFell(); }
+  },
+
+  applyHitToBot(dir, power, vy) {
+    const b = this.bot;
+    if (!b || b.respawnInvuln > 0 || b.dead) return;
+    b.knockVx = dir * power; b.vy = vy; b.onGround = false;
+    this.shake = Math.max(this.shake, 7);
+  },
+
+  respawnBot() {
+    const b = this.bot; if (!b) return;
+    const sp = this.vs.botSpawn;
+    b.x = sp.x; b.y = sp.y; b.dir = sp.dir; b.vy = 0; b.knockVx = 0;
+    b.onGround = true; b.dead = false; b.respawnInvuln = 1300; b.hp = b.maxHp; b.burnUntil = 0;
+    this.vs.remote.alive = true;
+  },
+
+  platformUnder(e) {
+    for (const pf of this.platforms)
+      if (Math.abs(e.x - pf.x) < pf.w / 2 + 2 && Math.abs(e.y - pf.y) < 4) return pf;
+    return null;
+  },
+  nearestPlatform(x) {
+    let best = null, bd = 1e9;
+    for (const pf of this.platforms) { const d = Math.abs(pf.x - x); if (d < bd) { bd = d; best = pf; } }
+    return best;
+  },
+
+  // de AI: nadert de speler, springt tussen platforms, mept, herstelt aan de rand
+  botThink() {
+    const b = this.bot, p = this.player, now = this.time;
+    const inp = { left: false, right: false, jump: false, duck: false, attack: false, melee: false, jumpPressed: false };
+    if (b.dead) return inp;
+    const dx = p.x - b.x;
+
+    // RECOVERY: in de lucht boven de leegte -> terug naar het dichtstbijzijnde platform
+    if (!b.onGround) {
+      const safe = this.nearestPlatform(b.x);
+      if (safe) {
+        if (safe.x > b.x + 4) inp.right = true; else if (safe.x < b.x - 4) inp.left = true;
+        if (b.vy > 1 && b.y > safe.y + 4 && b.jumps > 0 && now >= b._jumpCd) {
+          inp.jump = true; inp.jumpPressed = true; b._jumpCd = now + 250;   // dubbel-jump om terug te komen
+        }
+      }
+      if (Math.abs(dx) < 28 && Math.abs(p.y - b.y) < 26) inp.melee = true;   // mep ook in de lucht
+      return inp;
+    }
+
+    if (now >= b._think) { b._think = now + 90 + Math.random() * 70; }
+    const cur = this.platformUnder(b);
+    const tgt = this.platformUnder(p) || this.nearestPlatform(p.x);
+
+    if (cur && tgt && cur !== tgt) {
+      // naar het platform van de speler springen
+      const tdx = tgt.x - b.x;
+      if (tdx > 4) inp.right = true; else if (tdx < -4) inp.left = true;
+      if (now >= b._jumpCd) { inp.jump = true; inp.jumpPressed = true; b._jumpCd = now + 600; }
+    } else {
+      // zelfde platform: nader de speler en mep van dichtbij
+      if (Math.abs(dx) > 22) { if (dx > 0) inp.right = true; else inp.left = true; }
+      if (Math.abs(dx) < 30 && Math.abs(p.y - b.y) < 24) inp.melee = true;
+      if (p.y < b.y - 16 && Math.abs(dx) < 60 && now >= b._jumpCd) { inp.jump = true; inp.jumpPressed = true; b._jumpCd = now + 600; }
+      // niet van de rand de leegte in lopen
+      if (cur) {
+        const eL = cur.x - cur.w / 2 + 7, eR = cur.x + cur.w / 2 - 7;
+        if (inp.right && b.x > eR) inp.right = false;
+        if (inp.left && b.x < eL) inp.left = false;
+      }
+    }
+    return inp;
   },
 
   onVersusHit(payload) {
@@ -1362,17 +1490,22 @@ const Game = {
     if (this.vs && this.vs.over) return;
     if (this.vs) this.vs.over = true;
     this.state = 'versusOver';
-    if (window.Net) Net.leaveVersus();
-    // XP + wins voor het duel (sync't naar de cloud/leaderboard als je ingelogd bent)
-    const gained = won ? XP_WIN : XP_LOSS;
-    Storage.data.xp = (Storage.data.xp || 0) + gained;
-    if (won) Storage.data.mpWins = (Storage.data.mpWins || 0) + 1;
-    Storage.save();
-    UI.showVersusResult(won, this.vs ? this.vs.myScore : 0, this.vs ? this.vs.oppScore : 0, gained);
+    const isBot = this.vsBot;
+    if (!isBot && window.Net) Net.leaveVersus();
+    // tegen de bot: GEEN XP/wins. Echt duel: XP + wins (sync't naar de leaderboard).
+    let gained = 0;
+    if (!isBot) {
+      gained = won ? XP_WIN : XP_LOSS;
+      Storage.data.xp = (Storage.data.xp || 0) + gained;
+      if (won) Storage.data.mpWins = (Storage.data.mpWins || 0) + 1;
+      Storage.save();
+    }
+    UI.showVersusResult(won, this.vs ? this.vs.myScore : 0, this.vs ? this.vs.oppScore : 0, gained, isBot);
   },
 
   quitVersus() {
     if (window.Net) Net.leaveVersus();
+    this.vsBot = false; this.bot = null;
     this.state = 'menu';
     UI.show('menu');
   },

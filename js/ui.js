@@ -84,6 +84,7 @@ const UI = {
     $('btn-versus').onclick = () => this.openVersusLobby();
     $('btn-vs-host').onclick = () => this.versusHost();
     $('btn-vs-join').onclick = () => this.versusJoin();
+    $('btn-vs-bot').onclick = () => this.startBotMatch();
     $('btn-vs-quit').onclick = () => Game.quitVersus();
     $('btn-vs-again').onclick = () => { document.getElementById('versus-result').classList.add('hidden'); this.openVersusLobby(); };
     $('btn-vs-menu').onclick = () => { document.getElementById('versus-result').classList.add('hidden'); this.show('menu'); };
@@ -423,6 +424,14 @@ const UI = {
     } catch (e) { msg.style.color = '#ff6a6a'; msg.textContent = '⚠ ' + (e.message || e); }
   },
 
+  // tegen de bot spelen (lokaal, willekeurige map, geen XP)
+  startBotMatch() {
+    this.leaveLobby();
+    this._vsStarted = true;
+    const map = VERSUS_MAPS[Math.floor(Math.random() * VERSUS_MAPS.length)];
+    Game.startVersus('host', { mapId: map.id, mode: 'melee', bot: true });
+  },
+
   // in een kamer: toon code, wacht op tegenstander
   _enterRoom(code) {
     this._vsStarted = false; this._peer = null; this._myReady = false;
@@ -578,7 +587,7 @@ const UI = {
     }
   },
 
-  showVersusResult(won, myScore, oppScore, xpGained) {
+  showVersusResult(won, myScore, oppScore, xpGained, isBot) {
     const rb = document.getElementById('vs-round-banner'); if (rb) rb.classList.add('hidden');
     document.getElementById('versus-hud').classList.add('hidden');
     document.body.classList.remove('in-game');
@@ -588,7 +597,10 @@ const UI = {
     t.className = 'screen-title ' + (won ? 'win' : 'lose');
     document.getElementById('vs-result-score').textContent = myScore + ' – ' + oppScore;
     const xpEl = document.getElementById('vs-result-xp');
-    if (xpGained) {
+    if (isBot) {
+      xpEl.classList.remove('hidden');
+      xpEl.textContent = '🤖 Oefenpotje tegen de bot — geen XP';
+    } else if (xpGained) {
       xpEl.classList.remove('hidden');
       xpEl.textContent = '+' + xpGained + ' XP  ·  Level ' + playerLevel(Storage.data.xp || 0) +
         (window.Net && Net.isLoggedIn() ? '' : '  (log in om mee te tellen)');

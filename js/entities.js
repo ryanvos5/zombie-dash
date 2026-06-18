@@ -73,9 +73,9 @@ class Player {
     }
   }
 
-  update(dt, game) {
+  update(dt, game, inputOverride) {
     const s = game.dtScale;
-    const inp = Input.state;
+    const inp = inputOverride || Input.state;          // bot kan eigen input meegeven
 
     // richting bepalen
     if (inp.left && !inp.right) this.dir = -1;
@@ -160,7 +160,8 @@ class Player {
     if (game.obstacles) this.resolveObstacles(game, prevX);
 
     // springen (met dubbel-jump vanaf wereld 2)
-    if (Input.jumpPressed && !this.ducking && this.jumps > 0) {
+    const jumpPressed = inputOverride ? inp.jumpPressed : Input.jumpPressed;
+    if (jumpPressed && !this.ducking && this.jumps > 0) {
       this.vy = CONFIG.JUMP_VELOCITY;
       this.onGround = false;
       this.jumps--;
