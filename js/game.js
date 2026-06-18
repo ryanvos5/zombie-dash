@@ -1174,6 +1174,7 @@ const Game = {
         onBurn: () => this.onVersusBurn(),
         onShot: (p) => this.onVersusShot(p),
         onRematch: () => UI.onRematch(),
+        onOver: (p) => this.onVersusOver(p),
       });
     }
     this.state = 'versus';
@@ -1455,10 +1456,11 @@ const Game = {
   },
 
   localFell() {
-    if (this.vs.roundFreezeUntil > this.time) return;   // al in een ronde-freeze
+    if (this.vs.over || this.vs.roundFreezeUntil > this.time) return;   // al klaar / al in freeze
     this.player.dead = true;
     this.vs.oppScore++;
-    if (window.Net) Net.versusSend('fell', {});
+    // absolute score meesturen -> zelfherstellend tegen verloren/dubbele meldingen
+    if (window.Net && !this.vsBot) Net.versusSend('fell', { winScore: this.vs.oppScore });
     if (this.vs.oppScore >= this.vs.target) { this.endVersus(false); return; }
     this.beginRoundFreeze('TEGENSTANDER wint de ronde');
   },
@@ -1470,11 +1472,20 @@ const Game = {
     this.player.hp = this.player.maxHp; this.player.burnUntil = 0;   // fris (ook na burn-dood)
   },
 
-  onVersusFell() {
-    if (this.vs.roundFreezeUntil > this.time) return;
-    this.vs.myScore++;
+  onVersusFell(payload) {
+    if (this.vs.over) return;
+    // absolute score overnemen (max) -> dubbele meldingen tellen niet dubbel, gemiste herstellen
+    if (payload && typeof payload.winScore === 'number') this.vs.myScore = Math.max(this.vs.myScore, payload.winScore);
+    else this.vs.myScore++;
     if (this.vs.myScore >= this.vs.target) { this.endVersus(true); return; }
-    this.beginRoundFreeze('JIJ wint de ronde!');
+    if (this.vs.roundFreezeUntil <= this.time) this.beginRoundFreeze('JIJ wint de ronde!');
+  },
+
+  // tegenstander meldt dat het potje voorbij is (vangnet als de laatste 'fell' verloren ging)
+  onVersusOver(payload) {
+    if (!this.vs || this.vs.over) return;
+    const iLost = payload && payload.loserRole === this.vs.role;
+    this.endVersus(!iLost);
   },
 
   onVersusBurn() {
@@ -1512,6 +1523,13 @@ const Game = {
     if (this.vs) this.vs.over = true;
     this.state = 'versusOver';
     const isBot = this.vsBot;
+    // betrouwbaar de uitslag naar de tegenstander sturen (paar keer tegen pakketverlies)
+    if (!isBot && window.Net && this.vs) {
+      const role = this.vs.role;
+      const loserRole = won ? (role === 'host' ? 'guest' : 'host') : role;
+      const send = () => Net.versusSend('over', { loserRole });
+      send(); setTimeout(send, 300); setTimeout(send, 800);
+    }
     // online: kanaal OPEN houden zodat een rematch mogelijk is (kanaal sluit pas bij menu/lobby)
     // tegen de bot: GEEN XP/wins. Echt duel: XP + wins (sync't naar de leaderboard).
     let gained = 0;

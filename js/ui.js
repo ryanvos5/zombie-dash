@@ -398,6 +398,7 @@ const UI = {
       onFell: () => Game.onVersusFell(),
       onBurn: () => Game.onVersusBurn(),
       onShot: (p) => Game.onVersusShot(p),
+      onOver: (p) => Game.onVersusOver(p),
       onPeerLeft: () => {
         if (Game.state === 'versus') { Game.endVersus(true); }   // tegenstander quit mid-game = jij wint
         else if (Game.state === 'versusOver') {                   // op het uitslagscherm: rematch onmogelijk

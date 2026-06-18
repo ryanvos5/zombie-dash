@@ -229,6 +229,7 @@ const Net = {
     ch.on('broadcast', { event: 'lobby' }, (m) => { if (v.cbs.onLobby) v.cbs.onLobby(m.payload); });
     ch.on('broadcast', { event: 'begin' }, (m) => { if (v.cbs.onBegin) v.cbs.onBegin(m.payload); });
     ch.on('broadcast', { event: 'rematch' }, (m) => { if (v.cbs.onRematch) v.cbs.onRematch(m.payload); });
+    ch.on('broadcast', { event: 'over' }, (m) => { if (v.cbs.onOver) v.cbs.onOver(m.payload); });
     ch.on('broadcast', { event: 'bye' }, () => { if (v.cbs.onPeerLeft) v.cbs.onPeerLeft(); });
     await new Promise((resolve, reject) => {
       let done = false;
