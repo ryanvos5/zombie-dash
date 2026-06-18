@@ -89,6 +89,9 @@ const UI = {
     $('btn-vs-menu').onclick = () => { document.getElementById('versus-result').classList.add('hidden'); this.show('menu'); };
     $('btn-vs-back').onclick = () => { if (window.Net) Net.leaveVersus(); this._vsStarted = false; this.show('menu'); };
 
+    // spel updaten (verse versie laden zonder het icoon te verwijderen)
+    $('btn-update').onclick = () => this.forceUpdate();
+
     // fullscreen
     const fsBtn = document.getElementById('fs-btn');
     if (fsBtn) fsBtn.onclick = () => this.toggleFullscreen();
@@ -179,6 +182,23 @@ const UI = {
     if (left <= 0) { again.classList.add('cant'); again.disabled = true; }
     else { again.classList.remove('cant'); again.disabled = false; }
     this.show('arena');
+  },
+
+  // ---- SPEL UPDATEN (verse versie laden) ----
+  async forceUpdate() {
+    const btn = document.getElementById('btn-update');
+    if (btn) { btn.disabled = true; btn.textContent = '⏳ Updaten…'; }
+    // eventuele caches legen (helpt bij hardnekkige browsers / PWA)
+    try {
+      if (window.caches && caches.keys) {
+        const keys = await caches.keys();
+        await Promise.all(keys.map((k) => caches.delete(k)));
+      }
+    } catch (e) {}
+    // verse herladen met een unieke querystring -> browser haalt alles opnieuw op
+    const base = location.origin + location.pathname;
+    let stamp = '' + (window.Date && Date.now ? Date.now() : Math.floor(performance.now()));
+    location.replace(base + '?u=' + stamp);
   },
 
   // ---- ACCOUNT-UI ----
@@ -459,6 +479,8 @@ const UI = {
 
     // muntentellers bijwerken
     this.el.menuCoins.textContent = Storage.data.coins;
+    const upBtn = document.getElementById('btn-update');
+    if (upBtn) upBtn.classList.toggle('hidden', name !== 'menu');
     if (name === 'menu') this.updateArenaButton();
   },
 
