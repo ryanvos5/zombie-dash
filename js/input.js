@@ -58,10 +58,19 @@ const Input = {
       for (const b of buttons) b.classList.toggle('pressed', held[b.dataset.key]);
     };
 
+    // alle vingers vrijgeven (vangnet tegen 'blijvende' knoppen)
+    const releaseAll = () => {
+      if (Object.keys(this._pointerKey).length === 0) return;
+      this._pointerKey = {};
+      recompute();
+    };
+
     const onDown = (e) => {
       const k = keyAt(e.clientX, e.clientY);
       if (k == null) return;
       e.preventDefault();
+      // impliciete pointer-capture loslaten -> window krijgt move/up betrouwbaar binnen
+      try { if (e.target.releasePointerCapture) e.target.releasePointerCapture(e.pointerId); } catch (err) {}
       this._pointerKey[e.pointerId] = k;
       recompute();
     };
@@ -83,6 +92,16 @@ const Input = {
     window.addEventListener('pointerup', onUp);
     window.addEventListener('pointercancel', onUp);
     tc.addEventListener('contextmenu', (e) => e.preventDefault());
+
+    // VANGNET 1: zodra er geen enkele vinger meer op het scherm is, alles vrijgeven.
+    // Dit fixt 'blijvende' knoppen als een pointerup ooit gemist wordt.
+    const onTouchEnd = (e) => { if (!e.touches || e.touches.length === 0) releaseAll(); };
+    window.addEventListener('touchend', onTouchEnd, { passive: true });
+    window.addEventListener('touchcancel', onTouchEnd, { passive: true });
+
+    // VANGNET 2: app naar de achtergrond of venster verliest focus -> niets laten hangen.
+    document.addEventListener('visibilitychange', () => { if (document.hidden) releaseAll(); });
+    window.addEventListener('blur', () => releaseAll());
   },
 
   // reset 'pressed' flags aan einde van frame
