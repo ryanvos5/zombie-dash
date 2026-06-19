@@ -328,25 +328,63 @@ const UI = {
     }
   },
 
-  // ---- LOBBY CHAT ----
-  async openChat() {
-    if (!window.Net || !Net.ready) { alert('Geen verbinding met de server.'); return; }
+  // ---- LOBBY CHAT + PRESENCE ----
+  // presence draait al op de menuschermen, zodat je op het hoofdmenu live ziet
+  // hoeveel mensen er online zijn (groen puntje op de chat-knop).
+  ensurePresence(tries) {
+    tries = tries || 0;
+    if (!window.Net) return;
+    if (!Net.ready) { if (tries < 15) setTimeout(() => this.ensurePresence(tries + 1), 600); return; }
+    if (Net.lobby || this._presenceJoining) { this.refreshChatBadge(); return; }
+    this._presenceJoining = true;
+    Net.lobbyJoin({
+      onChat: (m) => { if (this._chatOpen) this.onChatMsg(m); },
+      onPeers: (list) => { this._peers = list; this.refreshChatBadge(); if (this._chatOpen) this.renderOnline(list); },
+      onInvite: (p) => this.onChatInvite(p),
+    }).then(() => { this._presenceJoining = false; this.refreshChatBadge(); })
+      .catch(() => { this._presenceJoining = false; });
+  },
+
+  leavePresence() { if (window.Net) Net.lobbyLeave(); this._peers = []; this.refreshChatBadge(); },
+
+  // groen puntje + aantal anderen online op de chat-knop
+  refreshChatBadge() {
+    const btn = document.getElementById('btn-chat');
+    if (!btn) return;
+    let dot = document.getElementById('chat-badge');
+    if (!dot) { dot = document.createElement('span'); dot.id = 'chat-badge'; dot.className = 'chat-badge'; btn.appendChild(dot); }
+    const others = (this._peers || []).filter((p) => !p.me).length;
+    if (others > 0) { dot.textContent = others; dot.classList.add('on'); }
+    else { dot.textContent = ''; dot.classList.remove('on'); }
+  },
+
+  openChat() {
+    this._chatOpen = true;
     this.show('chat');
     document.getElementById('chat-messages').innerHTML = '';
     document.getElementById('chat-online-list').innerHTML = '';
-    document.getElementById('chat-msg').textContent = 'Verbinden…';
-    try {
-      await Net.lobbyJoin({
-        onChat: (m) => this.onChatMsg(m),
-        onPeers: (list) => this.renderOnline(list),
-        onInvite: (p) => this.onChatInvite(p),
-      });
+    if (window.Net && Net.lobby) {
       document.getElementById('chat-msg').textContent = '';
+      this.renderOnline(this._peers || []);
       this.addChatLine(null, 'Welkom in de lobby! Wees aardig 🙂', true);
-    } catch (e) { document.getElementById('chat-msg').textContent = '⚠ ' + (e.message || e); }
+    } else {
+      document.getElementById('chat-msg').textContent = 'Verbinden…';
+      this.ensurePresence();
+      // even wachten en dan tonen zodra verbonden
+      let n = 0;
+      const wait = () => {
+        if (window.Net && Net.lobby) {
+          document.getElementById('chat-msg').textContent = '';
+          this.renderOnline(this._peers || []);
+          this.addChatLine(null, 'Welkom in de lobby! Wees aardig 🙂', true);
+        } else if (n++ < 20 && this._chatOpen) { setTimeout(wait, 300); }
+        else if (this._chatOpen) { document.getElementById('chat-msg').textContent = '⚠ Geen verbinding met de server.'; }
+      };
+      setTimeout(wait, 300);
+    }
   },
 
-  closeChat() { if (window.Net) Net.lobbyLeave(); },
+  closeChat() { this._chatOpen = false; },   // presence blijft aan voor de teller
 
   sendChat() {
     const inp = document.getElementById('chat-input');
@@ -693,7 +731,7 @@ const UI = {
     this._vsStarted = false; this._peer = null; this._myReady = false; this._botSetup = false;
     const lbl = document.querySelector('.vs-wait-label'); if (lbl) lbl.classList.remove('hidden');
     const rb = document.getElementById('btn-vs-ready'); if (rb) { rb.textContent = 'READY'; rb.classList.remove('on'); }
-    if (window.Net) { Net.leaveVersus(); Net.lobbyLeave(); }   // ook de chat-channel opruimen
+    if (window.Net) Net.leaveVersus();   // alleen het versus-kanaal; presence blijft (teller op menu)
   },
 
   showVersus() {
@@ -820,7 +858,8 @@ const UI = {
     this.el.menuCoins.textContent = Storage.data.coins;
     const upBtn = document.getElementById('btn-update');
     if (upBtn) upBtn.classList.toggle('hidden', name !== 'menu');
-    if (name === 'menu') this.updateArenaButton();
+    if (name === 'menu') { this.updateArenaButton(); this.ensurePresence(); }
+    else if (name === 'game') { this.leavePresence(); }   // tijdens het spelen niet online in de lobby
   },
 
   // wereld 2 is pas open als wereld 1 (incl. boss) is uitgespeeld

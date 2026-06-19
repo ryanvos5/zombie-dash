@@ -586,6 +586,23 @@ body.is-touch #hud { justify-content: flex-start; gap: 8px; }
 }
 .back-btn:active { background: #252c3b; }
 
+/* ====== Online-teller op de chat-knop ====== */
+#btn-chat { position: relative; }
+.chat-badge { display: none; }
+.chat-badge.on {
+  display: inline-flex; align-items: center; justify-content: center; gap: 4px;
+  min-width: 20px; height: 20px; padding: 0 7px; margin-left: 8px;
+  border-radius: 11px; background: #2ecc55; color: #06210f;
+  font-size: 12px; font-weight: 900; vertical-align: middle;
+  box-shadow: 0 0 8px rgba(46,204,85,0.7);
+  animation: onlinePulse 1.6s ease-in-out infinite;
+}
+.chat-badge.on::before {
+  content: ''; width: 7px; height: 7px; border-radius: 50%;
+  background: #06210f; box-shadow: 0 0 0 2px rgba(6,33,15,0.25);
+}
+@keyframes onlinePulse { 0%,100% { box-shadow: 0 0 6px rgba(46,204,85,0.55); } 50% { box-shadow: 0 0 12px rgba(46,204,85,0.95); } }
+
 /* ====== Lobby chat ====== */
 .chat-inner { width: min(440px, 94%); display: flex; flex-direction: column; }
 .chat-online {

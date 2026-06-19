@@ -1119,6 +1119,7 @@ const Game = {
   // ============ 1 vs 1 VERSUS ============
   startVersus(role, opts) {
     opts = opts || {};
+    if (window.Net && Net.lobby) Net.lobbyLeave();   // niet meer "online in de lobby" tijdens een potje
     const map = VERSUS_MAPS.find((m) => m.id === opts.mapId) || VERSUS_MAPS[0];
     const mode = (opts.mode === 'both') ? 'both' : (opts.mode === 'smash') ? 'smash' : 'melee';
     this.vsMap = map; this.vsMode = mode;
