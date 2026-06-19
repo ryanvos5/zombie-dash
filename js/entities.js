@@ -87,6 +87,18 @@ class Player {
     // duiken (alleen op de grond)
     this.ducking = inp.duck && this.onGround;
 
+    // dash: 2x snel links/rechts tikken -> korte snelle burst (met cooldown)
+    const dashDir = inputOverride ? (inp.dashDir || 0) : Input.dashDir;
+    if (dashDir && !this.ducking && game.time >= (this.dashCdUntil || 0)) {
+      this.dir = dashDir;
+      this.dashVx = dashDir * CONFIG.DASH_SPEED;
+      this.dashUntil = game.time + CONFIG.DASH_TIME;
+      this.dashCdUntil = game.time + CONFIG.DASH_CD;
+      // stofwolk bij de voeten
+      if (game.particles) for (let i = 0; i < 6; i++)
+        game.particles.push(new Particle(this.x - dashDir * 8, this.y - 4 + Math.random() * 4, -dashDir * (0.6 + Math.random()), -Math.random() * 0.5, '#cfd6e0', 280, 2));
+    }
+
     // actieve power-ups
     this._rageActive = this.hasBuff('rage', game.time);
     this._shieldActive = this.hasBuff('shield', game.time);
@@ -151,6 +163,9 @@ class Player {
     let moving = false;
     if (inp.left) { this.x -= spd * s; moving = true; }
     if (inp.right) { this.x += spd * s; moving = true; }
+    // dash-burst (zelf-geactiveerd) — beweegt snel tot dashUntil
+    if (game.time < (this.dashUntil || 0)) { this.x += this.dashVx * s; moving = true; this._dashing = true; }
+    else this._dashing = false;
     // weggeslagen worden (versus: grote melee-knockback) — momentum dat uitdooft
     if (this.knockVx) {
       this.x += this.knockVx * s;

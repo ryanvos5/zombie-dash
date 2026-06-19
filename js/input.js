@@ -7,6 +7,16 @@ const Input = {
   state: { left: false, right: false, jump: false, duck: false, attack: false, melee: false },
   // 'pressed' = net dit frame ingedrukt (voor sprong/melee 1x trigger)
   jumpPressed: false,
+  // dash: 2x snel links/rechts tikken -> -1 (links) / 1 (rechts), 1 frame geldig
+  dashDir: 0,
+  _lastTap: { left: 0, right: 0 },
+
+  // edge bij links/rechts: dubbele tik binnen 280ms = dash
+  _tapEdge(key) {
+    const t = (window.performance && performance.now) ? performance.now() : 0;
+    if (t && t - (this._lastTap[key] || 0) < 280) { this.dashDir = key === 'left' ? -1 : 1; this._lastTap[key] = 0; }
+    else this._lastTap[key] = t;
+  },
 
   init() {
     const keyMap = {
@@ -22,6 +32,7 @@ const Input = {
       const action = keyMap[e.key];
       if (action) {
         if (action === 'jump' && !this.state.jump) this.jumpPressed = true;
+        if ((action === 'left' || action === 'right') && !this.state[action]) this._tapEdge(action);
         this.state[action] = true;
         if (['ArrowUp', 'ArrowDown', ' '].includes(e.key)) e.preventDefault();
       }
@@ -52,6 +63,7 @@ const Input = {
       for (const k of ACTKEYS) {
         const now = !!held[k];
         if (k === 'jump' && now && !this.state.jump) this.jumpPressed = true; // edge-trigger
+        if ((k === 'left' || k === 'right') && now && !this.state[k]) this._tapEdge(k); // dash-tik
         this.state[k] = now;
       }
       // 'pressed'-klasse voor visuele feedback
@@ -105,7 +117,7 @@ const Input = {
   },
 
   // reset 'pressed' flags aan einde van frame
-  endFrame() { this.jumpPressed = false; },
+  endFrame() { this.jumpPressed = false; this.dashDir = 0; },
 
   clear() {
     this.state.left = this.state.right = this.state.jump = this.state.duck = this.state.attack = this.state.melee = false;
