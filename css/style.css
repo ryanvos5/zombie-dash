@@ -473,9 +473,9 @@ body.is-touch #hud { justify-content: flex-start; gap: 8px; }
 
 /* grote "wint de ronde"-banner */
 .vs-round-banner {
-  position: fixed; left: 0; right: 0; top: 34%; text-align: center;
-  font-family: var(--pixel-font); font-size: clamp(26px, 7vw, 52px); font-weight: bold;
-  letter-spacing: 1px; text-shadow: 0 4px 0 #000; pointer-events: none; padding: 0 10px;
+  position: fixed; left: 0; right: 0; top: 36%; text-align: center;
+  font-family: var(--pixel-font); font-size: clamp(16px, 4.4vw, 28px); font-weight: bold;
+  letter-spacing: 1px; line-height: 1.25; text-shadow: 0 3px 0 #000; pointer-events: none; padding: 0 16px;
 }
 .vs-round-banner.win { color: #6fd06a; }
 .vs-round-banner.lose { color: #ff6a6a; }
