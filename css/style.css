@@ -500,6 +500,12 @@ body.is-touch #hud { justify-content: flex-start; gap: 8px; }
 .auth-box .big-btn:disabled { opacity: 0.6; }
 
 /* ====== 1 vs 1 versus ====== */
+.big-btn.invite {
+  background: linear-gradient(180deg, #f2c94c, #c89a20);
+  border-color: #8a6a14; box-shadow: 0 4px 0 #8a6a14; color: #1a1404;
+  animation: invitePulse 1.1s ease-in-out infinite;
+}
+@keyframes invitePulse { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-2px); } }
 .big-btn.versus {
   background: linear-gradient(180deg, #b33a8a, #7a2160);
   border-color: #5a1646;

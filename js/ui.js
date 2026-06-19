@@ -86,6 +86,7 @@ const UI = {
     $('btn-vs-join').onclick = () => this.versusJoin();
     $('btn-vs-bot').onclick = () => this.openBotSetup();
     $('btn-vs-share').onclick = () => this.shareInvite();
+    $('invite-banner').onclick = () => this.acceptInvite();
     $('btn-vs-quit').onclick = () => Game.quitVersus();
     $('btn-vs-again').onclick = () => { document.getElementById('versus-result').classList.add('hidden'); this.openVersusLobby(); };
     $('btn-vs-menu').onclick = () => { document.getElementById('versus-result').classList.add('hidden'); this.leaveLobby(); this.show('menu'); };
@@ -452,14 +453,27 @@ const UI = {
     }
   },
 
-  // automatisch een kamer joinen via een ?join=CODE link (uitnodiging)
-  autoJoinFromURL(tries) {
-    tries = tries || 0;
+  // uitnodigingslink (?join=CODE): NIET meteen joinen, maar via het startscherm
+  autoJoinFromURL() {
     let code = '';
     try { const m = (location.search || '').match(/[?&]join=([A-Za-z0-9]{3,6})/); if (m) code = m[1].toUpperCase(); } catch (e) {}
     if (!code) return;
-    if (!(window.Net && Net.ready) && tries < 24) { setTimeout(() => this.autoJoinFromURL(tries + 1), 250); return; }
     try { history.replaceState(null, '', location.origin + location.pathname); } catch (e) {}
+    this._pendingJoin = code;
+    this.show('menu');                 // altijd via het startscherm
+    this.refreshInviteBanner();
+  },
+
+  refreshInviteBanner() {
+    const el = document.getElementById('invite-banner');
+    if (!el) return;
+    if (this._pendingJoin) { el.classList.remove('hidden'); el.textContent = '🎮 MEEDOEN MET 1v1 (' + this._pendingJoin + ')'; }
+    else el.classList.add('hidden');
+  },
+
+  acceptInvite() {
+    const code = this._pendingJoin; this._pendingJoin = null; this.refreshInviteBanner();
+    if (!code) return;
     this.openVersusLobby();
     const inp = document.getElementById('vs-code-input'); if (inp) inp.value = code;
     this.versusJoin();
@@ -746,7 +760,8 @@ const UI = {
     this.el.menuCoins.textContent = Storage.data.coins;
     const upBtn = document.getElementById('btn-update');
     if (upBtn) upBtn.classList.toggle('hidden', name !== 'menu');
-    if (name === 'menu') this.updateArenaButton();
+    if (name === 'menu') { this.updateArenaButton(); this.refreshInviteBanner(); }
+    else { const ib = document.getElementById('invite-banner'); if (ib) ib.classList.add('hidden'); }
   },
 
   // wereld 2 is pas open als wereld 1 (incl. boss) is uitgespeeld
