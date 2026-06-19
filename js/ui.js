@@ -334,7 +334,9 @@ const UI = {
   ensurePresence(tries) {
     tries = tries || 0;
     if (!window.Net) return;
-    if (!Net.ready) { if (tries < 15) setTimeout(() => this.ensurePresence(tries + 1), 600); return; }
+    // wacht tot de server klaar is én de sessie/nickname geladen is (anders zou je als "Gast" verschijnen)
+    if ((!Net.ready || !Net.authReady) && tries < 20) { setTimeout(() => this.ensurePresence(tries + 1), 400); return; }
+    if (!Net.ready) return;
     if (Net.lobby || this._presenceJoining) { this.refreshChatBadge(); return; }
     this._presenceJoining = true;
     Net.lobbyJoin({

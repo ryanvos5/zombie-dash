@@ -11,6 +11,7 @@ const Net = {
   sb: null,
   user: null,
   ready: false,
+  authReady: false,     // true zodra de sessie (wel/niet ingelogd) is opgehaald
   pushTimer: null,
 
   init() {
@@ -31,11 +32,15 @@ const Net = {
         this.user = data.session.user;
         this.afterLogin();
       }
+      this.authReady = true;
       this._refreshUI();
-    });
+      if (this.lobby) this.lobbyRefreshNick();   // presence-naam bijwerken zodra sessie bekend is
+    }).catch(() => { this.authReady = true; });
     this.sb.auth.onAuthStateChange((_evt, session) => {
       this.user = session ? session.user : null;
+      this.authReady = true;
       this._refreshUI();
+      if (this.lobby) this.lobbyRefreshNick();   // bij inloggen/uitloggen de naam updaten
     });
   },
 
@@ -299,7 +304,7 @@ const Net = {
       setTimeout(() => { if (!done) { done = true; reject(new Error('Time-out bij de chat.')); } }, 8000);
     });
     this.lobby = L;
-    const beat = () => this.lobbySend('here', { id, nick });
+    const beat = () => this.lobbySend('here', { id: L.id, nick: L.nick });   // leest live id/nick
     beat();
     L.hbTimer = setInterval(beat, 4000);                 // heartbeat: ik ben online
     L.pruneTimer = setInterval(() => this._prunePeers(L), 3000);
@@ -316,6 +321,17 @@ const Net = {
     const now = Date.now(); let changed = false;
     for (const pid in this.lobbyPeers) if (now - this.lobbyPeers[pid].t > 12000) { delete this.lobbyPeers[pid]; changed = true; }
     if (changed) this._emitPeers(L);
+  },
+
+  // naam/id van de presence bijwerken (bv. na inloggen) en meteen een heartbeat sturen
+  lobbyRefreshNick() {
+    const L = this.lobby; if (!L) return;
+    const newId = this.lobbyMyId(), newNick = this.lobbyMyNick();
+    if (L.id === newId && L.nick === newNick) return;
+    if (L.id !== newId) { try { L.channel.send({ type: 'broadcast', event: 'lbye', payload: { id: L.id } }); } catch (e) {} }
+    L.id = newId; L.nick = newNick;
+    this.lobbySend('here', { id: L.id, nick: L.nick });
+    this._emitPeers(L);   // eigen chip meteen bijwerken
   },
 
   lobbySend(event, payload) { if (this.lobby && this.lobby.channel) this.lobby.channel.send({ type: 'broadcast', event, payload }); },
