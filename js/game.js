@@ -1155,8 +1155,8 @@ const Game = {
     this.dragons = [];
     // Cave: knoppen + muur + sfeer (bats/druppels)
     this.caveWall = null; this._caveArmAt = this.time + CAVE_ARM_MS; this.caveArmed = -1;
-    this.caveButtons = (map.buttons || []).map((b) => ({ at: b.at, x: b.x, y: b.y, hits: b.hits }));
-    this.caveBats = []; this.caveDrips = []; this.lightningFx = null;
+    this.caveButtons = (map.buttons || []).map((b) => ({ at: b.at, x: b.x, y: b.y }));
+    this.caveBats = []; this.caveDrips = []; this.lightningFx = null; this.rocks = [];
     this.ammo = mode === 'both' ? 999 : 0;
     this.rockets = 0;
     this.boss = null; this.shake = 0; this.cam.x = 0; this.time = 0; this.dtScale = 1;
@@ -1210,6 +1210,7 @@ const Game = {
         onStun: () => this.onVersusStun(),
         onCaveArm: (p) => this.onCaveArm(p),
         onCaveWall: (p) => this.onCaveWall(p),
+        onRocks: (p) => this.onVersusRocks(p),
       });
     }
     this.state = 'versus';
@@ -1428,6 +1429,8 @@ const Game = {
 
     // draken (drakenei-powerup)
     this.updateDragons(dt);
+    // vallende stenen (steen-powerup, alleen Cave)
+    this.updateRocks(dt);
   },
 
   // roep een draak op die de tegenstander 10s lang met vuur bestookt
@@ -1504,33 +1507,38 @@ const Game = {
       if (near(this.player)) this.pressCaveButton(true);
       else if (this.vsBot && near(this.bot)) this.pressCaveButton(false);
     }
-    // muur sweept + gooit wie in de zone is eraf
+    // straal sweept over de map: raakt 'ie je -> schade + harde knockback (presser is veilig)
     if (this.caveWall) {
       const wl = this.caveWall;
       wl.x += CAVE_WALL_SPEED * this.dtScale;
-      const inZone = (e) => wl.zone === 'top' ? (e.y < CAVE_TOP_KILL_Y) : (e.y > CAVE_BOT_KILL_Y);
-      if (!this.player.dead && this.player.respawnInvuln <= 0 && inZone(this.player) && wl.x >= this.player.x) {
-        for (let i = 0; i < 10; i++) this.particles.push(new Particle(this.player.x, this.player.y - 12, (Math.random() - 0.5) * 3, -Math.random() * 2, '#b85a3a', 320, 2));
-        this.player.hp = 0; this.localFell();
+      const safe = (e) => e._beamSafeUntil && this.time < e._beamSafeUntil;
+      const hitIt = (e) => e && !e.dead && e.respawnInvuln <= 0 && !safe(e) && Math.abs(wl.x - e.x) < 11;
+      if (!wl.hitP && hitIt(this.player)) {
+        wl.hitP = true;
+        this.onVersusHit({ dir: (this.player.x >= wl.x ? 1 : -1), power: CAVE_BEAM_KNOCK, vy: -7, dmg: CAVE_BEAM_DMG });
       }
-      if (this.vsBot && this.bot && !this.bot.dead && inZone(this.bot) && wl.x >= this.bot.x) { this.bot.dead = true; this.onVersusFell(); }
+      if (this.vsBot && !wl.hitB && hitIt(this.bot)) {
+        wl.hitB = true;
+        this.applyHitToBot(this.bot.x >= wl.x ? 1 : -1, CAVE_BEAM_KNOCK, -7, CAVE_BEAM_DMG);
+      }
       if (wl.x > mapW + 30) this.caveWall = null;
     }
   },
 
   pressCaveButton(byPlayer) {
-    const b = this.caveButtons[this.caveArmed]; if (!b) return;
-    this.triggerCaveWall(b.hits);
-    if (window.Net && !this.vsBot && byPlayer) Net.versusSend('cavewall', { zone: b.hits });
+    if (this.caveArmed < 0) return;
+    (byPlayer ? this.player : this.bot)._beamSafeUntil = this.time + 2200;   // de presser zelf is veilig
+    this.triggerCaveWall();
+    if (window.Net && !this.vsBot && byPlayer) Net.versusSend('cavewall', {});
   },
-  triggerCaveWall(zone) {
-    this.caveWall = { zone, x: -30 };
+  triggerCaveWall() {
+    this.caveWall = { x: -30, hitP: false, hitB: false };
     this.caveArmed = -1;
     this._caveArmAt = this.time + CAVE_ARM_MS;
-    this.shake = Math.max(this.shake, 6);
+    this.shake = Math.max(this.shake, 5);
   },
   onCaveArm(p) { if (!this.caveWall) this.caveArmed = (p && typeof p.idx === 'number') ? p.idx : -1; },
-  onCaveWall(p) { if (p && p.zone) this.triggerCaveWall(p.zone); },
+  onCaveWall() { this.triggerCaveWall(); },
 
   // bliksem-effect op een doel (wereldpositie)
   strikeLightning(wx, wy) {
@@ -1542,6 +1550,34 @@ const Game = {
   onVersusStun() {
     if (this.player.respawnInvuln <= 0 && !this.player.dead) this.player.stunUntil = this.time + SMASH_LIGHTNING_STUN;
     this.strikeLightning(this.player.x, this.player.y);
+  },
+
+  // ---- steen-powerup: 3 grote stenen vallen -> geraakt = 2s platgedrukt ----
+  rockTargetXs(centerX) {
+    const xs = [centerX + (Math.random() - 0.5) * 20];     // 1 steen gericht op het doel
+    for (let i = 1; i < SMASH_ROCK_COUNT; i++) xs.push(centerX + (Math.random() - 0.5) * 2 * SMASH_ROCK_SPREAD);
+    return xs.map((x) => Math.max(20, Math.min(this.vsMapW - 20, Math.round(x))));
+  },
+  castRocks(xs) {
+    if (!this.rocks) this.rocks = [];
+    const top = (this.vsMap && this.vsMap.camTop) || 0;
+    for (const x of xs) this.rocks.push({ x, y: top - 50 - Math.random() * 50, vy: 0, dead: false });
+  },
+  onVersusRocks(p) { if (p && p.xs) this.castRocks(p.xs); },
+  updateRocks(dt) {
+    if (!this.rocks || !this.rocks.length) return;
+    for (const rk of this.rocks) {
+      rk.vy += 0.5 * this.dtScale; rk.y += rk.vy * this.dtScale;
+      const hit = (e) => e && !e.dead && e.respawnInvuln <= 0 && Math.abs(rk.x - e.x) < 17 && rk.y > e.y - 30 && rk.y < e.y + 6;
+      if (hit(this.player)) { rk.dead = true; this.player.flatUntil = this.time + SMASH_ROCK_FLAT; this.rockSmash(rk.x, this.player.y); }
+      else if (this.vsBot && hit(this.bot)) { rk.dead = true; this.bot.flatUntil = this.time + SMASH_ROCK_FLAT; this.rockSmash(rk.x, this.bot.y); }
+      else if (rk.y > this.vsFallY) { rk.dead = true; this.rockSmash(rk.x, CONFIG.GROUND_Y); }
+    }
+    this.rocks = this.rocks.filter((rk) => !rk.dead);
+  },
+  rockSmash(x, y) {
+    for (let i = 0; i < 12; i++) this.particles.push(new Particle(x + (Math.random() - 0.5) * 16, y, (Math.random() - 0.5) * 3, -Math.random() * 1.8, Math.random() < 0.5 ? '#7a6a58' : '#9a8a74', 340, 2));
+    this.shake = Math.max(this.shake, 6);
   },
 
   // portaalpaar: één in de linkerhelft, één in de rechterhelft (host/lokaal bepaalt)
@@ -1585,7 +1621,7 @@ const Game = {
 
   spawnDrop() {
     const pool = SMASH_DROPS.slice();
-    if (this.vsMap && this.vsMap.id === 'cave') pool.push({ kind: 'lightning', w: 8 });   // alleen op Cave
+    if (this.vsMap && this.vsMap.id === 'cave') { pool.push({ kind: 'lightning', w: 8 }); pool.push({ kind: 'rock', w: 8 }); }   // alleen op Cave
     let tot = 0; for (const d of pool) tot += d.w;
     let r = Math.random() * tot, kind = 'health';
     for (const d of pool) { r -= d.w; if (r <= 0) { kind = d.kind; break; } }
@@ -1618,6 +1654,13 @@ const Game = {
         if (this.player.respawnInvuln <= 0 && !this.player.dead) { this.player.stunUntil = this.time + SMASH_LIGHTNING_STUN; this.strikeLightning(this.player.x, this.player.y); }
       }
     }
+    else if (d.kind === 'rock') {
+      if (pl === this.player) {
+        const tx = this.vsBot ? (this.bot ? this.bot.x : pl.x) : this.vs.remote.x;
+        const xs = this.rockTargetXs(tx); this.castRocks(xs);
+        if (window.Net && !this.vsBot) Net.versusSend('rocks', { xs });
+      } else { const xs = this.rockTargetXs(this.player.x); this.castRocks(xs); }   // bot pakte de steen
+    }
   },
 
   onVersusDrop(p) {
@@ -1634,6 +1677,7 @@ const Game = {
     this.vs.roundFreezeUntil = this.time + 2200;       // ~2,2s freeze
     this.vs.roundMsg = msg;
     this.dragons = [];                                  // draken stoppen bij rondewissel
+    this.rocks = [];
     this.caveWall = null; this.caveArmed = -1; this._caveArmAt = this.time + CAVE_ARM_MS;
     this.shake = Math.max(this.shake, 7);
   },
@@ -1675,6 +1719,7 @@ const Game = {
     r.attacking = this.time < b.attackAnimUntil; r.swingWeapon = (this.time < (b.swingUntil || 0)) ? b.swingWeapon : null;
     r.heldWeapon = b.weaponId || b.meleeId || 'bat';
     r.stunned = b.stunUntil && this.time < b.stunUntil;
+    r.flat = b.flatUntil && this.time < b.flatUntil;
     r.walkPhase = b.walkPhase; r.alive = !b.dead; r.charId = b.charId;
     r.hp = b.hp; r.maxHp = b.maxHp; r.ducking = b.ducking;
 
@@ -1761,7 +1806,7 @@ const Game = {
     const sp = this.vs.botSpawn;
     b.x = sp.x; b.y = sp.y; b.dir = sp.dir; b.vy = 0; b.knockVx = 0;
     b.onGround = true; b.dead = false; b.respawnInvuln = 1300; b.hp = b.maxHp; b.burnUntil = 0;
-    b.swingWeapon = null; b.swingUntil = 0; b.stunUntil = 0;
+    b.swingWeapon = null; b.swingUntil = 0; b.stunUntil = 0; b.flatUntil = 0; b._beamSafeUntil = 0;
     if (this.vsMode === 'smash') { b.meleeId = b.baseMelee || 'bat'; b.weaponId = b.meleeId; b.fireballs = 0; b.smashRockets = 0; b._weaponUntil = 0; }
     this.vs.remote.alive = true;
   },
@@ -1872,7 +1917,7 @@ const Game = {
     this.player.vy = 0; this.player.knockVx = 0; this.player.onGround = true;
     this.player.dead = false; this.player.respawnInvuln = 1300;
     this.player.hp = this.player.maxHp; this.player.burnUntil = 0;   // fris (ook na burn-dood)
-    this.player.stunUntil = 0;
+    this.player.stunUntil = 0; this.player.flatUntil = 0; this.player._beamSafeUntil = 0;
     this.player.swingWeapon = null; this.player.swingUntil = 0;       // geen lingerende mep-animatie
     if (this.vsMode === 'smash') {                  // elke ronde weer met de knuppel
       this.player.meleeId = this.player.baseMelee || 'bat'; this.player.rangedId = null;
@@ -1911,6 +1956,7 @@ const Game = {
     r.swingWeapon = s.sw || null; r.walkPhase = s.wp || 0;
     r.heldWeapon = s.wid || 'bat';
     r.stunned = s.su === 1;
+    r.flat = s.fl === 1;
     r.alive = s.al !== 0; r.charId = s.ch || 'ryan';
     r.ducking = s.dk === 1;
     if (typeof s.h === 'number') r.hp = s.h;
@@ -1925,7 +1971,7 @@ const Game = {
       x: Math.round(p.x), y: Math.round(p.y), vy: +(p.vy || 0).toFixed(1), d: p.dir,
       g: p.onGround ? 1 : 0, a: this.time < p.attackAnimUntil ? 1 : 0,
       sw: (this.time < (p.swingUntil || 0)) ? (p.swingWeapon || 0) : 0,
-      wid: p.weaponId || 0, su: (p.stunUntil && this.time < p.stunUntil) ? 1 : 0,
+      wid: p.weaponId || 0, su: (p.stunUntil && this.time < p.stunUntil) ? 1 : 0, fl: (p.flatUntil && this.time < p.flatUntil) ? 1 : 0,
       wp: p.walkPhase || 0, al: p.dead ? 0 : 1, ch: Storage.data.equippedCharacter || 'ryan',
       h: Math.round(p.hp), mh: p.maxHp, dk: p.ducking ? 1 : 0,
     });
@@ -2008,6 +2054,8 @@ const Game = {
 
     // drops (Power Smash)
     if (this.drops) for (const d of this.drops) { if (!d.taken) this.drawDrop(ctx, d); }
+    // vallende stenen (steen-powerup)
+    if (this.rocks) for (const rk of this.rocks) this.drawRock(ctx, rk);
 
     // kogels: gewoon + fireball/rocket + ghost van de tegenstander + bot
     const drawBullet = (b) => {
@@ -2033,7 +2081,7 @@ const Game = {
       if (r.onGround) Sprites.shadow(ctx, r.x, r.y + 1, 7);
       Sprites.drawCharacter(ctx, Math.round(r.x), Math.round(r.y), r.dir, rc.palette, {
         walkPhase: r.walkPhase, airborne: !r.onGround, attacking: r.attacking, ducking: r.ducking,
-        weapon: r.swingWeapon || r.heldWeapon || 'bat', build: rc.build, hair: rc.hair,
+        weapon: r.swingWeapon || r.heldWeapon || 'bat', build: rc.build, hair: rc.hair, squash: r.flat,
       });
       if (r.ducking) this.drawBlockGuard(ctx, Math.round(r.x), Math.round(r.y), r.dir);
       if (r.stunned) this.drawStunAura(ctx, Math.round(r.x), Math.round(r.y));
@@ -2051,6 +2099,7 @@ const Game = {
           walkPhase: p.walkPhase, airborne: !p.onGround, ducking: p.ducking,
           attacking: this.time < p.attackAnimUntil,
           weapon: swinging ? p.swingWeapon : p.weaponId, build: p.build, hair: p.hairStyle,
+          squash: (p.flatUntil && this.time < p.flatUntil),
         });
         if (p.ducking && p.onGround) this.drawBlockGuard(ctx, Math.round(p.x), Math.round(p.y), p.dir);
         if (p.stunUntil && this.time < p.stunUntil) this.drawStunAura(ctx, Math.round(p.x), Math.round(p.y));
@@ -2103,6 +2152,13 @@ const Game = {
       Sprites.px(ctx, '#ffd24a', x - 1, y - 7, 3, 5);
       Sprites.px(ctx, '#bfe6ff', x - 3, y - 3, 3, 5);
       Sprites.px(ctx, '#fff', x, y - 2, 2, 4);
+    }
+    else if (d.kind === 'rock') {
+      // steen-icoon
+      Sprites.px(ctx, '#6a5e50', x - 5, y - 5, 10, 9);
+      Sprites.px(ctx, '#8a7c6a', x - 5, y - 5, 10, 2);
+      Sprites.px(ctx, '#4a4036', x - 5, y + 3, 10, 1);
+      Sprites.px(ctx, '#3a3229', x - 2, y - 2, 2, 2);
     }
   },
 
@@ -2166,12 +2222,20 @@ const Game = {
 
   drawCaveWall(ctx) {
     const wl = this.caveWall, map = this.vsMap;
-    const y0 = wl.zone === 'top' ? ((map.camTop || 0) - 30) : CAVE_BOT_KILL_Y;
-    const y1 = wl.zone === 'top' ? CAVE_TOP_KILL_Y : (this.vsFallY + 12);
-    ctx.globalAlpha = 0.3; Sprites.px(ctx, '#ff8a4a', wl.x - 16, y0, 10, y1 - y0); ctx.globalAlpha = 1;   // gloed
-    Sprites.px(ctx, '#7a2e2e', wl.x - 8, y0, 10, y1 - y0);                  // muur
-    Sprites.px(ctx, '#b85a3a', wl.x - 8, y0, 3, y1 - y0);                   // rand
-    for (let i = 0; i < 3; i++) Sprites.px(ctx, '#5a1e1e', wl.x - 7, y0 + ((this.time / 60 + i * 13) % (y1 - y0)), 8, 2);   // textuur
+    const y0 = (map.camTop || 0) - 20, y1 = this.vsFallY + 12, x = wl.x;
+    ctx.globalAlpha = 0.3; Sprites.px(ctx, '#ff8a4a', x - 8, y0, 8, y1 - y0); ctx.globalAlpha = 1;   // gloed
+    Sprites.px(ctx, '#c0392b', x - 3, y0, 6, y1 - y0);                    // dunne straal
+    Sprites.px(ctx, '#ffd24a', x - 1, y0, 2, y1 - y0);                    // kern
+    for (let i = 0; i < 3; i++) Sprites.px(ctx, '#ffe9a0', x - 2, y0 + ((this.time / 40 + i * 30) % (y1 - y0)), 4, 2);   // sprankels
+  },
+
+  drawRock(ctx, rk) {
+    const x = Math.round(rk.x), y = Math.round(rk.y);
+    ctx.globalAlpha = 0.25; Sprites.px(ctx, '#000', x - 9, y - 8, 18, 18); ctx.globalAlpha = 1;
+    Sprites.px(ctx, '#6a5e50', x - 9, y - 8, 18, 16);
+    Sprites.px(ctx, '#8a7c6a', x - 9, y - 8, 18, 3);
+    Sprites.px(ctx, '#4a4036', x - 9, y + 5, 18, 3);
+    Sprites.px(ctx, '#3a3229', x - 4, y - 3, 3, 3); Sprites.px(ctx, '#3a3229', x + 2, y + 1, 3, 3);
   },
 
   drawStunAura(ctx, x, footY) {

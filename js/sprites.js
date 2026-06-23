@@ -39,6 +39,8 @@ const Sprites = {
      pose = { walkPhase, airborne, ducking, attacking, weapon } */
   drawCharacter(ctx, cx, footY, dir, pal, pose) {
     pose = pose || {};
+    // platgedrukt (steen-powerup): hele figuur in elkaar gedrukt
+    if (pose.squash) { ctx.save(); ctx.translate(cx, footY); ctx.scale(1.5, 0.45); ctx.translate(-cx, -footY); }
     const duck = pose.ducking;
     const weapon = pose.weapon;
     const bulky = pose.build === 'bulky';
@@ -140,6 +142,8 @@ const Sprites = {
 
     // --- arm + wapen ---
     this.drawArmAndWeapon(ctx, cx, torsoTop, dir, pal, weapon, pose.attacking, bh, pose.shielding);
+
+    if (pose.squash) ctx.restore();
   },
 
   drawArmAndWeapon(ctx, cx, torsoTop, dir, pal, weaponId, attacking, bh, shielding) {

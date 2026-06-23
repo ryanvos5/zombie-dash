@@ -385,19 +385,23 @@ const SMASH_DROP_EVERY = 5000;       // ms tussen drops (host bepaalt)
 const SMASH_WEAPON_TIME = 13000;     // opgepakt melee-wapen ben je na ~13s weer kwijt
 const SMASH_FIREBALL_SHOTS = 3;      // aantal vuurballen
 const SMASH_ROCKETS = 3;             // raketten bij een RPG-drop
-const SMASH_PORTAL_EVERY = 14000;    // ms tussen portalen (host bepaalt)
+const SMASH_PORTAL_EVERY = 22000;    // ms tussen portalen (host bepaalt) — minder vaak
 const SMASH_PORTAL_LIFE = 11000;     // hoe lang een portaalpaar blijft staan
 // drakenei: zeldzaam, verdwijnt snel -> snel pakken; roept een draak op die de tegenstander beschiet
 const SMASH_DRAGON_LIFE = 4500;      // het ei blijft maar kort liggen
 const DRAGON_DUR = 10000;            // de draak blijft 10s
 const DRAGON_SPIT_MS = 1600;         // spuugt elke ~1,6s een vuurstraal
 const DRAGON_DMG = 10;               // schade per vuurstraal
-const SMASH_LIGHTNING_STUN = 3000;   // bliksem (alleen Cave): stunt de tegenstander 3s
-// Cave: knop -> muur die de tegenstander aan de andere kant eraf gooit
-const CAVE_ARM_MS = 7000;            // hoe vaak een knop scherp wordt (rood knippert)
-const CAVE_WALL_SPEED = 8;           // px/frame dat de muur over de map sweept
-const CAVE_TOP_KILL_Y = 104;         // boven deze y = "boven" (top-muur gooit je eraf)
-const CAVE_BOT_KILL_Y = 158;         // onder deze y = "beneden"
+const SMASH_LIGHTNING_STUN = 1500;   // bliksem (alleen Cave): stunt de tegenstander 1,5s
+// Cave: midden-knop -> straal die over de map sweept; raakt 'ie je -> schade + harde knockback
+const CAVE_ARM_MS = 7000;            // hoe vaak de knop scherp wordt (rood knippert)
+const CAVE_WALL_SPEED = 7;           // px/frame dat de straal over de map sweept
+const CAVE_BEAM_DMG = 18;            // schade van de straal
+const CAVE_BEAM_KNOCK = 24;          // harde knockback
+// steen (alleen Cave, Smash): 3 grote stenen vallen; geraakt = 2s platgedrukt
+const SMASH_ROCK_COUNT = 3;
+const SMASH_ROCK_FLAT = 2000;        // 2s plat (niet bewegen)
+const SMASH_ROCK_SPREAD = 55;        // spreiding rond de tegenstander
 // dropsoorten + relatieve kans
 const SMASH_DROPS = [
   { kind: 'weapon', w: 34 },         // willekeurig melee-wapen
@@ -491,8 +495,7 @@ const VERSUS_MAPS = [
       { x: 360, y: 60, w: 40 },                                  // center-top (bovenste knop)
     ],
     buttons: [
-      { at: 'bottom', x: 160, y: 176, hits: 'top' },             // beneden -> muur aan de bovenkant
-      { at: 'top', x: 360, y: 60, hits: 'bottom' },              // boven -> muur aan de onderkant
+      { at: 'mid', x: 360, y: 98 },                              // 1 knop in het midden -> straal sweept de map
     ],
   },
 ];

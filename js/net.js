@@ -242,6 +242,7 @@ const Net = {
     ch.on('broadcast', { event: 'stun' }, (m) => { if (v.cbs.onStun) v.cbs.onStun(m.payload); });
     ch.on('broadcast', { event: 'cavearm' }, (m) => { if (v.cbs.onCaveArm) v.cbs.onCaveArm(m.payload); });
     ch.on('broadcast', { event: 'cavewall' }, (m) => { if (v.cbs.onCaveWall) v.cbs.onCaveWall(m.payload); });
+    ch.on('broadcast', { event: 'rocks' }, (m) => { if (v.cbs.onRocks) v.cbs.onRocks(m.payload); });
     ch.on('broadcast', { event: 'bye' }, () => { if (v.cbs.onPeerLeft) v.cbs.onPeerLeft(); });
     await new Promise((resolve, reject) => {
       let done = false;
