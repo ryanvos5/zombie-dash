@@ -1515,11 +1515,11 @@ const Game = {
       const hitIt = (e) => e && !e.dead && e.respawnInvuln <= 0 && !safe(e) && Math.abs(wl.x - e.x) < 11;
       if (!wl.hitP && hitIt(this.player)) {
         wl.hitP = true;
-        this.onVersusHit({ dir: (this.player.x >= wl.x ? 1 : -1), power: CAVE_BEAM_KNOCK, vy: -7, dmg: CAVE_BEAM_DMG });
+        this.onVersusHit({ dir: (this.player.x >= wl.x ? 1 : -1), power: CAVE_BEAM_KNOCK, vy: -7, dmg: 0 });   // alleen knockback, geen schade
       }
       if (this.vsBot && !wl.hitB && hitIt(this.bot)) {
         wl.hitB = true;
-        this.applyHitToBot(this.bot.x >= wl.x ? 1 : -1, CAVE_BEAM_KNOCK, -7, CAVE_BEAM_DMG);
+        this.applyHitToBot(this.bot.x >= wl.x ? 1 : -1, CAVE_BEAM_KNOCK, -7, 0);
       }
       if (wl.x > mapW + 30) this.caveWall = null;
     }
