@@ -31,6 +31,20 @@ html, body {
   overscroll-behavior: none;
 }
 
+/* iOS-loep/tekstselectie bij (snel) tikken op knoppen voorkomen — overal behalve in tekstvelden */
+*:not(input):not(textarea) {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+/* tekstvelden moeten wél kunnen typen/selecteren (chat, e-mail, nickname) */
+input, textarea {
+  -webkit-user-select: text;
+  user-select: text;
+  -webkit-touch-callout: default;
+}
+
 #game-root {
   position: relative;
   width: 100vw;
