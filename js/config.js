@@ -403,6 +403,12 @@ const SMASH_ROCK_COUNT = 3;
 const SMASH_ROCK_FLAT = 2000;        // 2s plat (niet bewegen)
 const SMASH_ROCK_SPREAD = 55;        // spreiding rond de tegenstander
 
+// combo's: opeenvolgende treffers binnen het tijdvenster -> hoger (x1..x5), meer schade + XP
+const COMBO_MAX = 5;
+const COMBO_WINDOW = 1500;           // ms om de combo door te zetten
+function comboMul(n) { return 1 + (Math.min(n, COMBO_MAX) - 1) * 0.15; }                 // x1=1.0 .. x5=1.6
+function comboXp(n) { return Math.round(15 + (Math.min(n, COMBO_MAX) - 1) * (60 - 15) / (COMBO_MAX - 1)); }  // 15,26,37,49,60
+
 /* ---------- BOT-MOEILIJKHEID (level 1..10) ----------
    Elk level heeft een eigen speelstijl. Velden:
    meleeCd = ms tussen meppen, block = blokkans, aggro = hoe vaak 'ie de aanval zoekt,
@@ -415,7 +421,7 @@ const BOT_PROFILES = [
   { name: 'Verdediger',   meleeCd: 850,  block: 0.45, aggro: 0.65, react: 460, shootCd: 1700, jumpy: 0.60, standoff: 34, mistake: 0.28 },
   { name: 'Jager',        meleeCd: 750,  block: 0.20, aggro: 0.95, react: 400, shootCd: 1500, jumpy: 0.70, standoff: 24, mistake: 0.22 },
   { name: 'Springer',     meleeCd: 760,  block: 0.20, aggro: 0.85, react: 380, shootCd: 1500, jumpy: 0.95, standoff: 28, mistake: 0.18 },
-  { name: 'Schutter',     meleeCd: 820,  block: 0.25, aggro: 0.70, react: 380, shootCd: 800,  jumpy: 0.65, standoff: 72, mistake: 0.16 },
+  { name: 'Schutter',     meleeCd: 560,  block: 0.25, aggro: 0.80, react: 320, shootCd: 560,  jumpy: 0.65, standoff: 64, mistake: 0.16 },
   { name: 'Razend',       meleeCd: 520,  block: 0.15, aggro: 1.00, react: 300, shootCd: 1300, jumpy: 0.80, standoff: 22, mistake: 0.10 },
   { name: 'Tacticus',     meleeCd: 600,  block: 0.55, aggro: 0.85, react: 300, shootCd: 1100, jumpy: 0.85, standoff: 32, mistake: 0.06 },
   { name: 'Meester',      meleeCd: 400,  block: 0.62, aggro: 1.00, react: 220, shootCd: 750,  jumpy: 0.95, standoff: 24, mistake: 0.03 },

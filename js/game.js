@@ -1157,6 +1157,7 @@ const Game = {
     this.caveWall = null; this._caveArmAt = this.time + CAVE_ARM_MS; this.caveArmed = -1;
     this.caveButtons = (map.buttons || []).map((b) => ({ at: b.at, x: b.x, y: b.y }));
     this.caveBats = []; this.caveDrips = []; this.lightningFx = null; this.rocks = [];
+    this._comboXp = 0;
     this.ammo = mode === 'both' ? 999 : 0;
     this.rockets = 0;
     this.boss = null; this.shake = 0; this.cam.x = 0; this.time = 0; this.dtScale = 1;
@@ -1624,7 +1625,9 @@ const Game = {
 
   spawnDrop() {
     const pool = SMASH_DROPS.slice();
-    if (this.vsMap && this.vsMap.id === 'cave') { pool.push({ kind: 'lightning', w: 8 }); pool.push({ kind: 'rock', w: 8 }); }   // alleen op Cave
+    const mid = this.vsMap && this.vsMap.id;
+    if (mid === 'cave' || mid === 'sky') pool.push({ kind: 'lightning', w: 8 });   // bliksem op Cave + Sky
+    if (mid === 'cave') pool.push({ kind: 'rock', w: 8 });                          // steen alleen op Cave
     let tot = 0; for (const d of pool) tot += d.w;
     let r = Math.random() * tot, kind = 'health';
     for (const d of pool) { r -= d.w; if (r <= 0) { kind = d.kind; break; } }
@@ -1696,10 +1699,17 @@ const Game = {
       const dx = (r.x - p.x) * p.dir;
       if (dx > -10 && dx < reach && Math.abs(r.y - p.y) < 30) {
         const kdir = (r.x >= p.x ? 1 : -1);
-        const wd = (WEAPONS[p.meleeId] ? WEAPONS[p.meleeId].damage : 34) * (p.meleeMul || 1) * (p.hasBuff('rage', this.time) ? 1.6 : 1);
+        // combo: opeenvolgende treffers binnen het venster -> hoger (x1..x5), meer schade
+        p.combo = (this.time < (p.comboUntil || 0)) ? Math.min(COMBO_MAX, (p.combo || 0) + 1) : 1;
+        p.comboUntil = this.time + COMBO_WINDOW;
+        const wd = (WEAPONS[p.meleeId] ? WEAPONS[p.meleeId].damage : 34) * (p.meleeMul || 1) * (p.hasBuff('rage', this.time) ? 1.6 : 1) * comboMul(p.combo);
         const dmg = Math.round(wd * 0.45);                            // versus-melee-schade
         if (this.vsBot) this.applyHitToBot(kdir, 15, -5.5, dmg);      // bot wegslaan + schade
         else Net.versusSend('hit', { dir: p.dir, power: 15, vy: -5.5, dmg: dmg });
+        // combo-XP (alleen online — geen XP-farmen tegen de bot)
+        const cx = comboXp(p.combo);
+        p._lastComboXp = this.vsBot ? 0 : cx;
+        if (!this.vsBot) this._comboXp = (this._comboXp || 0) + cx;
         this.spawnBlood(r.x, r.y - 16);
         this.shake = Math.max(this.shake, 6);
       }
@@ -1779,7 +1789,9 @@ const Game = {
       const dxp = (this.player.x - b.x) * b.dir;
       if (dxp > -10 && dxp < 36 && Math.abs(this.player.y - b.y) < 30 && this.player.respawnInvuln <= 0 && !this.player.dead) {
         const kd = this.player.x >= b.x ? 1 : -1;
-        const wd = (WEAPONS[b.meleeId] ? WEAPONS[b.meleeId].damage : 34) * (b.meleeMul || 1) * (b.hasBuff('rage', this.time) ? 1.6 : 1);
+        b.combo = (this.time < (b.comboUntil || 0)) ? Math.min(COMBO_MAX, (b.combo || 0) + 1) : 1;
+        b.comboUntil = this.time + COMBO_WINDOW;
+        const wd = (WEAPONS[b.meleeId] ? WEAPONS[b.meleeId].damage : 34) * (b.meleeMul || 1) * (b.hasBuff('rage', this.time) ? 1.6 : 1) * comboMul(b.combo);
         this.onVersusHit({ dir: kd, power: 15, vy: -5.5, dmg: Math.round(wd * 0.45) });
         this.shake = Math.max(this.shake, 6);
       }
@@ -1796,6 +1808,7 @@ const Game = {
   applyHitToBot(dir, power, vy, dmg) {
     const b = this.bot;
     if (!b || b.respawnInvuln > 0 || b.dead) return;
+    b.combo = 0; b.comboUntil = 0;                    // geraakt worden verbreekt de combo
     const blocking = b.ducking && b.onGround;
     b.knockVx = dir * power * (blocking ? 0.15 : 1);
     if (!blocking) { b.vy = vy; b.onGround = false; }
@@ -1809,7 +1822,7 @@ const Game = {
     const sp = this.vs.botSpawn;
     b.x = sp.x; b.y = sp.y; b.dir = sp.dir; b.vy = 0; b.knockVx = 0;
     b.onGround = true; b.dead = false; b.respawnInvuln = 1300; b.hp = b.maxHp; b.burnUntil = 0;
-    b.swingWeapon = null; b.swingUntil = 0; b.stunUntil = 0; b.flatUntil = 0; b._beamSafeUntil = 0;
+    b.swingWeapon = null; b.swingUntil = 0; b.stunUntil = 0; b.flatUntil = 0; b._beamSafeUntil = 0; b.combo = 0; b.comboUntil = 0;
     if (this.vsMode === 'smash') { b.meleeId = b.baseMelee || 'bat'; b.weaponId = b.meleeId; b.fireballs = 0; b.smashRockets = 0; b._weaponUntil = 0; }
     this.vs.remote.alive = true;
   },
@@ -1945,6 +1958,7 @@ const Game = {
   onVersusHit(payload) {
     const p = this.player;
     if (p.respawnInvuln > 0 || p.dead) return;       // net gespawnd = even onkwetsbaar
+    p.combo = 0; p.comboUntil = 0;                    // geraakt worden verbreekt je combo
     const blocking = p.ducking && p.onGround;          // bukken = blok
     p.knockVx = (payload.dir || 1) * (payload.power || 15) * (blocking ? 0.15 : 1);
     if (!blocking) { p.vy = payload.vy || -5.5; p.onGround = false; }
@@ -1969,6 +1983,7 @@ const Game = {
     this.player.dead = false; this.player.respawnInvuln = 1300;
     this.player.hp = this.player.maxHp; this.player.burnUntil = 0;   // fris (ook na burn-dood)
     this.player.stunUntil = 0; this.player.flatUntil = 0; this.player._beamSafeUntil = 0;
+    this.player.combo = 0; this.player.comboUntil = 0;
     this.player.swingWeapon = null; this.player.swingUntil = 0;       // geen lingerende mep-animatie
     if (this.vsMode === 'smash') {                  // elke ronde weer met de knuppel
       this.player.meleeId = this.player.baseMelee || 'bat'; this.player.rangedId = null;
@@ -2046,6 +2061,7 @@ const Game = {
     if (!isBot) {
       const smashWin = won && this.vsMode === 'smash';
       gained = smashWin ? 100 : (won ? XP_WIN : XP_LOSS);     // Power Smash winnen = 100 XP
+      gained += (this._comboXp || 0);                          // + verdiende combo-XP
       Storage.data.xp = (Storage.data.xp || 0) + gained;
       if (smashWin) Storage.data.coins = (Storage.data.coins || 0) + 50;   // + 50 munten
       if (won) Storage.data.mpWins = (Storage.data.mpWins || 0) + 1;
@@ -2176,8 +2192,10 @@ const Game = {
 
     // draken (drakenei-powerup) — scherm-ruimte, over de wereld heen
     this.renderDragons(ctx);
-    // bliksem (Cave) — scherm-ruimte
+    // bliksem (Cave/Sky) — scherm-ruimte
     this.renderLightning(ctx);
+    // combo-teller
+    this.drawComboHud(ctx);
 
     // Power Smash: huidige item/wapen (scherm-ruimte, onderin)
     if (this.vsMode === 'smash') {
@@ -2320,6 +2338,25 @@ const Game = {
       const a = t / 55 + i * Math.PI / 2;
       Sprites.px(ctx, (i % 2 ? '#cfeeff' : '#4aa6ff'), Math.round(x + Math.cos(a) * 9), Math.round(footY - 16 + Math.sin(a) * 13), 2, 2);
     }
+  },
+
+  // combo-teller in beeld (x1..x5) + verdiende XP
+  drawComboHud(ctx) {
+    const p = this.player;
+    if (!p.combo || this.time >= (p.comboUntil || 0)) return;
+    const W = CONFIG.VIEW_W;
+    const alpha = Math.min(1, (p.comboUntil - this.time) / 400);     // fade-out op het einde
+    ctx.save();
+    ctx.globalAlpha = alpha; ctx.textAlign = 'center';
+    const col = p.combo >= 5 ? '#ff4d4d' : (p.combo >= 3 ? '#ffb02e' : '#ffe27a');
+    ctx.font = 'bold 22px "Courier New", monospace';
+    ctx.fillStyle = '#000'; ctx.fillText('x' + p.combo, W / 2 + 1, 45);
+    ctx.fillStyle = col; ctx.fillText('x' + p.combo, W / 2, 44);
+    ctx.font = 'bold 9px "Courier New", monospace';
+    ctx.fillStyle = '#cfe6ff';
+    ctx.fillText(p._lastComboXp ? ('+' + p._lastComboXp + ' XP') : 'COMBO', W / 2, 57);
+    ctx.restore();
+    ctx.textAlign = 'left';
   },
 
   renderLightning(ctx) {
