@@ -409,16 +409,16 @@ const SMASH_ROCK_SPREAD = 55;        // spreiding rond de tegenstander
    react = reactietijd vóór 'ie mept (ms), shootCd = ms tussen schoten (beide-wapens),
    jumpy = kans dat 'ie naar platforms springt, standoff = gewenste afstand tot de speler */
 const BOT_PROFILES = [
-  { name: 'Luiaard',      meleeCd: 1300, block: 0.00, aggro: 0.30, react: 700, shootCd: 2600, jumpy: 0.00, standoff: 70 },
-  { name: 'Schuchter',    meleeCd: 1100, block: 0.05, aggro: 0.45, react: 600, shootCd: 2200, jumpy: 0.10, standoff: 56 },
-  { name: 'Straatvechter',meleeCd: 950,  block: 0.10, aggro: 0.65, react: 520, shootCd: 1900, jumpy: 0.20, standoff: 30 },
-  { name: 'Verdediger',   meleeCd: 850,  block: 0.45, aggro: 0.55, react: 460, shootCd: 1700, jumpy: 0.25, standoff: 34 },
-  { name: 'Jager',        meleeCd: 750,  block: 0.20, aggro: 0.95, react: 400, shootCd: 1500, jumpy: 0.30, standoff: 24 },
-  { name: 'Springer',     meleeCd: 760,  block: 0.20, aggro: 0.75, react: 380, shootCd: 1500, jumpy: 0.85, standoff: 28 },
-  { name: 'Schutter',     meleeCd: 820,  block: 0.25, aggro: 0.45, react: 380, shootCd: 800,  jumpy: 0.30, standoff: 72 },
-  { name: 'Razend',       meleeCd: 520,  block: 0.15, aggro: 1.00, react: 300, shootCd: 1300, jumpy: 0.40, standoff: 22 },
-  { name: 'Tacticus',     meleeCd: 600,  block: 0.55, aggro: 0.75, react: 300, shootCd: 1100, jumpy: 0.55, standoff: 32 },
-  { name: 'Meester',      meleeCd: 400,  block: 0.62, aggro: 1.00, react: 220, shootCd: 750,  jumpy: 0.75, standoff: 24 },
+  { name: 'Luiaard',      meleeCd: 1300, block: 0.00, aggro: 0.45, react: 700, shootCd: 2600, jumpy: 0.45, standoff: 70, mistake: 0.45 },
+  { name: 'Schuchter',    meleeCd: 1100, block: 0.05, aggro: 0.55, react: 600, shootCd: 2200, jumpy: 0.50, standoff: 56, mistake: 0.40 },
+  { name: 'Straatvechter',meleeCd: 950,  block: 0.10, aggro: 0.70, react: 520, shootCd: 1900, jumpy: 0.60, standoff: 30, mistake: 0.34 },
+  { name: 'Verdediger',   meleeCd: 850,  block: 0.45, aggro: 0.65, react: 460, shootCd: 1700, jumpy: 0.60, standoff: 34, mistake: 0.28 },
+  { name: 'Jager',        meleeCd: 750,  block: 0.20, aggro: 0.95, react: 400, shootCd: 1500, jumpy: 0.70, standoff: 24, mistake: 0.22 },
+  { name: 'Springer',     meleeCd: 760,  block: 0.20, aggro: 0.85, react: 380, shootCd: 1500, jumpy: 0.95, standoff: 28, mistake: 0.18 },
+  { name: 'Schutter',     meleeCd: 820,  block: 0.25, aggro: 0.70, react: 380, shootCd: 800,  jumpy: 0.65, standoff: 72, mistake: 0.16 },
+  { name: 'Razend',       meleeCd: 520,  block: 0.15, aggro: 1.00, react: 300, shootCd: 1300, jumpy: 0.80, standoff: 22, mistake: 0.10 },
+  { name: 'Tacticus',     meleeCd: 600,  block: 0.55, aggro: 0.85, react: 300, shootCd: 1100, jumpy: 0.85, standoff: 32, mistake: 0.06 },
+  { name: 'Meester',      meleeCd: 400,  block: 0.62, aggro: 1.00, react: 220, shootCd: 750,  jumpy: 0.95, standoff: 24, mistake: 0.03 },
 ];
 // dropsoorten + relatieve kans
 const SMASH_DROPS = [

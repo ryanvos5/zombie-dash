@@ -1829,10 +1829,29 @@ const Game = {
   reachablePlatform(cur, tgt) {
     if (!cur || !tgt) return false;
     // wat de bot met een (dubbel)sprong echt haalt: niet te ver en niet te hoog -> niet de leegte in
-    return Math.abs(tgt.x - cur.x) < 140 && (cur.y - tgt.y) < 80;
+    return Math.abs(tgt.x - cur.x) < 140 && (cur.y - tgt.y) < 100;
   },
 
-  // de AI: speelstijl + moeilijkheid komen uit het profiel (this.botCfg, level 1..10)
+  // beste tussenstap-platform richting de speler (wisselende route: laag/midden/hoog)
+  bestHopToward(cur, tx, b) {
+    if (this.time >= (b._routeAt || 0)) { b._route = Math.floor(Math.random() * 3); b._routeAt = this.time + 2500 + Math.random() * 2500; }
+    const curDist = Math.abs(cur.x - tx);
+    let best = null, bestScore = -1e9;
+    for (const pf of this.platforms) {
+      if (pf === cur) continue;                              // wolken mogen als opstapje dienen
+      if (!this.reachablePlatform(cur, pf)) continue;
+      const d = Math.abs(pf.x - tx);
+      if (d > curDist - 2) continue;                        // moet dichter bij de speler brengen
+      let score = (curDist - d);
+      if (b._route === 2) score += (cur.y - pf.y) * 0.5;    // voorkeur omhoog
+      else if (b._route === 0) score += (pf.y - cur.y) * 0.5;   // voorkeur omlaag
+      score += (Math.random() - 0.5) * 24;                  // ruis -> variatie in route
+      if (score > bestScore) { bestScore = score; best = pf; }
+    }
+    return best;
+  },
+
+  // de AI: speelstijl + moeilijkheid uit het profiel (this.botCfg, level 1..10)
   botThink() {
     const b = this.bot, p = this.player, now = this.time;
     const cfg = this.botCfg || BOT_PROFILES[4];
@@ -1842,18 +1861,29 @@ const Game = {
     const aDx = Math.abs(dx);
     const face = () => { if (aDx > 8) b.dir = dx > 0 ? 1 : -1; };
     const inRange = aDx < 32 && Math.abs(p.y - b.y) < 24;
-    // reactietijd: sinds wanneer is de speler in bereik?
     if (inRange) { if (!b._inRangeSince) b._inRangeSince = now; } else b._inRangeSince = 0;
     const canMelee = () => inRange && now >= (b._meleeCd || 0) && b._inRangeSince && (now - b._inRangeSince) >= cfg.react;
     const doMelee = () => { inp.melee = true; b._meleeCd = now + cfg.meleeCd; face(); };
 
-    // IN DE LUCHT: koers naar het doelplatform en land erop
+    // in een zachte wolk? -> omhoog drijven en richting de speler (zo steek je de Sky-kloof over)
+    let botCloud = null;
+    for (const pf of this.platforms) {
+      if (pf.soft && Math.abs(b.x - pf.x) < pf.w / 2 + b.w / 2 && b.y > pf.y - 16 && b.y < pf.y + 12) { botCloud = pf; break; }
+    }
+    if (botCloud) {
+      if (dx > 6) inp.right = true; else if (dx < -6) inp.left = true; else face();
+      if (p.y < b.y - 6) inp.jump = true;                    // speler hoger -> omhoog drijven; lager -> door de wolk zakken
+      if (canMelee()) doMelee();
+      return inp;
+    }
+
+    // IN DE LUCHT: bij een 'foutje' geen volle sprong/dubbelsprong -> valt korter
     if (!b.onGround) {
       const target = (b._jumpTarget && this.platforms.indexOf(b._jumpTarget) >= 0) ? b._jumpTarget : this.nearestPlatform(b.x);
       if (target) {
         if (target.x > b.x + 6) inp.right = true; else if (target.x < b.x - 6) inp.left = true; else face();
-        if (b.vy < 0) inp.jump = true;                    // sprong vasthouden = volle hoogte
-        if (b.jumps > 0 && now >= b._jumpCd && b.vy > 1 && (Math.abs(target.x - b.x) > 30 || b.y > target.y + 6)) {
+        if (b.vy < 0 && !b._fumble) inp.jump = true;
+        if (!b._fumble && b.jumps > 0 && now >= b._jumpCd && b.vy > 1 && (Math.abs(target.x - b.x) > 30 || b.y > target.y + 6)) {
           inp.jump = true; inp.jumpPressed = true; b._jumpCd = now + 300;
         }
       }
@@ -1861,8 +1891,8 @@ const Game = {
       return inp;
     }
 
-    const cur = this.platformUnder(b);
-    b._jumpTarget = null;
+    const cur = this.platformUnder(b) || this.nearestPlatform(b.x);   // randen: val terug op dichtstbijzijnde
+    b._jumpTarget = null; b._fumble = false;
     const eL = cur ? cur.x - cur.w / 2 + 9 : 0;
     const eR = cur ? cur.x + cur.w / 2 - 9 : CONFIG.VIEW_W;
 
@@ -1872,28 +1902,41 @@ const Game = {
     }
     if (now < (b._blockUntil || 0)) { inp.duck = true; face(); return inp; }
 
-    // engage-beslissing (aggro): af en toe wel/niet de aanval zoeken
-    if (now >= (b._engageAt || 0)) { b._engaged = Math.random() < cfg.aggro; b._engageAt = now + 500; }
+    // korte pauzes (lage aggro pauzeert vaker) — ze komen nog steeds naar je toe
+    if (now >= (b._engageAt || 0)) { b._engaged = Math.random() < cfg.aggro; b._engageAt = now + (b._engaged ? 700 : 450); }
 
+    const playerPf = this.platformUnder(p) || this.nearestPlatform(p.x);
+    const onSame = cur && playerPf && cur === playerPf;
     const playerAirAbove = !p.onGround && p.y < b.y - 6;
-    const tgt = playerAirAbove ? cur : (this.platformUnder(p) || this.nearestPlatform(p.x));
 
-    if (cur && tgt && cur !== tgt && this.reachablePlatform(cur, tgt) && b._engaged) {
-      const tdx = tgt.x - b.x;
+    // navigeren: zelfde/bereikbaar platform -> de speler; anders een tussenstap richting speler
+    let hop = null;
+    if (!onSame && cur && !playerAirAbove) {
+      hop = this.reachablePlatform(cur, playerPf) ? playerPf : this.bestHopToward(cur, p.x, b);
+    }
+
+    if (hop && hop !== cur) {
+      // op weg naar de speler (ook als die stilstaat, ver weg): naar de rand en eraf springen
+      const tdx = hop.x - b.x;
       if (tdx > 6) inp.right = true; else if (tdx < -6) inp.left = true; else face();
-      const nearEdge = (tdx > 0 && b.x > eR - 6) || (tdx < 0 && b.x < eL + 6) || tgt.y < cur.y - 8;
-      if (nearEdge && now >= b._jumpCd && Math.random() < cfg.jumpy) { inp.jump = true; inp.jumpPressed = true; b._jumpCd = now + 700; b._jumpTarget = tgt; }
+      const nearEdge = (tdx > 0 && b.x > eR - 6) || (tdx < 0 && b.x < eL + 6) || hop.y < cur.y - 8;
+      if (nearEdge && now >= b._jumpCd && Math.random() < Math.max(cfg.jumpy, 0.5)) {
+        b._fumble = Math.random() < cfg.mistake;            // spring-foutje (minder bij hogere levels)
+        inp.jump = true; inp.jumpPressed = true; b._jumpCd = now + 650; b._jumpTarget = hop;
+      }
     } else {
-      // afstand bewaren rond de standoff (schutters blijven ver, vechters komen dichtbij)
+      // op het speler-vlak: naderen rond de standoff + meppen
       let want = 0;
-      if (b._engaged && aDx > cfg.standoff + 6) want = (dx > 0 ? 1 : -1);          // te ver -> naderen
-      else if (aDx < cfg.standoff - 12) want = (dx > 0 ? -1 : 1);                   // te dichtbij -> achteruit
+      if (aDx > cfg.standoff + 6) want = (dx > 0 ? 1 : -1);           // ook van ver naderen -> ze komen naar je toe
+      else if (aDx < cfg.standoff - 12) want = (dx > 0 ? -1 : 1);     // te dichtbij -> spacing
+      if (!b._engaged && want > 0) want = 0;                          // tijdens een pauze even niet naderen
       if (want > 0 && b.x < eR) inp.right = true;
       else if (want < 0 && b.x > eL) inp.left = true;
       else face();
       if (canMelee()) doMelee();
-      if (b._engaged && p.y < b.y - 18 && aDx < 50 && b.x > eL + 4 && b.x < eR - 4 && now >= b._jumpCd && Math.random() < cfg.jumpy) {
-        inp.jump = true; inp.jumpPressed = true; b._jumpCd = now + 700; b._jumpTarget = tgt;
+      if (b._engaged && p.y < b.y - 18 && aDx < 60 && b.x > eL + 4 && b.x < eR - 4 && now >= b._jumpCd && Math.random() < cfg.jumpy) {
+        b._fumble = Math.random() < cfg.mistake;
+        inp.jump = true; inp.jumpPressed = true; b._jumpCd = now + 650; b._jumpTarget = playerPf;
       }
     }
     return inp;
