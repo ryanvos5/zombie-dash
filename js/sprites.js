@@ -10,6 +10,29 @@ const Sprites = {
     ctx.fillRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h));
   },
 
+  // vliegende draak (drakenei-powerup) — gecentreerd op (cx,cy), klappert met de vleugel
+  drawDragon(ctx, cx, cy, dir, t) {
+    ctx.save();
+    ctx.translate(Math.round(cx), Math.round(cy));
+    if (dir < 0) ctx.scale(-1, 1);                       // lokaal: kop naar rechts
+    const body = '#b3402e', bodyDk = '#7e2a1f', belly = '#e0a23a', wing = '#8a2f22', wingMem = '#c75a3a', horn = '#f0e0c0';
+    const flap = Math.round(Math.sin(t / 110) * 4);
+    this.px(ctx, bodyDk, -16, -1, 7, 3);                 // staartpunt
+    this.px(ctx, body, -12, -3, 7, 5);                   // staartbasis
+    this.px(ctx, body, -7, -4, 14, 9);                   // lijf
+    this.px(ctx, belly, -5, 3, 10, 2);                   // buik
+    this.px(ctx, wing, -3, -4 - flap, 9, 2);             // vleugel (flapt)
+    this.px(ctx, wingMem, -2, -3 - flap, 8, Math.max(1, 3 + flap));
+    this.px(ctx, body, 6, -5, 5, 6);                     // hals
+    this.px(ctx, body, 9, -7, 7, 6);                     // kop
+    this.px(ctx, horn, 10, -10, 2, 3);                   // horens
+    this.px(ctx, horn, 13, -10, 2, 3);
+    this.px(ctx, '#1a1a1a', 13, -5, 2, 2);              // oog
+    this.px(ctx, '#ffd24a', 16, -3, 3, 3);              // muil-gloed
+    this.px(ctx, '#ff7a2a', 18, -2, 2, 2);
+    ctx.restore();
+  },
+
   /* ---------- CHARACTER (Ryan & later anderen) ----------
      cx = horizontale midden, footY = grond (voeten),
      dir = 1 (rechts) of -1 (links),

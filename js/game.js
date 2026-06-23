@@ -1142,6 +1142,7 @@ const Game = {
     this.ghostBullets = []; this.botBullets = [];
     this.drops = []; this._dropTimer = SMASH_DROP_EVERY; this._dropId = 1;
     this.portals = []; this._portalTimer = SMASH_PORTAL_EVERY;
+    this.dragons = [];
     this.ammo = mode === 'both' ? 999 : 0;
     this.rockets = 0;
     this.boss = null; this.shake = 0; this.cam.x = 0; this.time = 0; this.dtScale = 1;
@@ -1191,6 +1192,7 @@ const Game = {
         onDrop: (p) => this.onVersusDrop(p),
         onPickup: (p) => this.onVersusPickup(p),
         onPortal: (p) => this.onVersusPortal(p),
+        onDragon: () => this.onVersusDragon(),
       });
     }
     this.state = 'versus';
@@ -1392,7 +1394,7 @@ const Game = {
       }
       if (this.bot._weaponUntil && this.time > this.bot._weaponUntil) { this.bot.meleeId = this.bot.baseMelee || 'bat'; this.bot.weaponId = this.bot.rangedId || this.bot.meleeId; this.bot._weaponUntil = 0; this.bot.swingWeapon = null; }
     }
-    this.drops = this.drops.filter((d) => !d.taken && this.time - d.born < 16000);
+    this.drops = this.drops.filter((d) => !d.taken && this.time - d.born < (d.kind === 'dragon' ? SMASH_DRAGON_LIFE : 16000));
 
     // ----- portalen: af en toe een paar dat je naar de overkant teleporteert -----
     if (!this.portals) this.portals = [];
@@ -1403,7 +1405,60 @@ const Game = {
     this.checkPortal(this.player);
     if (this.vsBot && this.bot && !this.bot.dead) this.checkPortal(this.bot);
     this.portals = this.portals.filter((pt) => this.time - pt.born < SMASH_PORTAL_LIFE);
+
+    // draken (drakenei-powerup)
+    this.updateDragons(dt);
   },
+
+  // roep een draak op die de tegenstander 10s lang met vuur bestookt
+  spawnDragon(owner) {
+    this.dragons = this.dragons || [];
+    this.dragons = this.dragons.filter((d) => d.owner !== owner);   // max 1 per eigenaar
+    const W = CONFIG.VIEW_W;
+    this.dragons.push({ owner, until: this.time + DRAGON_DUR, x: owner === 'me' ? -36 : W + 36, dir: owner === 'me' ? 1 : -1, nextSpit: this.time + 500, beam: null });
+  },
+
+  updateDragons(dt) {
+    if (!this.dragons || !this.dragons.length) return;
+    const W = CONFIG.VIEW_W;
+    for (const d of this.dragons) {
+      d.x += d.dir * 1.0 * this.dtScale;                            // heen en weer bovenin
+      if (d.x > W + 36) d.dir = -1; else if (d.x < -36) d.dir = 1;
+      if (this.time >= d.nextSpit) { d.nextSpit = this.time + DRAGON_SPIT_MS; this.dragonSpit(d); }
+      if (d.beam && this.time > d.beam.until) d.beam = null;
+    }
+    this.dragons = this.dragons.filter((d) => this.time < d.until);
+  },
+
+  // een vuurstraal naar het doelwit + schade
+  dragonSpit(d) {
+    let wx = null, wy = null;
+    const dmg = DRAGON_DMG;
+    if (d.owner === 'me') {
+      if (this.vsBot) {
+        const b = this.bot; if (!b || b.dead) return;
+        wx = b.x; wy = b.y;
+        this.applyHitToBot(b.x >= this.player.x ? 1 : -1, 8, -4, dmg);
+        if (b.respawnInvuln <= 0) b.burnUntil = this.time + 3000;
+      } else {
+        const r = this.vs.remote; if (!r || !r.alive) return;
+        wx = r.x; wy = r.y;
+        if (window.Net) { Net.versusSend('hit', { dir: (r.x >= this.player.x ? 1 : -1), power: 8, vy: -4, dmg }); Net.versusSend('burn', {}); }
+      }
+    } else if (d.owner === 'bot') {
+      const p = this.player; wx = p.x; wy = p.y;
+      if (!p.dead && p.respawnInvuln <= 0) { this.onVersusHit({ dir: (p.x >= this.bot.x ? 1 : -1), power: 8, vy: -4, dmg }); p.burnUntil = this.time + 3000; }
+    } else {                                                        // 'foe': alleen visueel (echte schade komt via 'hit' van de eigenaar)
+      const p = this.player; wx = p.x; wy = p.y;
+    }
+    if (wx == null) return;
+    d.beam = { until: this.time + 320, wx, wy };
+    for (let i = 0; i < 10; i++)
+      this.particles.push(new Particle(wx + (Math.random() - 0.5) * 10, wy - 12 + (Math.random() - 0.5) * 12, (Math.random() - 0.5) * 1.5, -Math.random() * 1.2, Math.random() < 0.5 ? '#ff7a2a' : '#ffd24a', 320, 2));
+    this.shake = Math.max(this.shake, 4);
+  },
+
+  onVersusDragon() { this.spawnDragon('foe'); },
 
   // portaalpaar: één in de linkerhelft, één in de rechterhelft (host/lokaal bepaalt)
   spawnPortal() {
@@ -1465,6 +1520,10 @@ const Game = {
     else if (d.kind === 'health') pl.hp = Math.min(pl.maxHp, pl.hp + 40);
     else if (d.kind === 'rage') pl.buffs.rage = this.time + POWERUPS.rage.dur;
     else if (d.kind === 'speed') pl.buffs.speed = this.time + POWERUPS.speed.dur;
+    else if (d.kind === 'dragon') {
+      if (pl === this.player) { this.spawnDragon('me'); if (window.Net && !this.vsBot) Net.versusSend('dragon', {}); }
+      else { this.spawnDragon('bot'); }
+    }
   },
 
   onVersusDrop(p) {
@@ -1480,6 +1539,7 @@ const Game = {
   beginRoundFreeze(msg) {
     this.vs.roundFreezeUntil = this.time + 2200;       // ~2,2s freeze
     this.vs.roundMsg = msg;
+    this.dragons = [];                                  // draken stoppen bij rondewissel
     this.shake = Math.max(this.shake, 7);
   },
 
@@ -1789,8 +1849,10 @@ const Game = {
     // tegen de bot: GEEN XP/wins. Echt duel: XP + wins (sync't naar de leaderboard).
     let gained = 0;
     if (!isBot) {
-      gained = won ? XP_WIN : XP_LOSS;
+      const smashWin = won && this.vsMode === 'smash';
+      gained = smashWin ? 100 : (won ? XP_WIN : XP_LOSS);     // Power Smash winnen = 100 XP
       Storage.data.xp = (Storage.data.xp || 0) + gained;
+      if (smashWin) Storage.data.coins = (Storage.data.coins || 0) + 50;   // + 50 munten
       if (won) Storage.data.mpWins = (Storage.data.mpWins || 0) + 1;
       else Storage.data.mpLosses = (Storage.data.mpLosses || 0) + 1;
       Storage.save();
@@ -1893,6 +1955,9 @@ const Game = {
     }
     ctx.restore();
 
+    // draken (drakenei-powerup) — scherm-ruimte, over de wereld heen
+    this.renderDragons(ctx);
+
     // Power Smash: huidige item/wapen (scherm-ruimte, onderin)
     if (this.vsMode === 'smash') {
       const p2 = this.player; let line = '';
@@ -1915,6 +1980,39 @@ const Game = {
     else if (d.kind === 'health') { Sprites.px(ctx, '#ffffff', x - 5, y - 5, 10, 10); Sprites.px(ctx, '#d33', x - 1, y - 5, 3, 10); Sprites.px(ctx, '#d33', x - 5, y - 1, 10, 3); }
     else if (d.kind === 'rage') { Sprites.px(ctx, '#ff5a3a', x - 4, y - 5, 8, 9); Sprites.px(ctx, '#ffd24a', x - 1, y - 3, 2, 5); }
     else if (d.kind === 'speed') { Sprites.px(ctx, '#3ad0ff', x - 4, y - 5, 8, 9); Sprites.px(ctx, '#eaffff', x - 1, y - 3, 2, 5); }
+    else if (d.kind === 'dragon') {
+      // drakenei: paars ovaal met schubben + glans (zeldzaam)
+      Sprites.px(ctx, '#5a2f93', x - 4, y - 7, 8, 12);
+      Sprites.px(ctx, '#8a5ad0', x - 3, y - 7, 6, 12);
+      Sprites.px(ctx, '#c9a6ff', x - 2, y - 6, 2, 3);          // glans
+      Sprites.px(ctx, '#3f1f6e', x - 4, y - 3, 8, 1);          // schub-band
+      Sprites.px(ctx, '#3f1f6e', x - 3, y, 6, 1);
+      Sprites.px(ctx, '#ffd24a', x - 1, y - 9, 2, 2);          // sprankel = zeldzaam
+    }
+  },
+
+  // draken tekenen (scherm-ruimte): de draak vliegt bovenin en spuugt vuur naar het doel
+  renderDragons(ctx) {
+    if (!this.dragons || !this.dragons.length) return;
+    const camX = Math.round(this.vsCamX), camY = Math.round(this.vsCamY);
+    for (const d of this.dragons) {
+      const dx = Math.round(d.x), dy = 18;
+      if (d.beam) {
+        const tx = Math.round(d.beam.wx - camX), ty = Math.round(d.beam.wy - camY - 8);
+        this.drawFireBeam(ctx, dx + d.dir * 8, dy + 4, tx, ty);
+      }
+      Sprites.drawDragon(ctx, dx, dy, d.dir, this.time);
+    }
+  },
+
+  drawFireBeam(ctx, x1, y1, x2, y2) {
+    ctx.save();
+    ctx.lineCap = 'round';
+    ctx.globalAlpha = 0.55; ctx.strokeStyle = '#ff7a2a'; ctx.lineWidth = 7;
+    ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+    ctx.globalAlpha = 1; ctx.strokeStyle = '#ffd24a'; ctx.lineWidth = 2.5;
+    ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+    ctx.restore();
   },
 
   // portaalmond (Power Smash): draaiende paars/blauwe ovaal op een platform

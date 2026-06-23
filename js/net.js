@@ -238,6 +238,7 @@ const Net = {
     ch.on('broadcast', { event: 'drop' }, (m) => { if (v.cbs.onDrop) v.cbs.onDrop(m.payload); });
     ch.on('broadcast', { event: 'pickup' }, (m) => { if (v.cbs.onPickup) v.cbs.onPickup(m.payload); });
     ch.on('broadcast', { event: 'portal' }, (m) => { if (v.cbs.onPortal) v.cbs.onPortal(m.payload); });
+    ch.on('broadcast', { event: 'dragon' }, (m) => { if (v.cbs.onDragon) v.cbs.onDragon(m.payload); });
     ch.on('broadcast', { event: 'bye' }, () => { if (v.cbs.onPeerLeft) v.cbs.onPeerLeft(); });
     await new Promise((resolve, reject) => {
       let done = false;

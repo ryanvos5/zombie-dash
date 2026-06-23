@@ -387,6 +387,11 @@ const SMASH_FIREBALL_SHOTS = 3;      // aantal vuurballen
 const SMASH_ROCKETS = 3;             // raketten bij een RPG-drop
 const SMASH_PORTAL_EVERY = 14000;    // ms tussen portalen (host bepaalt)
 const SMASH_PORTAL_LIFE = 11000;     // hoe lang een portaalpaar blijft staan
+// drakenei: zeldzaam, verdwijnt snel -> snel pakken; roept een draak op die de tegenstander beschiet
+const SMASH_DRAGON_LIFE = 4500;      // het ei blijft maar kort liggen
+const DRAGON_DUR = 10000;            // de draak blijft 10s
+const DRAGON_SPIT_MS = 1600;         // spuugt elke ~1,6s een vuurstraal
+const DRAGON_DMG = 10;               // schade per vuurstraal
 // dropsoorten + relatieve kans
 const SMASH_DROPS = [
   { kind: 'weapon', w: 34 },         // willekeurig melee-wapen
@@ -395,6 +400,7 @@ const SMASH_DROPS = [
   { kind: 'health', w: 20 },
   { kind: 'rage', w: 10 },
   { kind: 'speed', w: 10 },
+  { kind: 'dragon', w: 5 },           // drakenei: zeldzaam
 ];
 // melee-wapens die kunnen vallen (alle echte melee, geen knuppel/schild)
 const SMASH_WEAPON_POOL = ['club', 'machete', 'sword', 'dagger', 'axe', 'spear', 'mace', 'flail', 'bostaff', 'katana', 'halberd'];
