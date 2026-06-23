@@ -1157,7 +1157,7 @@ const Game = {
       roundFreezeUntil: 0, roundMsg: '',
       remote: {
         x: rb.x, y: rb.y, tx: rb.x, ty: rb.y,
-        dir: role === 'host' ? -1 : 1, walkPhase: 0, attacking: false, swingWeapon: null,
+        dir: role === 'host' ? -1 : 1, walkPhase: 0, attacking: false, swingWeapon: null, heldWeapon: 'bat',
         alive: true, charId: 'ryan', lastSeen: 0, hp: 100, maxHp: 100,
       },
     };
@@ -1390,7 +1390,7 @@ const Game = {
         if (d.taken) continue;
         if (Math.abs(this.bot.x - d.x) < 16 && Math.abs((this.bot.y - 12) - d.y) < 22) { d.taken = true; this.applyDrop(this.bot, d); }
       }
-      if (this.bot._weaponUntil && this.time > this.bot._weaponUntil) { this.bot.meleeId = this.bot.baseMelee || 'bat'; this.bot._weaponUntil = 0; }
+      if (this.bot._weaponUntil && this.time > this.bot._weaponUntil) { this.bot.meleeId = this.bot.baseMelee || 'bat'; this.bot.weaponId = this.bot.rangedId || this.bot.meleeId; this.bot._weaponUntil = 0; }
     }
     this.drops = this.drops.filter((d) => !d.taken && this.time - d.born < 16000);
 
@@ -1518,6 +1518,7 @@ const Game = {
     const r = v.remote;
     r.x = r.tx = b.x; r.y = r.ty = b.y; r.dir = b.dir; r.onGround = b.onGround;
     r.attacking = this.time < b.attackAnimUntil; r.swingWeapon = (this.time < (b.swingUntil || 0)) ? b.swingWeapon : null;
+    r.heldWeapon = b.weaponId || b.meleeId || 'bat';
     r.walkPhase = b.walkPhase; r.alive = !b.dead; r.charId = b.charId;
     r.hp = b.hp; r.maxHp = b.maxHp; r.ducking = b.ducking;
 
@@ -1743,6 +1744,7 @@ const Game = {
     r.tx = s.x; r.ty = s.y; r.vy = s.vy || 0; r.dir = s.d || 1;
     r.onGround = s.g !== 0; r.attacking = s.a === 1;
     r.swingWeapon = s.sw || null; r.walkPhase = s.wp || 0;
+    r.heldWeapon = s.wid || 'bat';
     r.alive = s.al !== 0; r.charId = s.ch || 'ryan';
     r.ducking = s.dk === 1;
     if (typeof s.h === 'number') r.hp = s.h;
@@ -1757,6 +1759,7 @@ const Game = {
       x: Math.round(p.x), y: Math.round(p.y), vy: +(p.vy || 0).toFixed(1), d: p.dir,
       g: p.onGround ? 1 : 0, a: this.time < p.attackAnimUntil ? 1 : 0,
       sw: (this.time < (p.swingUntil || 0)) ? (p.swingWeapon || 0) : 0,
+      wid: p.weaponId || 0,
       wp: p.walkPhase || 0, al: p.dead ? 0 : 1, ch: Storage.data.equippedCharacter || 'ryan',
       h: Math.round(p.hp), mh: p.maxHp, dk: p.ducking ? 1 : 0,
     });
@@ -1858,7 +1861,7 @@ const Game = {
       if (r.onGround) Sprites.shadow(ctx, r.x, r.y + 1, 7);
       Sprites.drawCharacter(ctx, Math.round(r.x), Math.round(r.y), r.dir, rc.palette, {
         walkPhase: r.walkPhase, airborne: !r.onGround, attacking: r.attacking, ducking: r.ducking,
-        weapon: r.swingWeapon || 'bat', build: rc.build, hair: rc.hair,
+        weapon: r.swingWeapon || r.heldWeapon || 'bat', build: rc.build, hair: rc.hair,
       });
       if (r.ducking) this.drawBlockGuard(ctx, Math.round(r.x), Math.round(r.y), r.dir);
       this.drawVsMarker(ctx, Math.round(r.x), Math.round(r.y), rc.build, '#ff5a5a');
