@@ -462,9 +462,9 @@ const VERSUS_MAPS = [
     platforms: [
       { x: 110, y: 176, w: 74 }, { x: 610, y: 176, w: 74 },
       { x: 240, y: 130, w: 60 }, { x: 480, y: 130, w: 60 },
-      { x: 160, y: 60, w: 56 }, { x: 560, y: 60, w: 56 },
-      { x: 260, y: -28, w: 52 }, { x: 460, y: -28, w: 52 },
-      { x: 360, y: -78, w: 64 },
+      { x: 215, y: 82, w: 56 }, { x: 505, y: 82, w: 56 },     // naar binnen + lager
+      { x: 295, y: 34, w: 52 }, { x: 425, y: 34, w: 52 },     // naar binnen + lager
+      { x: 360, y: -16, w: 64 },                              // top: veel lager, blijft in het midden
     ],
   },
 ];
