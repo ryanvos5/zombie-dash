@@ -461,10 +461,10 @@ const VERSUS_MAPS = [
     spawnL: { x: 110, y: 176 }, spawnR: { x: 610, y: 176 },
     platforms: [
       { x: 110, y: 176, w: 74 }, { x: 610, y: 176, w: 74 },
-      { x: 240, y: 130, w: 60 }, { x: 480, y: 130, w: 60 },
-      { x: 215, y: 82, w: 56 }, { x: 505, y: 82, w: 56 },     // naar binnen + lager
-      { x: 295, y: 34, w: 52 }, { x: 425, y: 34, w: 52 },     // naar binnen + lager
-      { x: 360, y: -16, w: 64 },                              // top: veel lager, blijft in het midden
+      { x: 240, y: 130, w: 120 }, { x: 480, y: 130, w: 120 }, // middenrij: 2x zo groot
+      { x: 215, y: 82, w: 56 }, { x: 505, y: 82, w: 56 },
+      { x: 295, y: 34, w: 52 }, { x: 425, y: 34, w: 52 },
+      { x: 360, y: -16, w: 128 },                             // top (midden): 2x zo groot
     ],
   },
 ];
