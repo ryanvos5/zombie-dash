@@ -171,7 +171,7 @@ const CHARACTERS = {
   timo: {
     id: 'timo', name: 'Timo', cost: 900,
     maxHp: 90, speedMul: 1.05, meleeMul: 1.0, build: 'small', hair: 'natural',
-    autoRage: true,
+    extraJump: true,
     palette: {
       hair: '#a8824a', hairDark: '#7a5e30',     // blond-bruin, natural
       skin: '#d8a878', skinDark: '#b8895e',
@@ -179,7 +179,7 @@ const CHARACTERS = {
       shirt: '#2e6f8a', shirtDark: '#1d4a5e',
       pants: '#26303a', shoe: '#10161c',
     },
-    desc: 'Klein & wendbaar (kleine hitbox). Elke 30s 3s RAGE (2× schade).'
+    desc: 'Klein & wendbaar (kleine hitbox). Heeft een extra (kleinere) dubbel-jump.'
   },
   vince: {
     id: 'vince', name: 'Vince', cost: 850,

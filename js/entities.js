@@ -41,6 +41,8 @@ class Player {
     this.maxJumps = 1;   // wordt 2 in wereld 2 (dubbel-jump)
     this.jumps = 1;
     this.dblJumpMul = ch.dblJumpMul || 1;   // Tygo springt z'n dubbel-jump hoger
+    this.extraJumps = ch.extraJump ? 1 : 0; // Timo: 1 extra (kleinere) dubbel-jump
+    this.extraJumpLeft = 0;
     this.groundPound = !!ch.groundPound;    // Just: stamp-schade bij de landing
     this._poundCd = 0; this._poundHit = false;
     this.jumping = false; // bezig met een (variabele) sprong
@@ -174,12 +176,19 @@ class Player {
 
     // springen (met dubbel-jump vanaf wereld 2)
     const jumpPressed = frozen ? false : (inputOverride ? inp.jumpPressed : Input.jumpPressed);
-    if (jumpPressed && !this.ducking && this.jumps > 0 && !inCloud) {
-      const air = !this.onGround;              // dit is de dubbel-jump (al in de lucht)
-      this.vy = CONFIG.JUMP_VELOCITY * (air ? this.dblJumpMul : 1);
-      this.onGround = false;
-      this.jumps--;
-      this.jumping = true;     // variabele spronghoogte: actief
+    if (jumpPressed && !this.ducking && !inCloud) {
+      if (this.jumps > 0) {
+        const air = !this.onGround;              // dit is de dubbel-jump (al in de lucht)
+        this.vy = CONFIG.JUMP_VELOCITY * (air ? this.dblJumpMul : 1);
+        this.onGround = false;
+        this.jumps--;
+        this.jumping = true;     // variabele spronghoogte: actief
+      } else if (this.extraJumpLeft > 0 && this.maxJumps >= 2) {
+        this.vy = CONFIG.JUMP_VELOCITY * 0.6;   // Timo: extra, KLEINERE sprong
+        this.onGround = false;
+        this.extraJumpLeft--;
+        this.jumping = true;
+      }
     }
     // variabele spronghoogte: knop vroeg loslaten = sprong inkorten (lager springen)
     if (this.jumping) {
@@ -222,7 +231,7 @@ class Player {
       this.y = CONFIG.GROUND_Y; this.vy = 0; this.onGround = true;
     }
     // bij landing (of in een wolk) de sprongen weer opladen
-    if (this.onGround || inCloud) this.jumps = this.maxJumps;
+    if (this.onGround || inCloud) { this.jumps = this.maxJumps; this.extraJumpLeft = this.extraJumps; }
 
     // schuine platforms (Vulcan): langzaam afglijden als je erop staat
     if (this.onGround && game.platforms) {
