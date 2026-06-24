@@ -1658,7 +1658,9 @@ const Game = {
     if (this.vsBot || this.vs.role === 'host') {
       if (v.state === 'idle' && this.time >= v.nextAt) { this._vulcanPhase('bubble'); if (window.Net && !this.vsBot) Net.versusSend('lava', { ph: 'bubble' }); }
       else if (v.state === 'bubble' && this.time >= v.nextAt) { this._vulcanPhase('erupt'); if (window.Net && !this.vsBot) Net.versusSend('lava', { ph: 'erupt' }); }
-      else if (v.state === 'erupt' && this.time >= v.nextAt) { this._vulcanPhase('idle'); }
+      else if (v.state === 'erupt' && this.time >= v.nextAt) { this._vulcanPhase('idle'); if (window.Net && !this.vsBot) Net.versusSend('lava', { ph: 'idle' }); }
+    } else if ((v.state === 'bubble' || v.state === 'erupt') && this.time >= v.nextAt + 600) {
+      this._vulcanPhase('idle');     // gast-vangnet: trek de straal zelf in als de 'idle' niet aankwam
     }
     // lavastraal raakt spelers in de kolom -> hoog gelanceerd + 3s burn
     if (v.state === 'erupt') {
@@ -1691,7 +1693,9 @@ const Game = {
       } else if (v.state === 'warn' && this.time >= v.nextAt) {
         this._tentPhase('strike');
         if (window.Net && !this.vsBot) Net.versusSend('tentacle', { x: v.x, mode: v.mode, ph: 'strike' });
-      } else if (v.state === 'strike' && this.time >= v.nextAt) { this._tentPhase('idle'); }
+      } else if (v.state === 'strike' && this.time >= v.nextAt) { this._tentPhase('idle'); if (window.Net && !this.vsBot) Net.versusSend('tentacle', { ph: 'idle' }); }
+    } else if ((v.state === 'warn' || v.state === 'strike') && this.time >= v.nextAt + 600) {
+      this._tentPhase('idle');         // gast-vangnet: trek de tentakel zelf in als de 'idle' niet aankwam
     }
     if (v.state === 'strike') {
       const hit = (e) => e && !e.dead && e.respawnInvuln <= 0 && Math.abs(e.x - v.x) < 22;
