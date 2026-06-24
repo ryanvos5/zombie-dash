@@ -412,9 +412,18 @@ const Sprites = {
   },
 
   // zwevend parkour-platform (rotsrichel)
-  drawPlatform(ctx, cx, y, w) {
+  drawPlatform(ctx, cx, y, w, style) {
     const x = Math.round(cx - w / 2);
     w = Math.round(w);
+    if (style === 'stone') {
+      this.px(ctx, '#7a756e', x, y - 1, w, 2);   // stenen rand bovenop (geen gras)
+      this.px(ctx, '#5e5a54', x, y + 1, w, 3);   // steen-topvlak
+      this.px(ctx, '#46423c', x, y + 4, w, 9);   // steen-body
+      this.px(ctx, '#2e2b27', x, y + 11, w, 4);  // schaduw onderkant
+      this.px(ctx, '#3a362f', x + 3, y + 5, 2, 5); // textuur
+      this.px(ctx, '#3a362f', x + w - 6, y + 6, 2, 4);
+      return;
+    }
     this.px(ctx, '#5c7e5a', x, y - 1, w, 2);     // mossige/grasrand bovenop
     this.px(ctx, '#4a5e72', x, y + 1, w, 3);     // steen-topvlak
     this.px(ctx, '#384a5c', x, y + 4, w, 9);     // steen-body

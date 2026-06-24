@@ -224,6 +224,15 @@ class Player {
     // bij landing (of in een wolk) de sprongen weer opladen
     if (this.onGround || inCloud) this.jumps = this.maxJumps;
 
+    // schuine platforms (Vulcan): langzaam afglijden als je erop staat
+    if (this.onGround && game.platforms) {
+      for (const pf of game.platforms) {
+        if (pf.slide && Math.abs(this.x - pf.x) < pf.w / 2 + this.w / 2 && Math.abs(this.y - pf.y) < 4) {
+          this.x += pf.slide * (typeof VULCAN_SLIDE !== 'undefined' ? VULCAN_SLIDE : 0.85) * s; break;
+        }
+      }
+    }
+
     // Just: STAMP bij een harde landing -> schade rondom
     if (this.groundPound && !wasGround && this.onGround && fallSpeed > 3.5 && game.time >= this._poundCd) {
       this._poundCd = game.time + 450;

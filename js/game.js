@@ -1159,6 +1159,9 @@ const Game = {
     this.caveButtons = (map.buttons || []).map((b) => ({ at: b.at, x: b.x, y: b.y }));
     this.caveBats = []; this.caveDrips = []; this.lightningFx = null; this.rocks = [];
     this._comboXp = 0;
+    // Vulcan: lavastraal-state + sfeer (achtergrond-uitbarstingen + rook)
+    this.vulcan = map.vulcan ? { state: 'idle', nextAt: this.time + VULCAN_EVERY, x: map.vulcanX || 360, hitP: false, hitB: false } : null;
+    this.vulcanSmoke = []; this.vulcanBg = [];
     this.ammo = mode === 'both' ? 999 : 0;
     this.rockets = 0;
     this.boss = null; this.shake = 0; this.cam.x = 0; this.time = 0; this.dtScale = 1;
@@ -1216,6 +1219,7 @@ const Game = {
         onCaveArm: (p) => this.onCaveArm(p),
         onCaveWall: (p) => this.onCaveWall(p),
         onRocks: (p) => this.onVersusRocks(p),
+        onLava: (p) => this.onVersusLava(p),
       });
     }
     this.state = 'versus';
@@ -1226,7 +1230,7 @@ const Game = {
   buildVersusPlatforms(map) {
     // platforms klonen met basis-positie (bx/by) zodat bewegende platforms kunnen oscilleren
     this.platforms = (map.platforms || []).map((p) => ({
-      x: p.x, y: p.y, w: p.w, bx: p.x, by: p.y, mv: p.mv || null, dx: 0, dy: 0, soft: p.soft || false,
+      x: p.x, y: p.y, w: p.w, bx: p.x, by: p.y, mv: p.mv || null, dx: 0, dy: 0, soft: p.soft || false, slide: p.slide || 0,
     }));
   },
 
@@ -1271,6 +1275,7 @@ const Game = {
       this.carryOnPlatform();                          // meebewegen met bewegend platform
       if (this.vsMode === 'smash') this.updateSmash(dt);  // drops spawnen/oppakken + wapen-timer
       if (this.vsMap && this.vsMap.cave) this.updateCave(dt);   // knoppen/muur + sfeer
+      if (this.vsMap && this.vsMap.vulcan) this.updateVulcan(dt);   // lavastraal + sfeer
       if (this.vsBot) this.updateBot(dt);              // de AI-tegenstander
       this.checkVersusHit();
       // Just: stamp-schade op de tegenstander bij de landing
@@ -1563,6 +1568,42 @@ const Game = {
     this.strikeLightning(this.player.x, this.player.y);
   },
 
+  // ---- VULCAN: lavastraal + sfeer ----
+  updateVulcan(dt) {
+    const v = this.vulcan; if (!v) return;
+    const mapW = this.vsMapW;
+    // rook (stijgt op)
+    if (Math.random() < 0.06) this.vulcanSmoke.push({ x: Math.random() * mapW, y: this.vsFallY - 6, vy: -(0.3 + Math.random() * 0.5), life: 2600 });
+    for (const s of this.vulcanSmoke) { s.x += 0.2 * this.dtScale; s.y += s.vy * this.dtScale; s.life -= dt; }
+    this.vulcanSmoke = this.vulcanSmoke.filter((s) => s.life > 0);
+    // achtergrond-uitbarstingen (kleine lavaspatten ver weg)
+    if (Math.random() < 0.014) this.vulcanBg.push({ x: 60 + Math.random() * (mapW - 120), y: this.vsFallY - 24, vy: -(1.6 + Math.random() * 1.6), life: 950 });
+    for (const b of this.vulcanBg) { b.vy += 0.06 * this.dtScale; b.y += b.vy * this.dtScale; b.life -= dt; }
+    this.vulcanBg = this.vulcanBg.filter((b) => b.life > 0);
+
+    // toestand: host/lokaal stuurt, gast krijgt 'lava'
+    if (this.vsBot || this.vs.role === 'host') {
+      if (v.state === 'idle' && this.time >= v.nextAt) { this._vulcanPhase('bubble'); if (window.Net && !this.vsBot) Net.versusSend('lava', { ph: 'bubble' }); }
+      else if (v.state === 'bubble' && this.time >= v.nextAt) { this._vulcanPhase('erupt'); if (window.Net && !this.vsBot) Net.versusSend('lava', { ph: 'erupt' }); }
+      else if (v.state === 'erupt' && this.time >= v.nextAt) { this._vulcanPhase('idle'); }
+    }
+    // lavastraal raakt spelers in de kolom -> hoog gelanceerd + 3s burn
+    if (v.state === 'erupt') {
+      const inJet = (e) => e && !e.dead && e.respawnInvuln <= 0 && Math.abs(e.x - v.x) < 16;
+      if (!v.hitP && inJet(this.player)) { v.hitP = true; this.player.vy = -18; this.player.onGround = false; this.player.burnUntil = this.time + 3000; this.shake = Math.max(this.shake, 8); }
+      if (this.vsBot && !v.hitB && inJet(this.bot)) { v.hitB = true; this.bot.vy = -18; this.bot.onGround = false; this.bot.burnUntil = this.time + 3000; }
+      // vonken
+      if (this.particles.length < 240) for (let i = 0; i < 2; i++) this.particles.push(new Particle(v.x + (Math.random() - 0.5) * 14, this.vsFallY - Math.random() * 120, (Math.random() - 0.5) * 1.2, -2 - Math.random() * 2, Math.random() < 0.5 ? '#ff7a2a' : '#ffd24a', 360, 2));
+    }
+  },
+  _vulcanPhase(state) {
+    const v = this.vulcan; v.state = state;
+    if (state === 'bubble') v.nextAt = this.time + VULCAN_BUBBLE;
+    else if (state === 'erupt') { v.nextAt = this.time + VULCAN_ERUPT; v.hitP = false; v.hitB = false; this.shake = Math.max(this.shake, 6); }
+    else v.nextAt = this.time + VULCAN_EVERY;
+  },
+  onVersusLava(p) { if (this.vulcan && p && p.ph) this._vulcanPhase(p.ph); },
+
   // ---- steen-powerup: 3 grote stenen vallen -> geraakt = 2s platgedrukt ----
   rockTargetXs(centerX) {
     const xs = [centerX + (Math.random() - 0.5) * 20];     // 1 steen gericht op het doel
@@ -1692,6 +1733,7 @@ const Game = {
     this.dragons = [];                                  // draken stoppen bij rondewissel
     this.rocks = [];
     this.caveWall = null; this.caveArmed = -1; this._caveArmAt = this.time + CAVE_ARM_MS;
+    if (this.vulcan) { this.vulcan.state = 'idle'; this.vulcan.nextAt = this.time + VULCAN_EVERY; }
     this.shake = Math.max(this.shake, 7);
   },
 
@@ -2122,15 +2164,18 @@ const Game = {
     ctx.save(); ctx.translate(-camX + shx, -camY + shy);
 
     if (map.cave) this.drawCaveBg(ctx);                 // diepe grotten / vleermuizen / druppels
+    if (map.vulcan) this.drawVulcanBg(ctx);             // verre uitbarstingen + rook
 
     // afgrond onderin (map-thema), camera-bewust
     ctx.fillStyle = map.void || '#06090d'; ctx.fillRect(camX - 4, CONFIG.GROUND_Y - 2, W + 8, H + Math.abs(camY) + 320);
     ctx.globalAlpha = 0.5; ctx.fillStyle = '#04060a'; ctx.fillRect(camX - 4, CONFIG.GROUND_Y + 18, W + 8, H + Math.abs(camY) + 320); ctx.globalAlpha = 1;
 
-    // platforms (bewegende krijgen een pijltjes-hint; zachte wolken pluizig)
+    // platforms (bewegende krijgen een pijltjes-hint; zachte wolken pluizig; Vulcan = steen/schuin)
+    const platStyle = map.stone ? 'stone' : null;
     for (const pf of this.platforms) {
       if (pf.soft) { this.drawSoftCloud(ctx, pf); continue; }
-      Sprites.drawPlatform(ctx, pf.x, pf.y, pf.w);
+      if (pf.slide) { this.drawSlantPlatform(ctx, pf, platStyle); }
+      else Sprites.drawPlatform(ctx, pf.x, pf.y, pf.w, platStyle);
       if (pf.mv) { ctx.globalAlpha = 0.5; Sprites.px(ctx, '#ffe9a0', pf.x - 1, pf.y - 5, 2, 2); ctx.globalAlpha = 1; }
     }
 
@@ -2197,6 +2242,7 @@ const Game = {
     }
 
     if (map.cave && this.caveWall) this.drawCaveWall(ctx);   // de muur sweept over de spelers heen
+    if (map.vulcan) this.drawVulcanJet(ctx);                 // borrel-waarschuwing + lavastraal
     ctx.restore();
 
     // draken (drakenei-powerup) — scherm-ruimte, over de wereld heen
@@ -2338,6 +2384,45 @@ const Game = {
     Sprites.px(ctx, '#8a7c6a', x - 9, y - 8, 18, 3);
     Sprites.px(ctx, '#4a4036', x - 9, y + 5, 18, 3);
     Sprites.px(ctx, '#3a3229', x - 4, y - 3, 3, 3); Sprites.px(ctx, '#3a3229', x + 2, y + 1, 3, 3);
+  },
+
+  // schuin (gekanteld) stenen platform
+  drawSlantPlatform(ctx, pf, style) {
+    ctx.save();
+    ctx.translate(Math.round(pf.x), Math.round(pf.y));
+    ctx.rotate((pf.slide || 0) * 0.16);
+    Sprites.drawPlatform(ctx, 0, 0, pf.w, style || 'stone');
+    ctx.restore();
+  },
+
+  // Vulcan-achtergrond: verre vulkanen met gloeiende krater, lavaspatten + rook
+  drawVulcanBg(ctx) {
+    const baseY = this.vsFallY, mapW = this.vsMapW;
+    const mtn = (mx, mw, mh) => {
+      for (let i = 0; i < mh; i++) { const ww = Math.max(2, Math.round(mw * (1 - i / mh))); Sprites.px(ctx, '#1c0f0c', mx - ww, baseY - 26 - i, ww * 2, 1); }
+      Sprites.px(ctx, '#ff5a2a', mx - 6, baseY - 26 - mh, 12, 3);   // gloeiende krater
+      ctx.globalAlpha = 0.3; Sprites.px(ctx, '#ff7a2a', mx - 9, baseY - 30 - mh, 18, 5); ctx.globalAlpha = 1;
+    };
+    mtn(140, 64, 58); mtn(580, 74, 66);
+    for (const b of this.vulcanBg) Sprites.px(ctx, '#ff7a2a', Math.round(b.x), Math.round(b.y), 2, 3);
+    for (const s of this.vulcanSmoke) { ctx.globalAlpha = Math.max(0, Math.min(0.4, s.life / 3000)); Sprites.px(ctx, '#6a5a55', Math.round(s.x), Math.round(s.y), 6, 6); }
+    ctx.globalAlpha = 1;
+  },
+
+  // de lavastraal in het midden (borrel-waarschuwing + uitbarsting)
+  drawVulcanJet(ctx) {
+    const v = this.vulcan; if (!v) return;
+    const x = v.x, baseY = this.vsFallY, topY = ((this.vsMap.camTop || 0) - 10);
+    if (v.state === 'bubble') {
+      Sprites.px(ctx, '#ff5a2a', x - 11, baseY - 6, 22, 6);                      // gloeiende poel
+      ctx.globalAlpha = 0.4; Sprites.px(ctx, '#ff7a2a', x - 13, baseY - 12, 26, 8); ctx.globalAlpha = 1;
+      for (let i = 0; i < 5; i++) { const bx = x + Math.sin(this.time / 120 + i) * 8; const by = baseY - 6 - ((this.time / 200 + i * 7) % 16); Sprites.px(ctx, i % 2 ? '#ff9a3a' : '#ffd24a', Math.round(bx), Math.round(by), 3, 3); }
+    } else if (v.state === 'erupt') {
+      const w = 14, h = baseY - topY;
+      ctx.globalAlpha = 0.3; Sprites.px(ctx, '#ff9a3a', x - w / 2 - 4, topY, w + 8, h); ctx.globalAlpha = 1;
+      Sprites.px(ctx, '#ff5a1e', x - w / 2, topY, w, h);                          // buitenstraal
+      Sprites.px(ctx, '#ffd24a', x - 3, topY, 6, h);                              // hete kern
+    }
   },
 
   drawStunAura(ctx, x, footY) {

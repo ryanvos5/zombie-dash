@@ -482,6 +482,12 @@ function playerLevel(xp) {
 }
 function xpForLevel(L) { return 75 * L * (L - 1); }   // totale XP nodig voor level L
 
+/* ---------- Vulcan-map: lavastraal + schuine platforms ---------- */
+const VULCAN_EVERY = 6500;     // ms tussen uitbarstingen
+const VULCAN_BUBBLE = 1300;    // borrel-waarschuwing vóór de uitbarsting
+const VULCAN_ERUPT = 950;      // duur van de lavastraal
+const VULCAN_SLIDE = 0.85;     // afglijsnelheid op schuine platforms (px/frame)
+
 /* ---------- 1 vs 1 MAPS ----------
    Elke map past op één scherm (geen camera-scroll, beide spelers altijd in beeld).
    platform: { x, y, w, mv? } — mv = { axis:'x'|'y', amp, speed, phase } beweegt het platform.
@@ -514,12 +520,16 @@ const VERSUS_MAPS = [
     ],
   },
   {
-    id: 'lava', name: 'Vulkaan', sky: ['#3a1410', '#1a0805'], void: '#5a1408', plat: 'obsidian', w: 360,
-    spawnL: { x: 64, y: 150 }, spawnR: { x: 296, y: 150 },
+    // Vulcan: net zo groot als Cave. Stenen platforms, lavastraal in het midden,
+    // schuine platforms naast de opening waar je vanaf glijdt; achtergrond met uitbarstingen + rook.
+    id: 'lava', name: 'Vulcan', sky: ['#3a1410', '#1a0805'], void: '#5a1408', plat: 'stone', stone: true, vulcan: true,
+    w: 720, fallY: 232, camTop: -30, camBottom: 30, vulcanX: 360,
+    spawnL: { x: 90, y: 176 }, spawnR: { x: 630, y: 176 },
     platforms: [
-      { x: 64, y: 150, w: 60 }, { x: 296, y: 150, w: 60 },
-      { x: 180, y: 120, w: 54, mv: { axis: 'y', amp: 30, speed: 0.0015, phase: 0 } },
-      { x: 120, y: 168, w: 40 }, { x: 240, y: 168, w: 40 },
+      { x: 110, y: 176, w: 130 }, { x: 610, y: 176, w: 130 },   // grond links/rechts (midden = opening)
+      { x: 230, y: 138, w: 56 }, { x: 490, y: 138, w: 56 },     // mid steen
+      { x: 296, y: 96, w: 54, slide: -1 }, { x: 424, y: 96, w: 54, slide: 1 },  // schuine slide-platforms naast de opening
+      { x: 175, y: 70, w: 40 }, { x: 545, y: 70, w: 40 },       // hoog steen
     ],
   },
   {
