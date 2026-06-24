@@ -448,6 +448,20 @@ const Sprites = {
       this.px(ctx, '#4a3219', x + w - 8, y + 4, 1, 9);
       return;
     }
+    if (style === 'dohyo') {
+      // sumo-ring: lichte klei/zand met strobalen-rand (tawara) bovenop
+      this.px(ctx, '#efdca6', x, y - 1, w, 2);    // wit zand bovenop
+      this.px(ctx, '#dcbd80', x, y + 1, w, 3);    // klei-top
+      this.px(ctx, '#c19a58', x, y + 4, w, 9);    // klei-body
+      this.px(ctx, '#8a6a38', x, y + 11, w, 4);   // schaduw onderkant
+      this.px(ctx, '#a87f3e', x + 4, y + 5, 2, 5); // textuur
+      this.px(ctx, '#a87f3e', x + w - 7, y + 6, 2, 4);
+      // strobalen (tawara) langs de bovenrand
+      for (let i = 0; i < w; i += 8) { this.px(ctx, '#d8b24e', x + i, y - 3, 6, 3); this.px(ctx, '#b08c30', x + i, y - 1, 6, 1); }
+      // rand-balen op de hoeken iets hoger
+      this.px(ctx, '#d8b24e', x - 1, y - 4, 5, 6); this.px(ctx, '#d8b24e', x + w - 4, y - 4, 5, 6);
+      return;
+    }
     if (style === 'stone') {
       this.px(ctx, '#7a756e', x, y - 1, w, 2);   // stenen rand bovenop (geen gras)
       this.px(ctx, '#5e5a54', x, y + 1, w, 3);   // steen-topvlak

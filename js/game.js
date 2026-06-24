@@ -1942,6 +1942,10 @@ const Game = {
     if (mid === 'pirate') pool.push({ kind: 'cannon', w: 9 });                      // kanonskogel alleen op Pirate Ship
     if (mid === 'pirate' || mid === 'sky') pool.push({ kind: 'shield', w: 9 });     // shield op Pirate + Sky
     if (mid === 'jungle') { pool.push({ kind: 'giant', w: 6 }); pool.push({ kind: 'ak47', w: 9 }); }  // Giant + AK47 op Jungle
+    if (mid === 'dohyo') {                                                          // Dohyo: ALLE power-ups
+      pool.push({ kind: 'lightning', w: 8 }); pool.push({ kind: 'rock', w: 8 }); pool.push({ kind: 'cannon', w: 9 });
+      pool.push({ kind: 'shield', w: 9 }); pool.push({ kind: 'giant', w: 6 }); pool.push({ kind: 'ak47', w: 9 });
+    }
     let tot = 0; for (const d of pool) tot += d.w;
     let r = Math.random() * tot, kind = 'health';
     for (const d of pool) { r -= d.w; if (r <= 0) { kind = d.kind; break; } }
@@ -2484,6 +2488,7 @@ const Game = {
     if (map.vulcan) this.drawVulcanBg(ctx);             // verre uitbarstingen + rook
     if (map.pirate) this.drawPirateBg(ctx);             // piratenschip-achtergrond + water
     if (map.jungle2) this.drawJungleBg(ctx);            // oerwoud-achtergrond + papegaaien
+    if (map.dohyo) this.drawDohyoBg(ctx);               // Japanse dojo + hangend dak met kwasten
 
     // afgrond onderin (map-thema), camera-bewust
     ctx.fillStyle = map.void || '#06090d'; ctx.fillRect(camX - 4, CONFIG.GROUND_Y - 2, W + 8, H + Math.abs(camY) + 320);
@@ -2492,7 +2497,7 @@ const Game = {
     if (map.pirate) this.drawPirateHull(ctx);           // scheepsromp onder het dek
 
     // platforms (bewegende krijgen een pijltjes-hint; zachte wolken pluizig; Vulcan = steen/schuin; Pirate = hout/masten)
-    const platStyle = map.wood ? 'wood' : (map.stone ? 'stone' : null);
+    const platStyle = map.wood ? 'wood' : (map.stone ? 'stone' : (map.dohyo ? 'dohyo' : null));
     for (const pf of this.platforms) {
       if (pf.soft) { this.drawSoftCloud(ctx, pf); continue; }
       if (pf.mast) { this.drawMast(ctx, pf); continue; }
@@ -2848,6 +2853,34 @@ const Game = {
       Sprites.px(ctx, '#ffd24a', Math.round(px + 3), Math.round(py), 2, 2);    // snavel
       Sprites.px(ctx, '#1c4a2c', Math.round(px - 8), Math.round(py + 1), 4, 1);// staart
     }
+  },
+  // Dohyo-achtergrond: Japanse dojo met shoji-wand, rijzende zon en een hangend dak (tsuriyane) met 4 kwasten
+  drawDohyoBg(ctx) {
+    const W = this.vsMapW || 360, gy = CONFIG.GROUND_Y, cx = Math.round(W / 2);
+    // rijzende zon achter het midden
+    ctx.fillStyle = '#c85038'; ctx.globalAlpha = 0.5;
+    ctx.beginPath(); ctx.arc(cx, 96, 70, 0, Math.PI * 2); ctx.fill();
+    ctx.globalAlpha = 1;
+    // houten achterwand + shoji (rijstpapier) panelen
+    Sprites.px(ctx, '#4a3826', 0, gy - 64, W, 12);                 // donkere houten plint boven de vloer
+    for (let px = 8; px < W - 30; px += 48) {
+      Sprites.px(ctx, '#e7ddc6', px, 34, 42, 80);                  // papier
+      Sprites.px(ctx, '#6b5238', px, 34, 2, 80); Sprites.px(ctx, '#6b5238', px + 40, 34, 2, 80);  // verticale frames
+      Sprites.px(ctx, '#6b5238', px, 34, 42, 2); Sprites.px(ctx, '#6b5238', px, 72, 42, 2);        // dwarslatten
+      Sprites.px(ctx, '#6b5238', px + 20, 34, 1, 80);             // middenlat
+    }
+    // hangend dak (tsuriyane) boven de ring
+    const ry = -6, rw = 96;
+    Sprites.px(ctx, '#2a1c12', cx - rw / 2 - 6, ry + 12, rw + 12, 5);     // onderrand dak
+    for (let i = 0; i < 9; i++) Sprites.px(ctx, '#7a2418', cx - rw / 2 + i * 3, ry + 2 + i, rw - i * 6, 1); // schuin pannendak
+    Sprites.px(ctx, '#b8862e', cx - rw / 2 - 6, ry + 10, rw + 12, 2);     // gouden rand
+    // 4 kwasten (fusa) aan de hoeken: paars, wit, rood, zwart
+    const fusa = ['#6b3fa0', '#e8e0cf', '#c83838', '#2a2a2a'];
+    const fx = [cx - rw / 2 - 4, cx - rw / 6, cx + rw / 6, cx + rw / 2 + 1];
+    for (let i = 0; i < 4; i++) { Sprites.px(ctx, fusa[i], fx[i], ry + 16, 4, 9); Sprites.px(ctx, fusa[i], fx[i] + 1, ry + 25, 2, 3); }
+    // verticale banners (nobori) aan de zijkanten
+    Sprites.px(ctx, '#b83a2a', 6, 40, 7, 70); Sprites.px(ctx, '#e8e0cf', 8, 46, 3, 20);
+    Sprites.px(ctx, '#b83a2a', W - 13, 40, 7, 70); Sprites.px(ctx, '#e8e0cf', W - 11, 46, 3, 20);
   },
   drawVines(ctx) {
     if (!this.vsVines) return;

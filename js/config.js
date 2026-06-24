@@ -521,11 +521,12 @@ const VERSUS_MAPS = [
     cage: { x: 480, floorY: 206, w: 150, top: 118 },             // kooi met gorilla
   },
   {
-    id: 'bergen', name: 'De Bergen', sky: ['#2a3e5e', '#1a2436'], void: '#0a1018', plat: 'rock', w: 360,
-    spawnL: { x: 60, y: 150 }, spawnR: { x: 300, y: 150 },
+    // Dohyo: kleine Japanse sumo-ring. Eén klein rond platform -> je wordt er makkelijk afgeslagen.
+    // Alle power-ups vallen hier.
+    id: 'dohyo', name: 'Dohyo', sky: ['#caa066', '#7a5a36'], void: '#140a06', plat: 'dohyo', dohyo: true, w: 360,
+    spawnL: { x: 145, y: 150 }, spawnR: { x: 215, y: 150 },
     platforms: [
-      { x: 60, y: 150, w: 58 }, { x: 300, y: 150, w: 58 }, { x: 180, y: 150, w: 56 },
-      { x: 120, y: 112, w: 44 }, { x: 240, y: 112, w: 44 }, { x: 180, y: 76, w: 50 },
+      { x: 180, y: 150, w: 138 },   // de ring: één klein platform
     ],
   },
   {
