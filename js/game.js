@@ -1163,6 +1163,9 @@ const Game = {
     // Vulcan: lavastraal-state + sfeer (achtergrond-uitbarstingen + rook)
     this.vulcan = map.vulcan ? { state: 'idle', nextAt: this.time + VULCAN_EVERY, x: map.vulcanX || 360, hitP: false, hitB: false } : null;
     this.vulcanSmoke = []; this.vulcanBg = [];
+    // Pirate: zeemonster-tentakel
+    this.tentacle = map.pirate ? { state: 'idle', nextAt: this.time + PIRATE_TENT_EVERY, x: 360, mode: 'flat', hitP: false, hitB: false } : null;
+    this.player.cannon = 0;
     this.ammo = mode === 'both' ? 999 : 0;
     this.rockets = 0;
     this.boss = null; this.shake = 0; this.cam.x = 0; this.time = 0; this.dtScale = 1;
@@ -1221,6 +1224,7 @@ const Game = {
         onCaveWall: (p) => this.onCaveWall(p),
         onRocks: (p) => this.onVersusRocks(p),
         onLava: (p) => this.onVersusLava(p),
+        onTentacle: (p) => this.onVersusTentacle(p),
       });
     }
     this.state = 'versus';
@@ -1233,7 +1237,7 @@ const Game = {
   buildVersusPlatforms(map) {
     // platforms klonen met basis-positie (bx/by) zodat bewegende platforms kunnen oscilleren
     this.platforms = (map.platforms || []).map((p) => ({
-      x: p.x, y: p.y, w: p.w, bx: p.x, by: p.y, mv: p.mv || null, dx: 0, dy: 0, soft: p.soft || false, slide: p.slide || 0,
+      x: p.x, y: p.y, w: p.w, bx: p.x, by: p.y, mv: p.mv || null, dx: 0, dy: 0, soft: p.soft || false, slide: p.slide || 0, mast: p.mast || false,
     }));
   },
 
@@ -1279,6 +1283,7 @@ const Game = {
       if (this.vsMode === 'smash') this.updateSmash(dt);  // drops spawnen/oppakken + wapen-timer
       if (this.vsMap && this.vsMap.cave) this.updateCave(dt);   // knoppen/muur + sfeer
       if (this.vsMap && this.vsMap.vulcan) this.updateVulcan(dt);   // lavastraal + sfeer
+      if (this.vsMap && this.vsMap.pirate) this.updatePirate(dt);   // zeemonster-tentakel
       if (this.vsBot) this.updateBot(dt);              // de AI-tegenstander
       this.checkVersusHit();
       // Just: stamp-schade op de tegenstander bij de landing
@@ -1349,18 +1354,28 @@ const Game = {
         b._announced = true;
       }
     }
-    for (const b of this.bullets) b.update(dt, this);   // beweegt (geen zombies in versus)
     for (const b of this.bullets) {
-      const rw = b.kind === 'rocket' ? 16 : 11, rh = b.kind === 'rocket' ? 20 : 16;
+      if (b.kind === 'cannon' && r.alive) {              // homing naar de tegenstander -> mist nooit
+        const ang = Math.atan2((r.y - 14) - b.y, r.x - b.x), sp = 8;
+        b.vx = Math.cos(ang) * sp; b.vy = Math.sin(ang) * sp;
+        b.x += b.vx * this.dtScale; b.y += b.vy * this.dtScale;
+        b.life += dt; if (b.life > 2500) b.alive = false;
+      } else { b.update(dt, this); }   // beweegt (geen zombies in versus)
+    }
+    for (const b of this.bullets) {
+      const rw = b.kind === 'rocket' ? 16 : (b.kind === 'cannon' ? 18 : 11);
+      const rh = b.kind === 'rocket' ? 20 : (b.kind === 'cannon' ? 22 : 16);
       if (b.alive && r.alive && Math.abs(b.x - r.x) < rw && Math.abs(b.y - (r.y - 16)) < rh) {
         b.alive = false;
         const dmg = (b.hitDmg != null) ? b.hitDmg : Math.round((b.damage || 20) * 0.4);
         const power = (b.power != null) ? b.power : 9;
+        const vy = b.kind === 'cannon' ? -8 : -3.5;
         const kd = Math.sign(b.vx) || 1;
-        if (this.vsBot) this.applyHitToBot(kd, power, -3.5, dmg);
-        else if (window.Net) Net.versusSend('hit', { dir: kd, power: power, vy: -3.5, dmg: dmg });
+        if (this.vsBot) this.applyHitToBot(kd, power, vy, dmg);
+        else if (window.Net) Net.versusSend('hit', { dir: kd, power: power, vy: vy, dmg: dmg });
         this.spawnBlood(b.x, b.y);
-        if (b.kind) for (let i = 0; i < 6; i++) this.particles.push(new Particle(b.x, b.y, (Math.random() - 0.5) * 3, -Math.random() * 2, b.kind === 'rocket' ? '#ffd24a' : '#ff7a2a', 320, 2));
+        if (b.kind === 'cannon') this.shake = Math.max(this.shake, 8);
+        if (b.kind) for (let i = 0; i < 8; i++) this.particles.push(new Particle(b.x, b.y, (Math.random() - 0.5) * 3, -Math.random() * 2, b.kind === 'rocket' ? '#ffd24a' : (b.kind === 'cannon' ? '#888' : '#ff7a2a'), 320, 2));
       }
     }
     this.bullets = this.bullets.filter((b) => b.alive);
@@ -1389,7 +1404,12 @@ const Game = {
   smashFire() {
     const p = this.player;
     if (!p.dead && Input.state.attack) {
-      if (p.fireballs > 0 || p.smashRockets > 0) {        // vuurwapen opgepakt -> vuren
+      if (p.cannon > 0) {                                   // kanonskogel: alleen vuren als je naar de tegenstander kijkt
+        const oppX = this.vsBot ? (this.bot ? this.bot.x : p.x + p.dir * 100) : this.vs.remote.x;
+        const facing = (Math.sign(oppX - p.x) === p.dir) || Math.abs(oppX - p.x) < 8;
+        if (facing) { if (this.time >= (p._fireCd || 0)) { p.cannon--; p._fireCd = this.time + 900; this.spawnCannon(p); } }
+        else Input.state.melee = true;                     // niet gericht -> gewoon meppen
+      } else if (p.fireballs > 0 || p.smashRockets > 0) {  // vuurwapen opgepakt -> vuren
         if (this.time >= (p._fireCd || 0)) {
           if (p.fireballs > 0) { p.fireballs--; p._fireCd = this.time + 420; this.spawnVersusProjectile(p, 'fire'); }
           else { p.smashRockets--; p._fireCd = this.time + 850; this.spawnVersusProjectile(p, 'rocket'); if (p.smashRockets <= 0) p.rangedId = null; }
@@ -1399,6 +1419,16 @@ const Game = {
       }
     }
     Input.state.attack = false;
+  },
+
+  // kanonskogel: vliegt hard naar de tegenstander (homing -> mist nooit), enorme knockback
+  spawnCannon(p) {
+    const dir = p.dir;
+    const bl = new Bullet(p.x + dir * 14, p.y - 16, dir * 8, 0, 0);
+    bl.kind = 'cannon'; bl.hitDmg = 18; bl.power = 42; bl.vy = 0; bl.life = 0;
+    this.bullets.push(bl);
+    this.spawnMuzzleFlash(p.x + dir * 14, p.y - 16, dir);
+    this.shake = Math.max(this.shake, 5);
   },
 
   spawnVersusProjectile(shooter, kind) {
@@ -1607,6 +1637,47 @@ const Game = {
   },
   onVersusLava(p) { if (this.vulcan && p && p.ph) this._vulcanPhase(p.ph); },
 
+  // ---- PIRATE: zeemonster-tentakel ----
+  updatePirate(dt) {
+    const v = this.tentacle; if (!v) return;
+    const W = this.vsMapW;
+    if (this.vsBot || this.vs.role === 'host') {
+      if (v.state === 'idle' && this.time >= v.nextAt) {
+        const target = (Math.random() < 0.5) ? this.player : (this.vsBot ? this.bot : this.vs.remote);
+        v.x = Math.max(70, Math.min(W - 70, Math.round(((target && target.x) || 360) + (Math.random() - 0.5) * 40)));
+        v.mode = Math.random() < 0.5 ? 'flat' : 'knock';
+        this._tentPhase('warn');
+        if (window.Net && !this.vsBot) Net.versusSend('tentacle', { x: v.x, mode: v.mode, ph: 'warn' });
+      } else if (v.state === 'warn' && this.time >= v.nextAt) {
+        this._tentPhase('strike');
+        if (window.Net && !this.vsBot) Net.versusSend('tentacle', { x: v.x, mode: v.mode, ph: 'strike' });
+      } else if (v.state === 'strike' && this.time >= v.nextAt) { this._tentPhase('idle'); }
+    }
+    if (v.state === 'strike') {
+      const hit = (e) => e && !e.dead && e.respawnInvuln <= 0 && Math.abs(e.x - v.x) < 22;
+      if (!v.hitP && hit(this.player)) { v.hitP = true; this._tentHit(this.player); }
+      if (this.vsBot && !v.hitB && hit(this.bot)) { v.hitB = true; this._tentHit(this.bot); }
+    }
+  },
+  _tentPhase(state) {
+    const v = this.tentacle; v.state = state;
+    if (state === 'warn') v.nextAt = this.time + PIRATE_TENT_WARN;
+    else if (state === 'strike') { v.nextAt = this.time + PIRATE_TENT_STRIKE; v.hitP = false; v.hitB = false; this.shake = Math.max(this.shake, 6); }
+    else v.nextAt = this.time + PIRATE_TENT_EVERY;
+  },
+  _tentHit(e) {
+    if (this.tentacle.mode === 'flat') { e.flatUntil = this.time + SMASH_ROCK_FLAT; }     // platgeslagen (2s)
+    else { const dir = e.x < this.tentacle.x ? -1 : 1; e.knockVx = dir * 30; e.vy = -7; e.onGround = false; }   // van de boot af
+    this.shake = Math.max(this.shake, 8);
+    for (let i = 0; i < 12; i++) this.particles.push(new Particle(e.x, e.y - 12, (Math.random() - 0.5) * 3, -Math.random() * 2, Math.random() < 0.5 ? '#3aa86a' : '#7fe0a0', 340, 2));
+  },
+  onVersusTentacle(p) {
+    if (!this.tentacle || !p) return;
+    if (p.x != null) this.tentacle.x = p.x;
+    if (p.mode) this.tentacle.mode = p.mode;
+    if (p.ph) this._tentPhase(p.ph);
+  },
+
   // ---- steen-powerup: 3 grote stenen vallen -> geraakt = 2s platgedrukt ----
   rockTargetXs(centerX) {
     const xs = [centerX + (Math.random() - 0.5) * 20];     // 1 steen gericht op het doel
@@ -1679,6 +1750,7 @@ const Game = {
     const mid = this.vsMap && this.vsMap.id;
     if (mid === 'cave' || mid === 'sky') pool.push({ kind: 'lightning', w: 8 });   // bliksem op Cave + Sky
     if (mid === 'cave') pool.push({ kind: 'rock', w: 8 });                          // steen alleen op Cave
+    if (mid === 'pirate') pool.push({ kind: 'cannon', w: 9 });                      // kanonskogel alleen op Pirate Ship
     let tot = 0; for (const d of pool) tot += d.w;
     let r = Math.random() * tot, kind = 'health';
     for (const d of pool) { r -= d.w; if (r <= 0) { kind = d.kind; break; } }
@@ -1718,6 +1790,7 @@ const Game = {
         if (window.Net && !this.vsBot) Net.versusSend('rocks', { xs });
       } else { const xs = this.rockTargetXs(this.player.x); this.castRocks(xs); }   // bot pakte de steen
     }
+    else if (d.kind === 'cannon') { pl.cannon = (pl.cannon || 0) + 2; }            // 2 kanonskogels
   },
 
   onVersusDrop(p) {
@@ -1737,6 +1810,7 @@ const Game = {
     this.rocks = [];
     this.caveWall = null; this.caveArmed = -1; this._caveArmAt = this.time + CAVE_ARM_MS;
     if (this.vulcan) { this.vulcan.state = 'idle'; this.vulcan.nextAt = this.time + VULCAN_EVERY; }
+    if (this.tentacle) { this.tentacle.state = 'idle'; this.tentacle.nextAt = this.time + PIRATE_TENT_EVERY; }
     this.shake = Math.max(this.shake, 7);
   },
 
@@ -1806,6 +1880,9 @@ const Game = {
       } else if (this.vsMode === 'smash' && b.smashRockets > 0) {
         bl = new Bullet(b.x + sdir * 14, b.y - 16, sdir * 6, 0, 0); bl.kind = 'rocket'; bl.hitDmg = 40; bl.power = 26;
         b.smashRockets--; b._shootCd = this.time + 950;
+      } else if (this.vsMode === 'smash' && b.cannon > 0) {
+        bl = new Bullet(b.x + sdir * 14, b.y - 16, sdir * 8, 0, 0); bl.kind = 'cannon'; bl.hitDmg = 18; bl.power = 42;
+        b.cannon--; b._shootCd = this.time + 900;
       }
       if (bl) { b.dir = sdir; this.botBullets.push(bl); this.spawnMuzzleFlash(b.x + sdir * 14, b.y - 16, sdir); }
     }
@@ -1813,12 +1890,13 @@ const Game = {
     if (this.botBullets && this.botBullets.length) {
       for (const bl of this.botBullets) { bl.x += bl.vx * this.dtScale; bl.life += dt; }
       for (const bl of this.botBullets) {
-        const rw = bl.kind === 'rocket' ? 16 : 11, rh = bl.kind === 'rocket' ? 20 : 16;
+        const rw = bl.kind === 'rocket' ? 16 : (bl.kind === 'cannon' ? 18 : 11);
+        const rh = bl.kind === 'rocket' ? 20 : (bl.kind === 'cannon' ? 22 : 16);
         if (bl.alive && this.player.respawnInvuln <= 0 && !this.player.dead &&
             Math.abs(bl.x - this.player.x) < rw && Math.abs(bl.y - (this.player.y - 16)) < rh) {
           bl.alive = false;
           const dmg = (bl.hitDmg != null) ? bl.hitDmg : Math.round((bl.damage || 20) * 0.4);
-          this.onVersusHit({ dir: Math.sign(bl.vx) || 1, power: (bl.power != null ? bl.power : 9), vy: -3.5, dmg: dmg });
+          this.onVersusHit({ dir: Math.sign(bl.vx) || 1, power: (bl.power != null ? bl.power : 9), vy: bl.kind === 'cannon' ? -8 : -3.5, dmg: dmg });
           this.spawnBlood(bl.x, bl.y);
         }
       }
@@ -1876,7 +1954,7 @@ const Game = {
     b.x = sp.x; b.y = sp.y; b.dir = sp.dir; b.vy = 0; b.knockVx = 0;
     b.onGround = true; b.dead = false; b.respawnInvuln = 1300; b.hp = b.maxHp; b.burnUntil = 0;
     b.swingWeapon = null; b.swingUntil = 0; b.stunUntil = 0; b.flatUntil = 0; b._beamSafeUntil = 0; b.combo = 0; b.comboUntil = 0;
-    if (this.vsMode === 'smash') { b.meleeId = b.baseMelee || 'bat'; b.weaponId = b.meleeId; b.fireballs = 0; b.smashRockets = 0; b._weaponUntil = 0; }
+    if (this.vsMode === 'smash') { b.meleeId = b.baseMelee || 'bat'; b.weaponId = b.meleeId; b.fireballs = 0; b.smashRockets = 0; b.cannon = 0; b._weaponUntil = 0; }
     this.vs.remote.alive = true;
   },
 
@@ -2041,7 +2119,7 @@ const Game = {
     if (this.vsMode === 'smash') {                  // elke ronde weer met de knuppel
       this.player.meleeId = this.player.baseMelee || 'bat'; this.player.rangedId = null;
       this.player.weaponId = this.player.meleeId;    // ook het getekende wapen terug naar de knuppel
-      this.player.fireballs = 0; this.player.smashRockets = 0; this.player._weaponUntil = 0;
+      this.player.fireballs = 0; this.player.smashRockets = 0; this.player.cannon = 0; this.player._weaponUntil = 0;
     }
   },
 
@@ -2180,15 +2258,17 @@ const Game = {
 
     if (map.cave) this.drawCaveBg(ctx);                 // diepe grotten / vleermuizen / druppels
     if (map.vulcan) this.drawVulcanBg(ctx);             // verre uitbarstingen + rook
+    if (map.pirate) this.drawPirateBg(ctx);             // piratenschip-achtergrond + water
 
     // afgrond onderin (map-thema), camera-bewust
     ctx.fillStyle = map.void || '#06090d'; ctx.fillRect(camX - 4, CONFIG.GROUND_Y - 2, W + 8, H + Math.abs(camY) + 320);
     ctx.globalAlpha = 0.5; ctx.fillStyle = '#04060a'; ctx.fillRect(camX - 4, CONFIG.GROUND_Y + 18, W + 8, H + Math.abs(camY) + 320); ctx.globalAlpha = 1;
 
-    // platforms (bewegende krijgen een pijltjes-hint; zachte wolken pluizig; Vulcan = steen/schuin)
-    const platStyle = map.stone ? 'stone' : null;
+    // platforms (bewegende krijgen een pijltjes-hint; zachte wolken pluizig; Vulcan = steen/schuin; Pirate = hout/masten)
+    const platStyle = map.wood ? 'wood' : (map.stone ? 'stone' : null);
     for (const pf of this.platforms) {
       if (pf.soft) { this.drawSoftCloud(ctx, pf); continue; }
+      if (pf.mast) { this.drawMast(ctx, pf); continue; }
       if (pf.slide) { this.drawSlantPlatform(ctx, pf, platStyle); }
       else Sprites.drawPlatform(ctx, pf.x, pf.y, pf.w, platStyle);
       if (pf.mv) { ctx.globalAlpha = 0.5; Sprites.px(ctx, '#ffe9a0', pf.x - 1, pf.y - 5, 2, 2); ctx.globalAlpha = 1; }
@@ -2208,6 +2288,7 @@ const Game = {
     const drawBullet = (b) => {
       if (b.kind === 'fire') { Sprites.px(ctx, '#ff7a2a', b.x - 2, b.y - 2, 5, 5); Sprites.px(ctx, '#ffd24a', b.x - 1, b.y - 1, 3, 3); }
       else if (b.kind === 'rocket') { Sprites.px(ctx, '#cfd6df', b.x - 3, b.y - 1, 6, 3); Sprites.px(ctx, '#ffd24a', b.x - (Math.sign(b.vx) || 1) * 3, b.y - 1, 2, 3); }
+      else if (b.kind === 'cannon') { Sprites.px(ctx, '#0e0e0e', b.x - 4, b.y - 4, 8, 8); Sprites.px(ctx, '#3a3a3a', b.x - 4, b.y - 4, 8, 2); Sprites.px(ctx, '#666', b.x - 2, b.y - 3, 2, 2); }
       else Sprites.px(ctx, '#ffe27a', b.x - 1, b.y - 1, 3, 2);
     };
     if (this.bullets) for (const b of this.bullets) drawBullet(b);
@@ -2259,6 +2340,7 @@ const Game = {
 
     if (map.cave && this.caveWall) this.drawCaveWall(ctx);   // de muur sweept over de spelers heen
     if (map.vulcan) this.drawVulcanJet(ctx);                 // borrel-waarschuwing + lavastraal
+    if (map.pirate && this.tentacle) this.drawTentacle(ctx); // zeemonster-tentakel
     ctx.restore();
 
     // draken (drakenei-powerup) — scherm-ruimte, over de wereld heen
@@ -2312,6 +2394,14 @@ const Game = {
       Sprites.px(ctx, '#8a7c6a', x - 5, y - 5, 10, 2);
       Sprites.px(ctx, '#4a4036', x - 5, y + 3, 10, 1);
       Sprites.px(ctx, '#3a3229', x - 2, y - 2, 2, 2);
+    }
+    else if (d.kind === 'cannon') {
+      // kanonskogel-icoon
+      Sprites.px(ctx, '#0e0e0e', x - 5, y - 4, 10, 10);
+      Sprites.px(ctx, '#3a3a3a', x - 5, y - 4, 10, 2);
+      Sprites.px(ctx, '#777', x - 2, y - 2, 2, 2);
+      Sprites.px(ctx, '#6a4a2a', x - 1, y - 7, 2, 3);   // lont
+      Sprites.px(ctx, '#ff8a3a', x - 1, y - 9, 2, 2);   // vonkje
     }
   },
 
@@ -2409,6 +2499,48 @@ const Game = {
     ctx.rotate((pf.slide || 0) * 0.16);
     Sprites.drawPlatform(ctx, 0, 0, pf.w, style || 'stone');
     ctx.restore();
+  },
+
+  // mast met kraaiennest (Pirate): houten paal omlaag tot het dek + platform om bovenin te staan
+  drawMast(ctx, pf) {
+    const x = Math.round(pf.x), deckY = 178;
+    Sprites.px(ctx, '#5a3d22', x - 2, pf.y, 4, deckY - pf.y);             // mastpaal
+    Sprites.px(ctx, '#4a3219', x - 2, pf.y, 1, deckY - pf.y);
+    Sprites.drawPlatform(ctx, pf.x, pf.y, pf.w, 'wood');                  // kraaiennest
+    Sprites.px(ctx, '#3a2615', x - pf.w / 2, pf.y - 5, pf.w, 4);          // randje van het nest
+  },
+
+  // piratenschip-achtergrond: lucht, water onderaan, schip-silhouet + zeil
+  drawPirateBg(ctx) {
+    const W = this.vsMapW, deckY = 178;
+    // water (golvend) onder het dek
+    for (let i = 0; i < W; i += 16) {
+      const wy = deckY + 14 + Math.round(Math.sin(this.time / 300 + i * 0.05) * 2);
+      Sprites.px(ctx, '#2a6a9a', i, wy, 16, this.vsFallY - wy + 30);
+      Sprites.px(ctx, '#3a8ac0', i, wy, 10, 2);
+    }
+    // groot zeil op de achtergrond
+    ctx.globalAlpha = 0.5;
+    Sprites.px(ctx, '#d8cba8', W / 2 - 70, 30, 140, 70);
+    Sprites.px(ctx, '#c8b890', W / 2 - 70, 30, 140, 4);
+    Sprites.px(ctx, '#b84a3a', W / 2 - 12, 44, 24, 22);                   // doodskopvlag-vlak
+    ctx.globalAlpha = 1;
+    Sprites.px(ctx, '#3a2615', W / 2 - 2, 24, 4, 80);                     // grote mast achter
+  },
+
+  // zeemonster-tentakel (waarschuwing: water borrelt; daarna slaat hij toe)
+  drawTentacle(ctx) {
+    const v = this.tentacle; if (!v || v.state === 'idle') return;
+    const x = v.x, deckY = 178, waterY = deckY + 14;
+    if (v.state === 'warn') {
+      for (let i = 0; i < 6; i++) { const bx = x + Math.sin(this.time / 100 + i) * 12; const by = waterY - ((this.time / 160 + i * 5) % 12); Sprites.px(ctx, '#7fe0a0', Math.round(bx), Math.round(by), 3, 3); }
+      ctx.globalAlpha = 0.5; Sprites.px(ctx, '#3aa86a', x - 14, waterY - 2, 28, 4); ctx.globalAlpha = 1;
+    } else if (v.state === 'strike') {
+      const topY = (this.vsMap.camTop || 0) + 4, h = waterY - topY;
+      for (let i = 0; i < h; i += 4) { const wob = Math.round(Math.sin(this.time / 80 + i * 0.2) * (4 + i * 0.05)); Sprites.px(ctx, '#2e8a58', x - 4 + wob, waterY - i, 8, 4); Sprites.px(ctx, '#3aa86a', x - 2 + wob, waterY - i, 3, 4); }
+      // zuignappen
+      for (let i = 6; i < h; i += 10) { const wob = Math.round(Math.sin(this.time / 80 + i * 0.2) * (4 + i * 0.05)); Sprites.px(ctx, '#1e5e3a', x - 4 + wob, waterY - i, 2, 2); }
+    }
   },
 
   // Vulcan-achtergrond: verre vulkanen met gloeiende krater, lavaspatten + rook

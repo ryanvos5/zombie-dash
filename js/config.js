@@ -482,6 +482,11 @@ function playerLevel(xp) {
 }
 function xpForLevel(L) { return 75 * L * (L - 1); }   // totale XP nodig voor level L
 
+/* ---------- Pirate Ship: zeemonster-tentakel ---------- */
+const PIRATE_TENT_EVERY = 7000;    // ms tussen tentakels
+const PIRATE_TENT_WARN = 1100;     // waarschuwing (water borrelt) vóór de slag
+const PIRATE_TENT_STRIKE = 700;    // duur van de slag
+
 /* ---------- Vulcan-map: lavastraal + schuine platforms ---------- */
 const VULCAN_EVERY = 6500;     // ms tussen uitbarstingen
 const VULCAN_BUBBLE = 1300;    // borrel-waarschuwing vóór de uitbarsting
@@ -510,13 +515,16 @@ const VERSUS_MAPS = [
     ],
   },
   {
-    id: 'stad', name: 'Stad', sky: ['#1a2438', '#0d1018'], void: '#05070c', plat: 'metal', w: 360,
-    spawnL: { x: 66, y: 160 }, spawnR: { x: 294, y: 160 },
+    // Piratenschip: heel het dek is begaanbaar, 4 platforms, 2 masten (kraaiennest) om bovenin te staan.
+    // Af en toe komt er een zeemonster-tentakel uit het water die je platslaat of van de boot af mept.
+    id: 'pirate', name: 'Pirate Ship', sky: ['#1f4e7a', '#0c1d33'], void: '#06121f', plat: 'wood', wood: true, pirate: true,
+    w: 720, fallY: 232, camTop: -20, camBottom: 30,
+    spawnL: { x: 200, y: 178 }, spawnR: { x: 520, y: 178 },
     platforms: [
-      { x: 66, y: 160, w: 76 }, { x: 294, y: 160, w: 76 },
-      { x: 130, y: 120, w: 46, mv: { axis: 'x', amp: 26, speed: 0.0016, phase: 0 } },
-      { x: 230, y: 120, w: 46, mv: { axis: 'x', amp: 26, speed: 0.0016, phase: 3.14 } },
-      { x: 180, y: 86, w: 50 },
+      { x: 360, y: 178, w: 520 },                              // het dek (heel de ondergrond)
+      { x: 175, y: 132, w: 64 }, { x: 545, y: 132, w: 64 },    // 2 lage platforms
+      { x: 300, y: 96, w: 56 }, { x: 420, y: 96, w: 56 },      // 2 hogere platforms
+      { x: 230, y: 40, w: 34, mast: true }, { x: 490, y: 40, w: 34, mast: true },  // 2 masten (kraaiennest)
     ],
   },
   {

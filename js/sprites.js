@@ -438,6 +438,16 @@ const Sprites = {
   drawPlatform(ctx, cx, y, w, style) {
     const x = Math.round(cx - w / 2);
     w = Math.round(w);
+    if (style === 'wood') {
+      this.px(ctx, '#6b4a2b', x, y - 1, w, 2);   // plankrand
+      this.px(ctx, '#8a5e36', x, y + 1, w, 3);   // licht hout
+      this.px(ctx, '#5a3d22', x, y + 4, w, 9);   // hout-body
+      this.px(ctx, '#3a2615', x, y + 11, w, 4);  // schaduw
+      this.px(ctx, '#4a3219', x + 4, y + 4, 1, 9);   // plank-naad
+      this.px(ctx, '#4a3219', x + Math.round(w / 2), y + 4, 1, 9);
+      this.px(ctx, '#4a3219', x + w - 8, y + 4, 1, 9);
+      return;
+    }
     if (style === 'stone') {
       this.px(ctx, '#7a756e', x, y - 1, w, 2);   // stenen rand bovenop (geen gras)
       this.px(ctx, '#5e5a54', x, y + 1, w, 3);   // steen-topvlak
