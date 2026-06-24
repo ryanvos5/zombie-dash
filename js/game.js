@@ -1808,7 +1808,8 @@ const Game = {
     const oppDead = this.vsBot ? (!opp || opp.dead) : (!opp || opp.alive === false);
     if (oppDead) return;
     const dxp = opp.x - p.x;
-    if (Math.abs(dxp) < 34 && Math.abs(opp.y - p.y) < 40 && this.time >= (p._giantHitCd || 0)) {
+    // reus is enorm -> ook ruim verticaal bereik (kan iemand die aan een liaan slingert raken)
+    if (Math.abs(dxp) < 38 && (opp.y - p.y) < 12 && (p.y - opp.y) < 60 && this.time >= (p._giantHitCd || 0)) {
       p._giantHitCd = this.time + 200;
       const stomp = p.vy > 2 && p.y < opp.y - 4;          // op iemand springen = schade
       const kd = dxp >= 0 ? 1 : -1;                        // weg van de reus = naar achter
@@ -1826,14 +1827,17 @@ const Game = {
   },
   updateMonkey(dt) {
     const m = this.monkey; if (!m || !m.mine) return;     // het aapje van de tegenstander komt via sync binnen
+    const owner = this.player;
     const opp = this.vsBot ? this.bot : this.vs.remote;
     const oppDead = this.vsBot ? (!opp || opp.dead) : (!opp || opp.alive === false);
-    let tx = this.player.x - this.player.dir * 18, ty = this.player.y - 20;   // standaard naast de eigenaar
-    if (!oppDead) { tx = opp.x - Math.sign(opp.x - m.x || 1) * 14; ty = opp.y - 14; }
-    m.x += Math.max(-3.2, Math.min(3.2, (tx - m.x) * 0.14));
-    m.y += Math.max(-3.2, Math.min(3.2, (ty - m.y) * 0.14));
+    // standaard: dicht bij de eigenaar blijven. Alleen op de tegenstander af als die in de buurt komt.
+    let tx = owner.x - owner.dir * 16, ty = owner.y - 18;
+    const oppNear = !oppDead && Math.abs(opp.x - owner.x) < 90 && Math.abs(opp.y - owner.y) < 60;
+    if (oppNear) { tx = opp.x - Math.sign(opp.x - m.x || 1) * 12; ty = opp.y - 14; }
+    m.x += Math.max(-3.2, Math.min(3.2, (tx - m.x) * 0.16));
+    m.y += Math.max(-3.2, Math.min(3.2, (ty - m.y) * 0.16));
     if (Math.abs(tx - m.x) > 2) m.dir = tx >= m.x ? 1 : -1;
-    if (!oppDead && Math.abs(opp.x - m.x) < 18 && Math.abs(opp.y - m.y) < 22 && this.time >= (m.atkCd || 0) && (!this.vsBot || opp.respawnInvuln <= 0)) {
+    if (oppNear && Math.abs(opp.x - m.x) < 18 && Math.abs(opp.y - m.y) < 22 && this.time >= (m.atkCd || 0) && (!this.vsBot || opp.respawnInvuln <= 0)) {
       m.atkCd = this.time + 850;
       const kd = opp.x >= m.x ? 1 : -1;
       if (this.vsBot) this.applyHitToBot(kd, 6, -3, 8);
