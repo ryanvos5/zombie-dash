@@ -409,6 +409,25 @@ const COMBO_WINDOW = 1500;           // ms om de combo door te zetten
 function comboMul(n) { return 1 + (Math.min(n, COMBO_MAX) - 1) * 0.15; }                 // x1=1.0 .. x5=1.6
 function comboXp(n) { return Math.round(15 + (Math.min(n, COMBO_MAX) - 1) * (60 - 15) / (COMBO_MAX - 1)); }  // 15,26,37,49,60
 
+/* ---------- HOEDEN (cosmetisch, voor je character) ---------- */
+const HATS = {
+  none:      { name: 'Geen hoed', cost: 0,   desc: 'Geen hoofddeksel.' },
+  cap:       { name: 'Pet', cost: 150,        desc: 'Klassieke rode pet.' },
+  beanie:    { name: 'Muts', cost: 200,       desc: 'Warme muts met pom.' },
+  party:     { name: 'Feesthoedje', cost: 120,desc: 'Feestje!' },
+  fedora:    { name: 'Gleufhoed', cost: 300,  desc: 'Stijlvolle gleufhoed.' },
+  cowboy:    { name: 'Cowboyhoed', cost: 350, desc: 'Yeehaw.' },
+  chef:      { name: 'Koksmuts', cost: 300,   desc: 'Voor de chef.' },
+  grad:      { name: 'Diploma-hoed', cost: 350, desc: 'Geslaagd!' },
+  tophat:    { name: 'Hoge hoed', cost: 450,  desc: 'Deftig.' },
+  propeller: { name: 'Propellerpet', cost: 500, desc: 'Met draaiende propeller.' },
+  wizard:    { name: 'Tovenaarshoed', cost: 550, desc: 'Magisch.' },
+  viking:    { name: 'Vikinghelm', cost: 650, desc: 'Met horens.' },
+  crown:     { name: 'Kroon', cost: 900,      desc: 'Voor de koning.' },
+  halo:      { name: 'Halo', cost: 800,       desc: 'Engelachtig.' },
+};
+const HAT_ORDER = ['none', 'cap', 'beanie', 'party', 'fedora', 'cowboy', 'chef', 'grad', 'tophat', 'propeller', 'wizard', 'viking', 'crown', 'halo'];
+
 /* ---------- BOT-MOEILIJKHEID (level 1..10) ----------
    Elk level heeft een eigen speelstijl. Velden:
    meleeCd = ms tussen meppen, block = blokkans, aggro = hoe vaak 'ie de aanval zoekt,

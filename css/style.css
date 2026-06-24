@@ -692,6 +692,28 @@ body.is-touch #hud { justify-content: flex-start; gap: 8px; }
 .world-tab.active { border-color: var(--accent); color: var(--accent); }
 .world-tab.locked { opacity: 0.5; cursor: not-allowed; }
 
+/* ====== Shop-tabs (wapens/characters/hoeden) ====== */
+.shop-tabs {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  margin: 4px 0 6px;
+  flex-wrap: wrap;
+}
+.shop-tab {
+  font-family: var(--pixel-font);
+  font-size: 13px;
+  font-weight: bold;
+  letter-spacing: 1px;
+  padding: 8px 14px;
+  border-radius: 6px;
+  border: 2px solid #3a4456;
+  background: var(--panel-light);
+  color: var(--text-dim);
+  cursor: pointer;
+}
+.shop-tab.active { border-color: var(--accent); color: var(--accent); }
+
 /* ====== Level grid ====== */
 .level-grid {
   display: grid;

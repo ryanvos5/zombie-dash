@@ -140,10 +140,94 @@ const Sprites = {
     // oog (kijkrichting)
     this.px(ctx, pal.eye, cx + (dir > 0 ? 1 : -2), headTop + 3, 2, 2);
 
+    // --- hoed (cosmetisch) ---
+    if (pose.hat && pose.hat !== 'none') this.drawHat(ctx, pose.hat, cx, headTop, hh, dir, pose.t || 0);
+
     // --- arm + wapen ---
     this.drawArmAndWeapon(ctx, cx, torsoTop, dir, pal, weapon, pose.attacking, bh, pose.shielding);
 
     if (pose.squash) ctx.restore();
+  },
+
+  // hoed bovenop het hoofd (cx = midden, top = bovenkant hoofd, hh = halve hoofdbreedte)
+  drawHat(ctx, id, cx, top, hh, dir, t) {
+    const P = (c, x, y, w, h) => this.px(ctx, c, Math.round(x), Math.round(y), w, h);
+    const w = hh * 2;
+    switch (id) {
+      case 'cap':
+        P('#d23b3b', cx - hh - 1, top - 1, w + 2, 3);
+        P('#a82a2a', cx - hh - 1, top + 1, w + 2, 1);
+        P('#b83030', cx + dir * (hh + 1), top + 1, dir * 4, 2);          // klep
+        break;
+      case 'beanie':
+        P('#2e6bd2', cx - hh - 1, top - 2, w + 2, 4);
+        P('#234f9e', cx - hh - 1, top + 1, w + 2, 2);                    // omslag
+        P('#ffffff', cx - 1, top - 5, 2, 3);                            // pom
+        break;
+      case 'party':
+        // gekleurde kegel (breed onder, smal boven) + pompon
+        for (let k = 0; k < 5; k++) P(['#ff5ec4', '#ffd24a', '#5ad0ff', '#7affa0', '#ff8a3a'][k], cx - (4 - k), top - 1 - k * 2, (4 - k) * 2 + 2, 2);
+        P('#5ad0ff', cx - 4, top + 1, 8, 1);                            // rand
+        P('#ffffff', cx - 1, top - 11, 2, 2);                           // pompon
+        break;
+      case 'fedora':
+        P('#6b4a2b', cx - hh - 2, top + 1, w + 4, 1);                   // rand
+        P('#4a3320', cx - hh, top - 3, w, 4);                          // bol
+        P('#1c130a', cx - hh, top, w, 1);                              // band
+        break;
+      case 'cowboy':
+        P('#9a6a3a', cx - hh - 3, top + 1, w + 6, 2);                   // brede rand
+        P('#7a4f28', cx - hh + 1, top - 3, w - 2, 4);                  // bol
+        P('#3a2614', cx - hh + 1, top, w - 2, 1);
+        break;
+      case 'chef':
+        P('#ffffff', cx - hh, top, w, 3);                              // band
+        P('#ffffff', cx - hh - 1, top - 5, w + 2, 4);                  // pof
+        P('#e6e6e6', cx - hh - 1, top - 5, w + 2, 1);
+        break;
+      case 'grad':
+        P('#1a1a22', cx - hh, top - 1, w, 3);                          // kapje
+        P('#15151c', cx - hh - 3, top - 3, w + 6, 2);                  // plank
+        P('#ffd24a', cx + hh + 1, top - 3, 1, 5);                      // kwastje
+        P('#ffd24a', cx + hh, top + 2, 2, 2);
+        break;
+      case 'tophat':
+        P('#15151c', cx - hh - 2, top + 1, w + 4, 1);                  // rand
+        P('#1a1a22', cx - hh, top - 7, w, 8);                         // cilinder
+        P('#b23b5b', cx - hh, top - 1, w, 1);                         // band
+        break;
+      case 'propeller': {
+        P('#3aa0e0', cx - hh - 1, top - 1, w + 2, 3);                  // pet
+        for (let i = 0; i < w + 2; i += 2) P(i % 4 ? '#ffd24a' : '#e84d4d', cx - hh - 1 + i, top - 1, 2, 1);
+        P('#888', cx - 1, top - 4, 2, 3);                            // staaf
+        const a = (Math.sin(t / 90) > 0);                             // simpele "draai"
+        if (a) P('#cfd6df', cx - 5, top - 5, 10, 1); else P('#cfd6df', cx - 1, top - 7, 2, 5);
+        break;
+      }
+      case 'wizard':
+        P('#3a2a6b', cx - hh - 2, top + 1, w + 4, 1);                  // rand
+        P('#4a2f8e', cx - 1, top - 11, 2, 12);                        // punt
+        for (let k = 0; k < 5; k++) P('#5a3aa8', cx - 3 + Math.floor(k / 2), top - 1 - k * 2, 6 - k, 2);
+        P('#ffd24a', cx - 2, top - 5, 1, 1); P('#ffd24a', cx + 1, top - 8, 1, 1);  // sterren
+        break;
+      case 'viking':
+        P('#9aa3ad', cx - hh - 1, top - 2, w + 2, 4);                  // helm
+        P('#c8ced6', cx - hh - 1, top - 2, w + 2, 1);
+        P('#f0ead0', cx - hh - 3, top - 5, 2, 5); P('#f0ead0', cx + hh + 1, top - 5, 2, 5);  // horens
+        P('#f0ead0', cx - hh - 4, top - 7, 2, 3); P('#f0ead0', cx + hh + 2, top - 7, 2, 3);
+        break;
+      case 'crown':
+        P('#ffcf33', cx - hh - 1, top - 1, w + 2, 3);                  // band
+        P('#e0a800', cx - hh - 1, top + 1, w + 2, 1);
+        P('#ffcf33', cx - hh - 1, top - 4, 2, 4); P('#ffcf33', cx - 1, top - 5, 2, 5); P('#ffcf33', cx + hh - 1, top - 4, 2, 4);  // punten
+        P('#ff4d4d', cx - 1, top - 1, 2, 2);                         // robijn
+        break;
+      case 'halo':
+        P('#ffe27a', cx - hh - 1, top - 5, w + 2, 1);
+        P('#fff3b0', cx - hh, top - 6, w, 1);
+        P('#ffe27a', cx - hh - 1, top - 5, 2, 2); P('#ffe27a', cx + hh - 1, top - 5, 2, 2);
+        break;
+    }
   },
 
   drawArmAndWeapon(ctx, cx, torsoTop, dir, pal, weaponId, attacking, bh, shielding) {

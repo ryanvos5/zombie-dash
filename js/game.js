@@ -1078,6 +1078,7 @@ const Game = {
       build: this.player.build,
       hair: this.player.hairStyle,
       shielding: this.player._shieldUp,
+      hat: Storage.data.equippedHat, t: this.time,
     });
 
     // zwevende munten
@@ -2023,6 +2024,7 @@ const Game = {
     r.heldWeapon = s.wid || 'bat';
     r.stunned = s.su === 1;
     r.flat = s.fl === 1;
+    r.hat = s.ht || 'none';
     r.alive = s.al !== 0; r.charId = s.ch || 'ryan';
     r.ducking = s.dk === 1;
     if (typeof s.h === 'number') r.hp = s.h;
@@ -2037,7 +2039,7 @@ const Game = {
       x: Math.round(p.x), y: Math.round(p.y), vy: +(p.vy || 0).toFixed(1), d: p.dir,
       g: p.onGround ? 1 : 0, a: this.time < p.attackAnimUntil ? 1 : 0,
       sw: (this.time < (p.swingUntil || 0)) ? (p.swingWeapon || 0) : 0,
-      wid: p.weaponId || 0, su: (p.stunUntil && this.time < p.stunUntil) ? 1 : 0, fl: (p.flatUntil && this.time < p.flatUntil) ? 1 : 0,
+      wid: p.weaponId || 0, su: (p.stunUntil && this.time < p.stunUntil) ? 1 : 0, fl: (p.flatUntil && this.time < p.flatUntil) ? 1 : 0, ht: Storage.data.equippedHat || 'none',
       wp: p.walkPhase || 0, al: p.dead ? 0 : 1, ch: Storage.data.equippedCharacter || 'ryan',
       h: Math.round(p.hp), mh: p.maxHp, dk: p.ducking ? 1 : 0,
     });
@@ -2162,6 +2164,7 @@ const Game = {
       Sprites.drawCharacter(ctx, Math.round(r.x), Math.round(r.y), r.dir, rc.palette, {
         walkPhase: r.walkPhase, airborne: !r.onGround, attacking: r.attacking, ducking: r.ducking,
         weapon: r.swingWeapon || r.heldWeapon || 'bat', build: rc.build, hair: rc.hair, squash: r.flat,
+        hat: r.hat || 'none', t: this.time,
       });
       if (r.ducking) this.drawBlockGuard(ctx, Math.round(r.x), Math.round(r.y), r.dir);
       if (r.stunned) this.drawStunAura(ctx, Math.round(r.x), Math.round(r.y));
@@ -2180,6 +2183,7 @@ const Game = {
           attacking: this.time < p.attackAnimUntil,
           weapon: swinging ? p.swingWeapon : p.weaponId, build: p.build, hair: p.hairStyle,
           squash: (p.flatUntil && this.time < p.flatUntil),
+          hat: Storage.data.equippedHat, t: this.time,
         });
         if (p.ducking && p.onGround) this.drawBlockGuard(ctx, Math.round(p.x), Math.round(p.y), p.dir);
         if (p.stunUntil && this.time < p.stunUntil) this.drawStunAura(ctx, Math.round(p.x), Math.round(p.y));

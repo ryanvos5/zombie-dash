@@ -18,9 +18,8 @@ const UI = {
       banner: $('game-banner'), bannerMain: $('banner-main'), bannerSub: $('banner-sub'),
       bossHpWrap: $('boss-hp-wrap'), bossHpFill: $('boss-hp-fill'), tutorialBox: $('tutorial-box'),
       menuCoins: $('menu-coin-count'), shopCoins: $('shop-coin-count'),
-      charCoins: $('char-coin-count'),
-      levelGrid: $('level-grid'), shopGrid: $('shop-grid'), charGrid: $('character-grid'),
-      character: $('character-screen'), arena: $('arena-screen'), versus: $('versus-screen'),
+      levelGrid: $('level-grid'), shopGrid: $('shop-grid'),
+      arena: $('arena-screen'), versus: $('versus-screen'),
       leaderboard: $('leaderboard-screen'), chat: $('chat-screen'),
       arenaRound: $('arena-round'), arenaCoins: $('arena-coins'), arenaBest: $('arena-best'),
       arenaLeft: $('arena-left'), arenaRecord: $('arena-record'),
@@ -30,9 +29,9 @@ const UI = {
 
     // menu knoppen
     $('btn-play').onclick = () => { this.renderLevels(); this.show('level'); };
-    $('btn-shop').onclick = () => { this.renderShop(); this.show('shop'); };
-    $('btn-characters').onclick = () => { this.renderCharacters(); this.show('character'); };
-    $('btn-win-shop').onclick = () => { this.renderShop(); this.show('shop'); };
+    $('btn-shop').onclick = () => this.openShop();
+    $('btn-win-shop').onclick = () => this.openShop();
+    document.querySelectorAll('.shop-tab').forEach((b) => { b.onclick = () => { this._shopTab = b.dataset.tab; this.renderShop(); }; });
     $('btn-arena').onclick = () => this.startArena();
     $('btn-arena-again').onclick = () => this.startArena();
     $('btn-next').onclick = () => Game.nextLevel();
@@ -221,7 +220,6 @@ const UI = {
   syncCoins() {
     if (this.el.menuCoins) this.el.menuCoins.textContent = Storage.data.coins;
     if (this.el.shopCoins) this.el.shopCoins.textContent = Storage.data.coins;
-    if (this.el.charCoins) this.el.charCoins.textContent = Storage.data.coins;
   },
 
   refreshAuthUI() {
@@ -752,7 +750,7 @@ const UI = {
   },
 
   showVersus() {
-    ['menu', 'level', 'shop', 'character', 'arena', 'win', 'lose', 'versus', 'leaderboard', 'chat'].forEach((s) =>
+    ['menu', 'level', 'shop', 'arena', 'win', 'lose', 'versus', 'leaderboard', 'chat'].forEach((s) =>
       this.el[s].classList.add('hidden'));
     document.body.classList.add('in-game');
     this.el.hud.classList.add('hidden');
@@ -858,7 +856,7 @@ const UI = {
   },
 
   show(name) {
-    ['menu', 'level', 'shop', 'character', 'arena', 'win', 'lose', 'versus', 'leaderboard', 'chat'].forEach((s) => {
+    ['menu', 'level', 'shop', 'arena', 'win', 'lose', 'versus', 'leaderboard', 'chat'].forEach((s) => {
       this.el[s].classList.toggle('hidden', s !== name);
     });
     const inGame = (name === 'game');
@@ -918,11 +916,21 @@ const UI = {
     });
   },
 
-  // ---------- SHOP ----------
+  // ---------- SHOP (wapens / characters / hoeden in tabs) ----------
+  openShop() { this._shopTab = this._shopTab || 'weapons'; this.renderShop(); this.show('shop'); },
+
   renderShop() {
+    const tab = this._shopTab || 'weapons';
+    document.querySelectorAll('.shop-tab').forEach((b) => b.classList.toggle('active', b.dataset.tab === tab));
     this.el.shopCoins.textContent = Storage.data.coins;
+    this.el.shopGrid.innerHTML = '';
+    if (tab === 'chars') this.renderCharCards();
+    else if (tab === 'hats') this.renderHatCards();
+    else this.renderWeaponCards();
+  },
+
+  renderWeaponCards() {
     const grid = this.el.shopGrid;
-    grid.innerHTML = '';
 
     WEAPON_ORDER.forEach((wid) => {
       const w = WEAPONS[wid];
@@ -1024,11 +1032,9 @@ const UI = {
     }
   },
 
-  // ---------- CHARACTER SHOP ----------
-  renderCharacters() {
-    this.el.charCoins.textContent = Storage.data.coins;
-    const grid = this.el.charGrid;
-    grid.innerHTML = '';
+  // ---------- CHARACTERS-tab ----------
+  renderCharCards() {
+    const grid = this.el.shopGrid;
 
     CHARACTER_ORDER.forEach((cid) => {
       const c = CHARACTERS[cid];
@@ -1046,7 +1052,7 @@ const UI = {
       cctx.save();
       cctx.translate(55, 4); cctx.scale(1.4, 1.4);
       Sprites.drawCharacter(cctx, 0, 38, 1, c.palette, {
-        weapon: c.forcedMelee || 'bat', build: c.build, hair: c.hair,
+        weapon: c.forcedMelee || 'bat', build: c.build, hair: c.hair, hat: Storage.data.equippedHat,
       });
       cctx.restore();
 
@@ -1063,12 +1069,59 @@ const UI = {
         btn.classList.add('equipped'); btn.textContent = 'UITGERUST';
       } else if (owned) {
         btn.classList.add('equip'); btn.textContent = 'UITRUSTEN';
-        btn.onclick = () => { Storage.equipCharacter(cid); this.renderCharacters(); };
+        btn.onclick = () => { Storage.equipCharacter(cid); this.renderShop(); };
       } else if (Storage.data.coins >= c.cost) {
         btn.classList.add('buy'); btn.textContent = `KOOP — ${c.cost} ●`;
-        btn.onclick = () => { if (Storage.buyCharacter(cid)) { Storage.equipCharacter(cid); this.renderCharacters(); } };
+        btn.onclick = () => { if (Storage.buyCharacter(cid)) { Storage.equipCharacter(cid); this.renderShop(); } };
       } else {
         btn.classList.add('cant'); btn.textContent = `${c.cost} ● (te weinig)`;
+      }
+
+      card.appendChild(canvas);
+      card.appendChild(info);
+      card.appendChild(btn);
+      grid.appendChild(card);
+    });
+  },
+
+  // ---------- HOEDEN-tab ----------
+  renderHatCards() {
+    const grid = this.el.shopGrid;
+    const cc = CHARACTERS[Storage.data.equippedCharacter] || CHARACTERS.ryan;
+
+    HAT_ORDER.forEach((hid) => {
+      const h = HATS[hid];
+      const owned = Storage.ownsHat(hid);
+      const equipped = Storage.data.equippedHat === hid;
+
+      const card = document.createElement('div');
+      card.className = 'shop-card' + (owned ? ' owned' : '');
+
+      // preview: jouw character met deze hoed
+      const canvas = document.createElement('canvas');
+      canvas.width = 110; canvas.height = 64;
+      const cctx = canvas.getContext('2d');
+      cctx.imageSmoothingEnabled = false;
+      cctx.save();
+      cctx.translate(55, 4); cctx.scale(1.4, 1.4);
+      Sprites.drawCharacter(cctx, 0, 38, 1, cc.palette, { weapon: cc.forcedMelee || 'bat', build: cc.build, hair: cc.hair, hat: hid });
+      cctx.restore();
+
+      const info = document.createElement('div');
+      info.innerHTML = `<div class="w-name">${h.name}</div><div class="w-stats">${h.desc}</div>`;
+
+      const btn = document.createElement('button');
+      btn.className = 'shop-buy';
+      if (equipped) {
+        btn.classList.add('equipped'); btn.textContent = 'OP';
+      } else if (owned) {
+        btn.classList.add('equip'); btn.textContent = hid === 'none' ? 'AF' : 'OPZETTEN';
+        btn.onclick = () => { Storage.equipHat(hid); this.renderShop(); };
+      } else if (Storage.data.coins >= h.cost) {
+        btn.classList.add('buy'); btn.textContent = `KOOP — ${h.cost} ●`;
+        btn.onclick = () => { if (Storage.buyHat(hid)) { Storage.equipHat(hid); this.renderShop(); } };
+      } else {
+        btn.classList.add('cant'); btn.textContent = `${h.cost} ● (te weinig)`;
       }
 
       card.appendChild(canvas);

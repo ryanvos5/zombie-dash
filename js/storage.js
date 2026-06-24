@@ -13,6 +13,8 @@ const DEFAULT_SAVE = {
   equippedRanged: null,     // apart slot voor vuurwapen (null = geen)
   ownedCharacters: ['ryan'],
   equippedCharacter: 'ryan',
+  ownedHats: ['none'],
+  equippedHat: 'none',
   // hoogst voltooide level per wereld: { "1": 0 } -> nog niets, level 1 speelbaar
   progress: { '1': 0 },
   arenaBest: 0,                 // hoogste ronde in Zombie Knock-out
@@ -32,6 +34,9 @@ const Storage = {
       // zorg dat geneste objecten/arrays bestaan
       this.data.ownedWeapons = this.data.ownedWeapons || ['bat'];
       this.data.ownedCharacters = this.data.ownedCharacters || ['ryan'];
+      this.data.ownedHats = this.data.ownedHats || ['none'];
+      if (!this.data.ownedHats.includes('none')) this.data.ownedHats.unshift('none');
+      if (!this.data.equippedHat) this.data.equippedHat = 'none';
       this.data.progress = this.data.progress || { '1': 0 };
       if (typeof this.data.ammo !== 'number') this.data.ammo = STARTING_AMMO;
       if (typeof this.data.rockets !== 'number') this.data.rockets = 0;
@@ -74,6 +79,8 @@ const Storage = {
     d.mpLosses = Math.max(d.mpLosses || 0, cloud.mpLosses || 0);
     for (const w of (cloud.ownedWeapons || [])) if (!d.ownedWeapons.includes(w)) d.ownedWeapons.push(w);
     for (const c of (cloud.ownedCharacters || [])) if (!d.ownedCharacters.includes(c)) d.ownedCharacters.push(c);
+    for (const h of (cloud.ownedHats || [])) if (!(d.ownedHats || (d.ownedHats = ['none'])).includes(h)) d.ownedHats.push(h);
+    if (cloud.equippedHat && (!d.equippedHat || d.equippedHat === 'none')) d.equippedHat = cloud.equippedHat;
     const cp = cloud.progress || {};
     for (const k of Object.keys(cp)) d.progress[k] = Math.max(d.progress[k] || 0, cp[k] || 0);
     this.save();
@@ -108,6 +115,7 @@ const Storage = {
       else if (/^w\d+$/.test(key)) { const w = key.slice(1); this.data.progress[w] = Math.max(this.data.progress[w] || 0, parseInt(val, 10) || 0); changed = true; }
       else if (key === 'weapons') { const ids = val === 'all' ? WEAPON_ORDER.slice() : val.split('|'); for (const id of ids) if (WEAPONS[id] && !this.data.ownedWeapons.includes(id)) this.data.ownedWeapons.push(id); changed = true; }
       else if (key === 'chars') { const ids = val === 'all' ? CHARACTER_ORDER.slice() : val.split('|'); for (const id of ids) if (CHARACTERS[id] && !this.data.ownedCharacters.includes(id)) this.data.ownedCharacters.push(id); changed = true; }
+      else if (key === 'hats') { const ids = val === 'all' ? HAT_ORDER.slice() : val.split('|'); this.data.ownedHats = this.data.ownedHats || ['none']; for (const id of ids) if (HATS[id] && !this.data.ownedHats.includes(id)) this.data.ownedHats.push(id); changed = true; }
     });
     if (changed) {
       this.save();
@@ -183,6 +191,21 @@ const Storage = {
   equipCharacter(id) {
     if (!this.ownsCharacter(id)) return false;
     this.data.equippedCharacter = id; this.save(); return true;
+  },
+
+  // ---- hoeden (cosmetisch) ----
+  ownsHat(id) { return id === 'none' || (this.data.ownedHats || []).includes(id); },
+  buyHat(id) {
+    const h = HATS[id];
+    if (!h || this.ownsHat(id)) return false;
+    if (!this.spendCoins(h.cost)) return false;
+    this.data.ownedHats.push(id);
+    this.save();
+    return true;
+  },
+  equipHat(id) {
+    if (!this.ownsHat(id)) return false;
+    this.data.equippedHat = id; this.save(); return true;
   },
 
   // ---- arena (Zombie Knock-out) ----

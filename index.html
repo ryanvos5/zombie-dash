@@ -11,7 +11,7 @@
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="theme-color" content="#0d0f14" />
   <title>Topleven Adventures — Wereld 1</title>
-  <link rel="stylesheet" href="css/style.css?v=noloupe1" />
+  <link rel="stylesheet" href="css/style.css?v=hats1" />
 </head>
 <body>
   <div id="game-root">
@@ -79,8 +79,7 @@
           <button id="btn-play" class="big-btn">SPELEN</button>
           <button id="btn-versus" class="big-btn versus">⚔ 1 VS 1 ONLINE</button>
           <button id="btn-arena" class="big-btn arena">ZOMBIE KNOCK-OUT</button>
-          <button id="btn-shop" class="big-btn secondary">WAPENSHOP</button>
-          <button id="btn-characters" class="big-btn secondary">CHARACTERS</button>
+          <button id="btn-shop" class="big-btn secondary">🛒 SHOP</button>
           <button id="btn-leaderboard" class="big-btn secondary">🏆 LEADERBOARD</button>
           <button id="btn-chat" class="big-btn secondary">💬 LOBBY CHAT</button>
         </div>
@@ -129,22 +128,17 @@
       </div>
     </div>
 
-    <!-- ===== Shop ===== -->
+    <!-- ===== Shop (wapens / characters / hoeden) ===== -->
     <div id="shop-screen" class="screen hidden">
       <div class="screen-inner">
-        <h2 class="screen-title">WAPENSHOP</h2>
+        <h2 class="screen-title">SHOP</h2>
+        <div id="shop-tabs" class="shop-tabs">
+          <button class="shop-tab active" data-tab="weapons">⚔ Wapens</button>
+          <button class="shop-tab" data-tab="chars">🧍 Characters</button>
+          <button class="shop-tab" data-tab="hats">🎩 Hoeden</button>
+        </div>
         <div class="shop-coins">Munten: <span id="shop-coin-count">0</span> ●</div>
         <div id="shop-grid" class="shop-grid"></div>
-        <button class="back-btn" data-back="menu">◀ TERUG</button>
-      </div>
-    </div>
-
-    <!-- ===== Characters ===== -->
-    <div id="character-screen" class="screen hidden">
-      <div class="screen-inner">
-        <h2 class="screen-title">CHARACTERS</h2>
-        <div class="shop-coins">Munten: <span id="char-coin-count">0</span> ●</div>
-        <div id="character-grid" class="shop-grid"></div>
         <button class="back-btn" data-back="menu">◀ TERUG</button>
       </div>
     </div>
@@ -340,14 +334,14 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
-  <script src="js/config.js?v=noloupe1"></script>
-  <script src="js/storage.js?v=noloupe1"></script>
-  <script src="js/net.js?v=noloupe1"></script>
-  <script src="js/input.js?v=noloupe1"></script>
-  <script src="js/sprites.js?v=noloupe1"></script>
-  <script src="js/entities.js?v=noloupe1"></script>
-  <script src="js/ui.js?v=noloupe1"></script>
-  <script src="js/game.js?v=noloupe1"></script>
-  <script src="js/main.js?v=noloupe1"></script>
+  <script src="js/config.js?v=hats1"></script>
+  <script src="js/storage.js?v=hats1"></script>
+  <script src="js/net.js?v=hats1"></script>
+  <script src="js/input.js?v=hats1"></script>
+  <script src="js/sprites.js?v=hats1"></script>
+  <script src="js/entities.js?v=hats1"></script>
+  <script src="js/ui.js?v=hats1"></script>
+  <script src="js/game.js?v=hats1"></script>
+  <script src="js/main.js?v=hats1"></script>
 </body>
 </html>
