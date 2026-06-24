@@ -715,6 +715,7 @@ body.is-touch #hud { justify-content: flex-start; gap: 8px; }
   cursor: pointer;
 }
 .shop-tab.active { border-color: var(--accent); color: var(--accent); }
+.shop-card.locked { opacity: 0.6; }
 
 /* ====== Level grid ====== */
 .level-grid {

@@ -183,6 +183,7 @@ const Storage = {
   buyCharacter(id) {
     const c = CHARACTERS[id];
     if (!c || this.ownsCharacter(id)) return false;
+    if (playerLevel(this.data.xp || 0) < (c.lvl || 0)) return false;   // nog niet vrijgespeeld
     if (!this.spendCoins(c.cost)) return false;
     this.data.ownedCharacters.push(id);
     this.save();
@@ -198,6 +199,7 @@ const Storage = {
   buyHat(id) {
     const h = HATS[id];
     if (!h || this.ownsHat(id)) return false;
+    if (playerLevel(this.data.xp || 0) < (h.lvl || 0)) return false;   // nog niet vrijgespeeld
     if (!this.spendCoins(h.cost)) return false;
     this.data.ownedHats.push(id);
     this.save();

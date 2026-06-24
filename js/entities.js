@@ -49,9 +49,10 @@ class Player {
     this.auraNextAt = 30000;   // eerste aura na 30s spelen
     this.auraUntil = 0;
     this._auraOn = false;
-    // Timo: automatische rage — elke 30s, 3s lang (2x schade)
+    // automatische rage — elke rageEvery ms, 3s lang (2x schade). Timo 30s, Ricky 15s
     this.autoRage = !!ch.autoRage;
-    this.rageNextAt = 30000;
+    this.rageEvery = ch.rageEvery || 30000;
+    this.rageNextAt = this.rageEvery;
     this.burnUntil = 0;        // brandt de speler zelf (versus)
     this.burnNextTick = 0;
   }
@@ -131,10 +132,10 @@ class Player {
       }
     }
 
-    // Timo: automatische rage (elke 30s, 3s lang -> 2x schade)
+    // automatische rage (3s lang -> 2x schade), interval per character
     if (this.autoRage && game.time >= this.rageNextAt) {
       this.buffs.rage = game.time + 3000;
-      this.rageNextAt = game.time + 30000;
+      this.rageNextAt = game.time + this.rageEvery;
       if (game.particles) for (let i = 0; i < 8; i++)
         game.particles.push(new Particle(this.x + (Math.random() - 0.5) * 14, this.y - 14, (Math.random() - 0.5) * 2, -1 - Math.random(), '#ff5a3a', 360, 2));
     }

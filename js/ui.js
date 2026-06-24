@@ -1037,6 +1037,7 @@ const UI = {
   // ---------- CHARACTERS-tab ----------
   renderCharCards() {
     const grid = this.el.shopGrid;
+    const myLvl = playerLevel(Storage.data.xp || 0);
 
     CHARACTER_ORDER.forEach((cid) => {
       const c = CHARACTERS[cid];
@@ -1072,6 +1073,8 @@ const UI = {
       } else if (owned) {
         btn.classList.add('equip'); btn.textContent = 'UITRUSTEN';
         btn.onclick = () => { Storage.equipCharacter(cid); this.renderShop(); };
+      } else if (myLvl < (c.lvl || 0)) {
+        card.classList.add('locked'); btn.classList.add('cant'); btn.textContent = '🔒 Level ' + c.lvl;
       } else if (Storage.data.coins >= c.cost) {
         btn.classList.add('buy'); btn.textContent = `KOOP — ${c.cost} ●`;
         btn.onclick = () => { if (Storage.buyCharacter(cid)) { Storage.equipCharacter(cid); this.renderShop(); } };
@@ -1090,6 +1093,7 @@ const UI = {
   renderHatCards() {
     const grid = this.el.shopGrid;
     const cc = CHARACTERS[Storage.data.equippedCharacter] || CHARACTERS.ryan;
+    const myLvl = playerLevel(Storage.data.xp || 0);
 
     HAT_ORDER.forEach((hid) => {
       const h = HATS[hid];
@@ -1119,6 +1123,8 @@ const UI = {
       } else if (owned) {
         btn.classList.add('equip'); btn.textContent = hid === 'none' ? 'AF' : 'OPZETTEN';
         btn.onclick = () => { Storage.equipHat(hid); this.renderShop(); };
+      } else if (myLvl < (h.lvl || 0)) {
+        card.classList.add('locked'); btn.classList.add('cant'); btn.textContent = '🔒 Level ' + h.lvl;
       } else if (Storage.data.coins >= h.cost) {
         btn.classList.add('buy'); btn.textContent = `KOOP — ${h.cost} ●`;
         btn.onclick = () => { if (Storage.buyHat(hid)) { Storage.equipHat(hid); this.renderShop(); } };

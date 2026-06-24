@@ -206,8 +206,21 @@ const CHARACTERS = {
     },
     desc: 'Fors & taai: +40 HP, +30% melee, iets trager.'
   },
+  ricky: {
+    id: 'ricky', name: 'Ricky', cost: 700, lvl: 4,
+    maxHp: 85, speedMul: 1.0, meleeMul: 1.0, build: 'normal', hair: 'natural',
+    autoRage: true, rageEvery: 15000,
+    palette: {
+      hair: '#6b4426', hairDark: '#4a2e18',   // bruin haar naar voren
+      skin: '#d8a878', skinDark: '#b8895e',
+      eye: '#2f6fb0',                          // blauwe ogen
+      shirt: '#3a7a4a', shirtDark: '#245030',
+      pants: '#24303a', shoe: '#101418',
+    },
+    desc: 'Elke 15s 3s RAGE (2× schade). 85 HP. Pas vanaf level 4.'
+  },
 };
-const CHARACTER_ORDER = ['ryan', 'jenze', 'tygo', 'vince', 'timo', 'just'];
+const CHARACTER_ORDER = ['ryan', 'jenze', 'tygo', 'vince', 'timo', 'just', 'ricky'];
 const SHIELD_BLOCK_CD = 3000;   // ms cooldown nadat Tygo's schild een treffer blokt
 
 /* ---------- LEVELS (Wereld 1: Verlaten Stad) ----------
@@ -411,20 +424,20 @@ function comboXp(n) { return Math.round(15 + (Math.min(n, COMBO_MAX) - 1) * (60 
 
 /* ---------- HOEDEN (cosmetisch, voor je character) ---------- */
 const HATS = {
-  none:      { name: 'Geen hoed', cost: 0,   desc: 'Geen hoofddeksel.' },
-  cap:       { name: 'Pet', cost: 150,        desc: 'Klassieke rode pet.' },
-  beanie:    { name: 'Muts', cost: 200,       desc: 'Warme muts met pom.' },
-  party:     { name: 'Feesthoedje', cost: 120,desc: 'Feestje!' },
-  fedora:    { name: 'Gleufhoed', cost: 300,  desc: 'Stijlvolle gleufhoed.' },
-  cowboy:    { name: 'Cowboyhoed', cost: 350, desc: 'Yeehaw.' },
-  chef:      { name: 'Koksmuts', cost: 300,   desc: 'Voor de chef.' },
-  grad:      { name: 'Diploma-hoed', cost: 350, desc: 'Geslaagd!' },
-  tophat:    { name: 'Hoge hoed', cost: 450,  desc: 'Deftig.' },
-  propeller: { name: 'Propellerpet', cost: 500, desc: 'Met draaiende propeller.' },
-  wizard:    { name: 'Tovenaarshoed', cost: 550, desc: 'Magisch.' },
-  viking:    { name: 'Vikinghelm', cost: 650, desc: 'Met horens.' },
-  crown:     { name: 'Kroon', cost: 900,      desc: 'Voor de koning.' },
-  halo:      { name: 'Halo', cost: 800,       desc: 'Engelachtig.' },
+  none:      { name: 'Geen hoed', cost: 0,   lvl: 0,  desc: 'Geen hoofddeksel.' },
+  cap:       { name: 'Pet', cost: 150,        lvl: 2,  desc: 'Klassieke rode pet.' },
+  beanie:    { name: 'Muts', cost: 200,       lvl: 2,  desc: 'Warme muts met pom.' },
+  party:     { name: 'Feesthoedje', cost: 120,lvl: 3,  desc: 'Feestje!' },
+  fedora:    { name: 'Gleufhoed', cost: 300,  lvl: 4,  desc: 'Stijlvolle gleufhoed.' },
+  cowboy:    { name: 'Cowboyhoed', cost: 350, lvl: 4,  desc: 'Yeehaw.' },
+  chef:      { name: 'Koksmuts', cost: 300,   lvl: 6,  desc: 'Voor de chef.' },
+  grad:      { name: 'Diploma-hoed', cost: 350, lvl: 7, desc: 'Geslaagd!' },
+  tophat:    { name: 'Hoge hoed', cost: 450,  lvl: 7,  desc: 'Deftig.' },
+  propeller: { name: 'Propellerpet', cost: 500, lvl: 7, desc: 'Met draaiende propeller.' },
+  wizard:    { name: 'Tovenaarshoed', cost: 550, lvl: 8, desc: 'Magisch.' },
+  viking:    { name: 'Vikinghelm', cost: 650, lvl: 9,  desc: 'Met horens.' },
+  crown:     { name: 'Kroon', cost: 900,      lvl: 10, desc: 'Voor de koning.' },
+  halo:      { name: 'Halo', cost: 800,       lvl: 15, desc: 'Engelachtig.' },
 };
 const HAT_ORDER = ['none', 'cap', 'beanie', 'party', 'fedora', 'cowboy', 'chef', 'grad', 'tophat', 'propeller', 'wizard', 'viking', 'crown', 'halo'];
 
