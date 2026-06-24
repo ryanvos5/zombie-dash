@@ -137,14 +137,37 @@ const Sprites = {
       this.px(ctx, pal.hairDark, cx - hh - 1, headTop - 2, hh * 2 + 2, 1);
       this.px(ctx, pal.hair, cx + (dir > 0 ? 2 : -3), headTop - 3, 2, 2);  // losse pluk
     }
-    // oog (kijkrichting)
-    this.px(ctx, pal.eye, cx + (dir > 0 ? 1 : -2), headTop + 3, 2, 2);
+    // oog (kijkrichting) — rood bij rage
+    this.px(ctx, pose.rage ? '#ff2020' : pal.eye, cx + (dir > 0 ? 1 : -2), headTop + 3, 2, 2);
+
+    // boze streepjes boven het hoofd (rage)
+    if (pose.rage) {
+      this.px(ctx, '#ff3030', cx - hh - 3, headTop - 5, 3, 1);
+      this.px(ctx, '#ff3030', cx - hh - 4, headTop - 3, 3, 1);
+      this.px(ctx, '#ff3030', cx + hh, headTop - 5, 3, 1);
+      this.px(ctx, '#ff3030', cx + hh + 1, headTop - 3, 3, 1);
+      this.px(ctx, '#ff5a5a', cx - 1, headTop - 6, 2, 2);
+    }
 
     // --- hoed (cosmetisch) ---
     if (pose.hat && pose.hat !== 'none') this.drawHat(ctx, pose.hat, cx, headTop, hh, dir, pose.t || 0);
 
     // --- arm + wapen ---
     this.drawArmAndWeapon(ctx, cx, torsoTop, dir, pal, weapon, pose.attacking, bh, pose.shielding);
+
+    // --- in brand staan (burn) ---
+    if (pose.burning) {
+      const t = pose.t || 0;
+      for (let i = -1; i <= 1; i++) {
+        const fx = cx + i * (hh + 1);
+        const fl = Math.round(Math.sin(t / 70 + i) * 2);
+        this.px(ctx, '#ff7a2a', fx - 1, footY - 14 - fl, 3, 8);            // vlamtong
+        this.px(ctx, '#ffd24a', fx, footY - 11 - fl, 1, 4);                // hete kern
+      }
+      const fl2 = Math.round(Math.sin(t / 55) * 2);
+      this.px(ctx, '#ff9a3a', cx - 2, torsoTop - 5 - fl2, 4, 5);           // vlam bovenop
+      this.px(ctx, '#ffe27a', cx - 1, torsoTop - 4 - fl2, 2, 3);
+    }
 
     if (pose.squash) ctx.restore();
   },

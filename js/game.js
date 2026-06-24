@@ -1079,6 +1079,7 @@ const Game = {
       hair: this.player.hairStyle,
       shielding: this.player._shieldUp,
       hat: Storage.data.equippedHat, t: this.time,
+      rage: this.player.hasBuff('rage', this.time), burning: this.player.burnUntil > this.time,
     });
 
     // zwevende munten
@@ -1782,6 +1783,7 @@ const Game = {
     r.heldWeapon = b.weaponId || b.meleeId || 'bat';
     r.stunned = b.stunUntil && this.time < b.stunUntil;
     r.flat = b.flatUntil && this.time < b.flatUntil;
+    r.rage = b.hasBuff('rage', this.time); r.burn = b.burnUntil > this.time;
     r.walkPhase = b.walkPhase; r.alive = !b.dead; r.charId = b.charId;
     r.hp = b.hp; r.maxHp = b.maxHp; r.ducking = b.ducking;
 
@@ -2073,6 +2075,7 @@ const Game = {
     r.stunned = s.su === 1;
     r.flat = s.fl === 1;
     r.hat = s.ht || 'none';
+    r.rage = s.rg === 1; r.burn = s.bn === 1;
     r.alive = s.al !== 0; r.charId = s.ch || 'ryan';
     r.ducking = s.dk === 1;
     if (typeof s.h === 'number') r.hp = s.h;
@@ -2088,6 +2091,7 @@ const Game = {
       g: p.onGround ? 1 : 0, a: this.time < p.attackAnimUntil ? 1 : 0,
       sw: (this.time < (p.swingUntil || 0)) ? (p.swingWeapon || 0) : 0,
       wid: p.weaponId || 0, su: (p.stunUntil && this.time < p.stunUntil) ? 1 : 0, fl: (p.flatUntil && this.time < p.flatUntil) ? 1 : 0, ht: Storage.data.equippedHat || 'none',
+      rg: p.hasBuff('rage', this.time) ? 1 : 0, bn: (p.burnUntil > this.time) ? 1 : 0,
       wp: p.walkPhase || 0, al: p.dead ? 0 : 1, ch: Storage.data.equippedCharacter || 'ryan',
       h: Math.round(p.hp), mh: p.maxHp, dk: p.ducking ? 1 : 0,
     });
@@ -2214,7 +2218,7 @@ const Game = {
       Sprites.drawCharacter(ctx, Math.round(r.x), Math.round(r.y), r.dir, rc.palette, {
         walkPhase: r.walkPhase, airborne: !r.onGround, attacking: r.attacking, ducking: r.ducking,
         weapon: r.swingWeapon || r.heldWeapon || 'bat', build: rc.build, hair: rc.hair, squash: r.flat,
-        hat: r.hat || 'none', t: this.time,
+        hat: r.hat || 'none', t: this.time, rage: r.rage, burning: r.burn,
       });
       if (r.ducking) this.drawBlockGuard(ctx, Math.round(r.x), Math.round(r.y), r.dir);
       if (r.stunned) this.drawStunAura(ctx, Math.round(r.x), Math.round(r.y));
@@ -2234,6 +2238,7 @@ const Game = {
           weapon: swinging ? p.swingWeapon : p.weaponId, build: p.build, hair: p.hairStyle,
           squash: (p.flatUntil && this.time < p.flatUntil),
           hat: Storage.data.equippedHat, t: this.time,
+          rage: p.hasBuff('rage', this.time), burning: p.burnUntil > this.time,
         });
         if (p.ducking && p.onGround) this.drawBlockGuard(ctx, Math.round(p.x), Math.round(p.y), p.dir);
         if (p.stunUntil && this.time < p.stunUntil) this.drawStunAura(ctx, Math.round(p.x), Math.round(p.y));
