@@ -483,6 +483,12 @@ function playerLevel(xp) {
 }
 function xpForLevel(L) { return 75 * L * (L - 1); }   // totale XP nodig voor level L
 
+/* ---------- Jungle: gorilla in de kooi ---------- */
+const GORILLA_HP = 280;            // sterk, maar te verslaan
+const GORILLA_RESPAWN = 16000;     // komt na ~16s terug
+const GORILLA_SWIPE_CD = 1100;     // ms tussen klappen
+const GORILLA_REACH = 44;          // bereik van de klap
+
 /* ---------- Pirate Ship: zeemonster-tentakel ---------- */
 const PIRATE_TENT_EVERY = 7000;    // ms tussen tentakels
 const PIRATE_TENT_WARN = 1100;     // waarschuwing (water borrelt) vóór de slag
@@ -500,12 +506,19 @@ const VULCAN_SLIDE = 0.85;     // afglijsnelheid op schuine platforms (px/frame)
    sky = [boven, onder] kleuren, void = afgrond-kleur onderin. */
 const VERSUS_MAPS = [
   {
-    id: 'jungle', name: 'Jungle', sky: ['#16331f', '#0c1a12'], void: '#06090d', plat: 'leaf', w: 360,
-    spawnL: { x: 78, y: 140 }, spawnR: { x: 282, y: 140 },
+    // Jungle: grootste map. Oerwoud-achtergrond + papegaaien, lianen om mee te slingeren,
+    // en in het midden een kooi met een sterke (maar te verslaan) gorilla — val je erin, dan vecht je.
+    id: 'jungle', name: 'Jungle', sky: ['#163a24', '#08160e'], void: '#06120a', plat: 'leaf', jungle2: true,
+    w: 960, fallY: 240, camTop: -50, camBottom: 30,
+    spawnL: { x: 120, y: 176 }, spawnR: { x: 840, y: 176 },
     platforms: [
-      { x: 78, y: 140, w: 74 }, { x: 282, y: 140, w: 74 }, { x: 180, y: 104, w: 64 },
-      { x: 130, y: 169, w: 44 }, { x: 230, y: 169, w: 44 },
+      { x: 120, y: 176, w: 170 }, { x: 840, y: 176, w: 170 },   // grond links/rechts
+      { x: 280, y: 118, w: 70 }, { x: 680, y: 118, w: 70 },     // midden
+      { x: 160, y: 66, w: 52 }, { x: 800, y: 66, w: 52 },       // hoog
+      { x: 480, y: 206, w: 150 },                                // kooi-vloer (in het midden, lager)
     ],
+    vines: [{ x: 360, ay: -38, len: 150 }, { x: 600, ay: -38, len: 150 }],   // lianen om mee te slingeren
+    cage: { x: 480, floorY: 206, w: 150, top: 118 },             // kooi met gorilla
   },
   {
     id: 'bergen', name: 'De Bergen', sky: ['#2a3e5e', '#1a2436'], void: '#0a1018', plat: 'rock', w: 360,

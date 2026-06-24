@@ -43,6 +43,7 @@ class Player {
     this.dblJumpMul = ch.dblJumpMul || 1;   // Tygo springt z'n dubbel-jump hoger
     this.extraJumps = ch.extraJump ? 1 : 0; // Timo: 1 extra (kleinere) dubbel-jump
     this.extraJumpLeft = 0;
+    this.vine = null; this._vineCd = 0;     // Jungle: aan een liaan slingeren
     this.groundPound = !!ch.groundPound;    // Just: stamp-schade bij de landing
     this._poundCd = 0; this._poundHit = false;
     this.jumping = false; // bezig met een (variabele) sprong
@@ -176,6 +177,39 @@ class Player {
 
     // springen (met dubbel-jump vanaf wereld 2)
     const jumpPressed = frozen ? false : (inputOverride ? inp.jumpPressed : Input.jumpPressed);
+
+    // LIANEN (Jungle): grijpen + slingeren
+    if (!this.vine && !this.onGround && !inCloud && !frozen && game.time >= (this._vineCd || 0) && game.vsVines) {
+      for (const vn of game.vsVines) {
+        if (Math.abs(this.x - vn.x) < 14 && this.y > vn.ay + 24 && this.y < vn.ay + vn.len + 16) {
+          const dx = this.x - vn.x, dy = Math.max(40, this.y - vn.ay);
+          const len = Math.min(vn.len, Math.hypot(dx, dy));
+          this.vine = { vx: vn.x, ay: vn.ay, len: len, angle: Math.atan2(dx, dy), angVel: ((this.x - prevX) / len) || 0 };
+          break;
+        }
+      }
+    }
+    if (this.vine) {
+      const v = this.vine;
+      v.angVel += (-(CONFIG.GRAVITY / v.len) * Math.sin(v.angle)) * s;
+      if (inp.left) v.angVel -= 0.0024 * s;
+      if (inp.right) v.angVel += 0.0024 * s;
+      v.angVel *= 0.996;
+      v.angle += v.angVel * s;
+      this.x = v.vx + Math.sin(v.angle) * v.len;
+      this.y = v.ay + Math.cos(v.angle) * v.len;
+      this.onGround = false; this.vy = 0; this.jumping = false;
+      this.jumps = this.maxJumps; this.extraJumpLeft = this.extraJumps;
+      if (Math.abs(v.angVel) > 0.002) this.dir = v.angVel > 0 ? 1 : -1;
+      if (jumpPressed) {                          // loslaten -> wegslingeren (tangentieel)
+        const tv = v.angVel * v.len;
+        this.knockVx = Math.max(-18, Math.min(18, Math.cos(v.angle) * tv * 1.3));
+        this.vy = Math.min(-5, -Math.abs(Math.sin(v.angle) * tv) * 0.5 - 5);
+        this.vine = null; this._vineCd = game.time + 350;
+      }
+      return;                                     // geen normale fysica tijdens het slingeren
+    }
+
     if (jumpPressed && !this.ducking && !inCloud) {
       if (this.jumps > 0) {
         const air = !this.onGround;              // dit is de dubbel-jump (al in de lucht)

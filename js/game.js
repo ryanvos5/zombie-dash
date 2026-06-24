@@ -1166,6 +1166,11 @@ const Game = {
     // Pirate: zeemonster-tentakel
     this.tentacle = map.pirate ? { state: 'idle', nextAt: this.time + PIRATE_TENT_EVERY, x: 360, mode: 'flat', hitP: false, hitB: false } : null;
     this.player.cannon = 0; this.player.shieldHp = 0;
+    // Jungle: lianen + gorilla in de kooi + papegaaien
+    this.vsVines = map.vines || null;
+    this.gorilla = map.cage ? { x: map.cage.x, y: map.cage.floorY, hp: GORILLA_HP, maxHp: GORILLA_HP, dir: -1, alive: true, state: 'idle', swipeUntil: 0, swipeCd: 0, respawnAt: 0, hitFlash: 0, _net: 0 } : null;
+    this.jungleCage = map.cage || null;
+    this.parrots = [];
     this.ammo = mode === 'both' ? 999 : 0;
     this.rockets = 0;
     this.boss = null; this.shake = 0; this.cam.x = 0; this.time = 0; this.dtScale = 1;
@@ -1225,6 +1230,8 @@ const Game = {
         onRocks: (p) => this.onVersusRocks(p),
         onLava: (p) => this.onVersusLava(p),
         onTentacle: (p) => this.onVersusTentacle(p),
+        onGorilla: (p) => this.onVersusGorilla(p),
+        onGorhit: (p) => this.onVersusGorhit(p),
       });
     }
     this.state = 'versus';
@@ -1284,6 +1291,7 @@ const Game = {
       if (this.vsMap && this.vsMap.cave) this.updateCave(dt);   // knoppen/muur + sfeer
       if (this.vsMap && this.vsMap.vulcan) this.updateVulcan(dt);   // lavastraal + sfeer
       if (this.vsMap && this.vsMap.pirate) this.updatePirate(dt);   // zeemonster-tentakel
+      if (this.vsMap && this.vsMap.jungle2) this.updateGorilla(dt); // kooi-gorilla
       if (this.vsBot) this.updateBot(dt);              // de AI-tegenstander
       this.checkVersusHit();
       // Just: stamp-schade op de tegenstander bij de landing
@@ -1376,6 +1384,14 @@ const Game = {
         this.spawnBlood(b.x, b.y);
         if (b.kind === 'cannon') this.shake = Math.max(this.shake, 8);
         if (b.kind) for (let i = 0; i < 8; i++) this.particles.push(new Particle(b.x, b.y, (Math.random() - 0.5) * 3, -Math.random() * 2, b.kind === 'rocket' ? '#ffd24a' : (b.kind === 'cannon' ? '#888' : '#ff7a2a'), 320, 2));
+        continue;
+      }
+      // kogel raakt de kooi-gorilla (Jungle)
+      const g = this.gorilla;
+      if (b.alive && g && g.alive && Math.abs(b.x - g.x) < 24 && Math.abs(b.y - (g.y - 18)) < 30) {
+        b.alive = false;
+        const dmg = (b.hitDmg != null) ? b.hitDmg : Math.round((b.damage || 20) * 0.4);
+        this.hitGorilla(dmg);
       }
     }
     this.bullets = this.bullets.filter((b) => b.alive);
@@ -1679,6 +1695,67 @@ const Game = {
     if (p.ph) this._tentPhase(p.ph);
   },
 
+  // ---- JUNGLE: gorilla in de kooi ----
+  _inCage(e) {
+    const cg = this.jungleCage; if (!cg || !e || e.dead) return false;
+    return Math.abs(e.x - cg.x) < cg.w / 2 + 6 && e.y > cg.floorY - 44 && e.y < cg.floorY + 12;
+  },
+  updateGorilla(dt) {
+    const g = this.gorilla, cg = this.jungleCage; if (!g || !cg) return;
+    if (g.hitFlash > 0) g.hitFlash -= dt;
+    const host = this.vsBot || this.vs.role === 'host';
+    if (!g.alive) { if (host && this.time >= g.respawnAt) { g.alive = true; g.hp = g.maxHp; g.state = 'idle'; this._broadcastGorilla(); } return; }
+    // doelwit: een speler die IN de kooi staat
+    let target = this._inCage(this.player) ? this.player : (this.vsBot ? (this._inCage(this.bot) ? this.bot : null) : (this._inCage(this.vs.remote) ? this.vs.remote : null));
+    if (host) {
+      if (target) {
+        g.dir = target.x >= g.x ? 1 : -1;
+        if (Math.abs(target.x - g.x) > 14) g.x += g.dir * 0.5 * this.dtScale;
+        g.x = Math.max(cg.x - cg.w / 2 + 12, Math.min(cg.x + cg.w / 2 - 12, g.x));
+        if (this.time >= g.swipeCd && Math.abs(target.x - g.x) < GORILLA_REACH && Math.abs(target.y - g.y) < 38) {
+          g.swipeCd = this.time + GORILLA_SWIPE_CD; g.swipeUntil = this.time + 260; g.state = 'swipe'; g._hitDone = false; this.shake = Math.max(this.shake, 5);
+        }
+      }
+      if (g.state === 'swipe' && this.time < g.swipeUntil && !g._hitDone) {
+        g._hitDone = true;
+        const kd = (t) => t.x >= g.x ? 1 : -1;
+        if (this._inCage(this.player) && Math.abs(this.player.x - g.x) < GORILLA_REACH && this.player.respawnInvuln <= 0) this.onVersusHit({ dir: kd(this.player), power: 18, vy: -7, dmg: 18 });
+        if (this.vsBot) { if (this._inCage(this.bot) && Math.abs(this.bot.x - g.x) < GORILLA_REACH) this.applyHitToBot(kd(this.bot), 18, -7, 18); }
+        else if (this._inCage(this.vs.remote) && Math.abs(this.vs.remote.x - g.x) < GORILLA_REACH && window.Net) Net.versusSend('hit', { dir: kd(this.vs.remote), power: 18, vy: -7, dmg: 18 });
+      }
+      if (g.state === 'swipe' && this.time >= g.swipeUntil) g.state = 'idle';
+      g._net += dt; if (g._net >= 100) { g._net = 0; this._broadcastGorilla(); }
+    }
+  },
+  _broadcastGorilla() {
+    if (window.Net && !this.vsBot && this.gorilla) Net.versusSend('gorilla', { x: Math.round(this.gorilla.x), hp: this.gorilla.hp, al: this.gorilla.alive ? 1 : 0, st: this.gorilla.state, d: this.gorilla.dir });
+  },
+  onVersusGorilla(p) {
+    const g = this.gorilla; if (!g || !p) return;
+    if (typeof p.x === 'number') g.x = p.x;
+    if (typeof p.hp === 'number') g.hp = p.hp;
+    g.alive = p.al !== 0; g.state = p.st || 'idle'; g.dir = p.d || -1;
+  },
+  // schade aan de gorilla (door een mep/kogel van de SPELER)
+  hitGorilla(dmg) {
+    const g = this.gorilla; if (!g || !g.alive) return;
+    const lethal = (g.hp - dmg) <= 0;
+    if (lethal) { this.player.hp = this.player.maxHp; this.player.buffs.rage = this.time + 4000; }   // beloning: vol + rage
+    g.hitFlash = 120;
+    if (this.vsBot || this.vs.role === 'host') { g.hp -= dmg; if (g.hp <= 0) this._gorillaDie(); this._broadcastGorilla(); }
+    else { if (window.Net) Net.versusSend('gorhit', { dmg }); if (lethal) { g.alive = false; g.state = 'dead'; } }
+    for (let i = 0; i < 5; i++) this.particles.push(new Particle(g.x + (Math.random() - 0.5) * 16, g.y - 18, (Math.random() - 0.5) * 2, -Math.random() * 2, '#a33', 320, 2));
+  },
+  onVersusGorhit(p) {
+    const g = this.gorilla; if (!g || !g.alive) return;
+    if (this.vsBot || this.vs.role === 'host') { g.hp -= (p && p.dmg || 0); g.hitFlash = 120; if (g.hp <= 0) this._gorillaDie(); this._broadcastGorilla(); }
+  },
+  _gorillaDie() {
+    const g = this.gorilla; g.alive = false; g.hp = 0; g.state = 'dead'; g.respawnAt = this.time + GORILLA_RESPAWN;
+    this.shake = Math.max(this.shake, 9);
+    for (let i = 0; i < 18; i++) this.particles.push(new Particle(g.x, g.y - 16, (Math.random() - 0.5) * 4, -Math.random() * 3, Math.random() < 0.5 ? '#5a3d22' : '#3a2615', 420, 3));
+  },
+
   // ---- steen-powerup: 3 grote stenen vallen -> geraakt = 2s platgedrukt ----
   rockTargetXs(centerX) {
     const xs = [centerX + (Math.random() - 0.5) * 20];     // 1 steen gericht op het doel
@@ -1843,6 +1920,15 @@ const Game = {
         if (!this.vsBot) this._comboXp = (this._comboXp || 0) + cx;
         this.spawnBlood(r.x, r.y - 16);
         this.shake = Math.max(this.shake, 6);
+      }
+      // mep raakt ook de kooi-gorilla (Jungle)
+      const g = this.gorilla;
+      if (g && g.alive) {
+        const gdx = (g.x - p.x) * p.dir;
+        if (gdx > -10 && gdx < reach && Math.abs(g.y - p.y) < 38) {
+          const gwd = (WEAPONS[p.meleeId] ? WEAPONS[p.meleeId].damage : 34) * (p.meleeMul || 1) * (p.hasBuff('rage', this.time) ? 1.6 : 1);
+          this.hitGorilla(Math.round(gwd * 0.45));
+        }
       }
     }
   },
@@ -2121,7 +2207,7 @@ const Game = {
     this.player.dead = false; this.player.respawnInvuln = 1300;
     this.player.hp = this.player.maxHp; this.player.burnUntil = 0;   // fris (ook na burn-dood)
     this.player.stunUntil = 0; this.player.flatUntil = 0; this.player._beamSafeUntil = 0;
-    this.player.combo = 0; this.player.comboUntil = 0;
+    this.player.combo = 0; this.player.comboUntil = 0; this.player.vine = null;
     this.player.swingWeapon = null; this.player.swingUntil = 0;       // geen lingerende mep-animatie
     if (this.vsMode === 'smash') {                  // elke ronde weer met de knuppel
       this.player.meleeId = this.player.baseMelee || 'bat'; this.player.rangedId = null;
@@ -2267,6 +2353,7 @@ const Game = {
     if (map.cave) this.drawCaveBg(ctx);                 // diepe grotten / vleermuizen / druppels
     if (map.vulcan) this.drawVulcanBg(ctx);             // verre uitbarstingen + rook
     if (map.pirate) this.drawPirateBg(ctx);             // piratenschip-achtergrond + water
+    if (map.jungle2) this.drawJungleBg(ctx);            // oerwoud-achtergrond + papegaaien
 
     // afgrond onderin (map-thema), camera-bewust
     ctx.fillStyle = map.void || '#06090d'; ctx.fillRect(camX - 4, CONFIG.GROUND_Y - 2, W + 8, H + Math.abs(camY) + 320);
@@ -2285,6 +2372,7 @@ const Game = {
     }
 
     if (map.pirate) this.drawPirateMast(ctx);           // middenmast loopt door het dek heen
+    if (map.jungle2) { this.drawVines(ctx); this.drawGorilla(ctx); }   // lianen + gorilla (achter de spelers)
     if (map.cave) this.drawCaveButtons(ctx);            // knoppen op de platforms
 
     // portalen (Power Smash) — achter de spelers
@@ -2352,6 +2440,7 @@ const Game = {
     if (map.cave && this.caveWall) this.drawCaveWall(ctx);   // de muur sweept over de spelers heen
     if (map.vulcan) this.drawVulcanJet(ctx);                 // borrel-waarschuwing + lavastraal
     if (map.pirate && this.tentacle) this.drawTentacle(ctx); // zeemonster-tentakel
+    if (map.jungle2 && this.jungleCage) this.drawCage(ctx);  // kooi-tralies vóór de spelers
     ctx.restore();
 
     // draken (drakenei-powerup) — scherm-ruimte, over de wereld heen
@@ -2589,6 +2678,56 @@ const Game = {
         if (i % 12 === 0) Sprites.px(ctx, '#1e5e3a', x - w / 2 + wob, waterY - i, 2, 2);   // zuignap
       }
     }
+  },
+
+  // ---- JUNGLE render ----
+  drawJungleBg(ctx) {
+    const W = this.vsMapW, gy = CONFIG.GROUND_Y;
+    for (let i = -40; i < W + 40; i += 70) { const h = 60 + ((Math.abs(i) * 37) % 50); Sprites.px(ctx, '#0f2a19', i, gy - h, 62, h); }
+    for (let i = -20; i < W + 40; i += 92) { const h = 92 + ((Math.abs(i) * 23) % 64); Sprites.px(ctx, '#15391f', i, gy - h, 66, h); }
+    for (let i = -40; i < W + 40; i += 42) Sprites.px(ctx, '#1c4a2c', i - 6, -34, 54, 38);   // bladerdak bovenin
+    // papegaaien (vliegen traag over)
+    const cols = ['#e8483b', '#f2c94c', '#3aa0e0', '#7affa0', '#ff8a3a'];
+    for (let k = 0; k < 5; k++) {
+      const px = ((k * 220 + this.time * 0.03) % (W + 90)) - 45;
+      const py = 0 + (k * 27 % 80) + Math.sin(this.time / 120 + k) * 3;
+      const c = cols[k % cols.length];
+      Sprites.px(ctx, c, Math.round(px - 3), Math.round(py), 6, 3);            // lijf
+      Sprites.px(ctx, c, Math.round(px - 5), Math.round(py - 1), 3, 2);        // vleugel
+      Sprites.px(ctx, '#ffd24a', Math.round(px + 3), Math.round(py), 2, 2);    // snavel
+      Sprites.px(ctx, '#1c4a2c', Math.round(px - 8), Math.round(py + 1), 4, 1);// staart
+    }
+  },
+  drawVines(ctx) {
+    if (!this.vsVines) return;
+    for (const vn of this.vsVines) {
+      for (let i = 0; i < vn.len; i += 6) { const wob = Math.round(Math.sin(this.time / 600 + i * 0.1) * 2); Sprites.px(ctx, '#3a6b2a', vn.x - 1 + wob, vn.ay + i, 3, 6); }
+      Sprites.px(ctx, '#2a5020', vn.x - 2, vn.ay - 2, 5, 4);                   // ankerknoop
+      const wob2 = Math.round(Math.sin(this.time / 600 + vn.len * 0.1) * 2);
+      Sprites.px(ctx, '#4a8a3a', vn.x - 3 + wob2, vn.ay + vn.len, 7, 4);       // blad aan het eind
+    }
+  },
+  drawGorilla(ctx) {
+    const g = this.gorilla; if (!g || !g.alive) return;
+    const x = Math.round(g.x), y = Math.round(g.y), s = g.dir;
+    const fur = (g.hitFlash > 0 && Math.floor(this.time / 60) % 2 === 0) ? '#d8a0a0' : '#3a3330', furDk = '#2a2522';
+    Sprites.px(ctx, fur, x - 24, y - 30, 8, 26); Sprites.px(ctx, fur, x + 16, y - 30, 8, 26);   // armen
+    Sprites.px(ctx, fur, x - 16, y - 34, 32, 34);                              // lijf
+    Sprites.px(ctx, furDk, x - 16, y - 34, 5, 34);
+    Sprites.px(ctx, '#5a524c', x - 8, y - 26, 16, 18);                         // borst
+    Sprites.px(ctx, fur, x - 12, y - 47, 24, 15);                             // kop
+    Sprites.px(ctx, '#d8b89a', x - 7, y - 40, 14, 6);                         // snuit
+    Sprites.px(ctx, '#000', x - 5, y - 44, 2, 2); Sprites.px(ctx, '#000', x + 3, y - 44, 2, 2);  // ogen
+    if (g.state === 'swipe') { Sprites.px(ctx, fur, x + (s > 0 ? 14 : -26), y - 46, 12, 8); }   // klap-arm omhoog
+    if (g.hp < g.maxHp) { const bw = 44; Sprites.px(ctx, '#11151e', x - bw / 2 - 1, y - 58, bw + 2, 5); Sprites.px(ctx, '#cc3333', x - bw / 2, y - 57, Math.round(bw * Math.max(0, g.hp / g.maxHp)), 3); }
+  },
+  drawCage(ctx) {
+    const cg = this.jungleCage; const L = cg.x - cg.w / 2, R = cg.x + cg.w / 2, top = cg.top, bot = cg.floorY + 4;
+    Sprites.px(ctx, '#5a5a62', L - 4, top - 4, cg.w + 8, 5);                   // dak
+    Sprites.px(ctx, '#6b6b73', L - 4, top, 4, bot - top); Sprites.px(ctx, '#6b6b73', R, top, 4, bot - top);   // hoekpalen
+    ctx.globalAlpha = 0.45;
+    for (let bx = L + 6; bx < R; bx += 15) Sprites.px(ctx, '#9a9aa2', bx, top, 2, bot - top);   // tralies (doorzichtig)
+    ctx.globalAlpha = 1;
   },
 
   // scheepsromp onder het dek (boot-vorm: breed bovenaan, smaller onderaan)
