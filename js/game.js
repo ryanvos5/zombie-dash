@@ -1589,7 +1589,7 @@ const Game = {
     }
     // lavastraal raakt spelers in de kolom -> hoog gelanceerd + 3s burn
     if (v.state === 'erupt') {
-      const inJet = (e) => e && !e.dead && e.respawnInvuln <= 0 && Math.abs(e.x - v.x) < 16;
+      const inJet = (e) => e && !e.dead && e.respawnInvuln <= 0 && Math.abs(e.x - v.x) < 18;
       if (!v.hitP && inJet(this.player)) { v.hitP = true; this.player.vy = -18; this.player.onGround = false; this.player.burnUntil = this.time + 3000; this.shake = Math.max(this.shake, 8); }
       if (this.vsBot && !v.hitB && inJet(this.bot)) { v.hitB = true; this.bot.vy = -18; this.bot.onGround = false; this.bot.burnUntil = this.time + 3000; }
       // vonken
@@ -2414,14 +2414,21 @@ const Game = {
     const v = this.vulcan; if (!v) return;
     const x = v.x, baseY = this.vsFallY, topY = ((this.vsMap.camTop || 0) - 10);
     if (v.state === 'bubble') {
-      Sprites.px(ctx, '#ff5a2a', x - 11, baseY - 6, 22, 6);                      // gloeiende poel
-      ctx.globalAlpha = 0.4; Sprites.px(ctx, '#ff7a2a', x - 13, baseY - 12, 26, 8); ctx.globalAlpha = 1;
-      for (let i = 0; i < 5; i++) { const bx = x + Math.sin(this.time / 120 + i) * 8; const by = baseY - 6 - ((this.time / 200 + i * 7) % 16); Sprites.px(ctx, i % 2 ? '#ff9a3a' : '#ffd24a', Math.round(bx), Math.round(by), 3, 3); }
+      Sprites.px(ctx, '#ff5a2a', x - 13, baseY - 6, 26, 6);                      // gloeiende poel
+      ctx.globalAlpha = 0.4; Sprites.px(ctx, '#ff7a2a', x - 15, baseY - 12, 30, 8); ctx.globalAlpha = 1;
+      // bubbels komen nu veel hoger op (beter zichtbaar)
+      for (let i = 0; i < 8; i++) {
+        const bx = x + Math.sin(this.time / 110 + i * 1.3) * 11;
+        const by = baseY - 6 - ((this.time / 150 + i * 9) % 56);
+        const sz = 3 + (i % 3);
+        Sprites.px(ctx, i % 2 ? '#ff9a3a' : '#ffd24a', Math.round(bx), Math.round(by), sz, sz);
+      }
     } else if (v.state === 'erupt') {
-      const w = 14, h = baseY - topY;
-      ctx.globalAlpha = 0.3; Sprites.px(ctx, '#ff9a3a', x - w / 2 - 4, topY, w + 8, h); ctx.globalAlpha = 1;
+      const w = 24, h = baseY - topY;                                            // dikkere straal
+      ctx.globalAlpha = 0.3; Sprites.px(ctx, '#ff9a3a', x - w / 2 - 5, topY, w + 10, h); ctx.globalAlpha = 1;
       Sprites.px(ctx, '#ff5a1e', x - w / 2, topY, w, h);                          // buitenstraal
-      Sprites.px(ctx, '#ffd24a', x - 3, topY, 6, h);                              // hete kern
+      Sprites.px(ctx, '#ff8a3a', x - w / 2 + 3, topY, w - 6, h);                  // mid
+      Sprites.px(ctx, '#ffd24a', x - 5, topY, 10, h);                             // hete kern
     }
   },
 
