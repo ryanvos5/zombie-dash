@@ -522,7 +522,7 @@ const VERSUS_MAPS = [
   {
     // Vulcan: net zo groot als Cave. Stenen platforms, lavastraal in het midden,
     // schuine platforms naast de opening waar je vanaf glijdt; achtergrond met uitbarstingen + rook.
-    id: 'lava', name: 'Vulcan', sky: ['#3a1410', '#1a0805'], void: '#5a1408', plat: 'stone', stone: true, vulcan: true,
+    id: 'lava', name: 'Volcano', sky: ['#3a1410', '#1a0805'], void: '#5a1408', plat: 'stone', stone: true, vulcan: true,
     w: 720, fallY: 232, camTop: -30, camBottom: 30, vulcanX: 360,
     spawnL: { x: 90, y: 176 }, spawnR: { x: 630, y: 176 },
     platforms: [
