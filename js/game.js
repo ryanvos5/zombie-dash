@@ -1355,12 +1355,12 @@ const Game = {
       }
     }
     for (const b of this.bullets) {
-      if (b.kind === 'cannon' && r.alive) {              // homing naar de tegenstander -> mist nooit
+      if (b.kind === 'cannon' && b.homing && r.alive) {  // gericht: homing naar de tegenstander -> mist nooit
         const ang = Math.atan2((r.y - 14) - b.y, r.x - b.x), sp = 8;
         b.vx = Math.cos(ang) * sp; b.vy = Math.sin(ang) * sp;
         b.x += b.vx * this.dtScale; b.y += b.vy * this.dtScale;
         b.life += dt; if (b.life > 2500) b.alive = false;
-      } else { b.update(dt, this); }   // beweegt (geen zombies in versus)
+      } else { b.update(dt, this); }   // niet gericht (mist) of gewone kogel -> rechtdoor
     }
     for (const b of this.bullets) {
       const rw = b.kind === 'rocket' ? 16 : (b.kind === 'cannon' ? 18 : 11);
@@ -1404,11 +1404,12 @@ const Game = {
   smashFire() {
     const p = this.player;
     if (!p.dead && Input.state.attack) {
-      if (p.cannon > 0) {                                   // kanonskogel: alleen vuren als je naar de tegenstander kijkt
-        const oppX = this.vsBot ? (this.bot ? this.bot.x : p.x + p.dir * 100) : this.vs.remote.x;
-        const facing = (Math.sign(oppX - p.x) === p.dir) || Math.abs(oppX - p.x) < 8;
-        if (facing) { if (this.time >= (p._fireCd || 0)) { p.cannon--; p._fireCd = this.time + 900; this.spawnCannon(p); } }
-        else Input.state.melee = true;                     // niet gericht -> gewoon meppen
+      if (p.cannon > 0) {                                   // kanonskogel: altijd vuren; alleen richting de tegenstander = homing
+        if (this.time >= (p._fireCd || 0)) {
+          const oppX = this.vsBot ? (this.bot ? this.bot.x : p.x + p.dir * 100) : this.vs.remote.x;
+          const facing = (Math.sign(oppX - p.x) === p.dir) || Math.abs(oppX - p.x) < 8;
+          p.cannon--; p._fireCd = this.time + 900; this.spawnCannon(p, facing);   // niet gericht -> mist
+        }
       } else if (p.fireballs > 0 || p.smashRockets > 0) {  // vuurwapen opgepakt -> vuren
         if (this.time >= (p._fireCd || 0)) {
           if (p.fireballs > 0) { p.fireballs--; p._fireCd = this.time + 420; this.spawnVersusProjectile(p, 'fire'); }
@@ -1422,10 +1423,10 @@ const Game = {
   },
 
   // kanonskogel: vliegt hard naar de tegenstander (homing -> mist nooit), enorme knockback
-  spawnCannon(p) {
+  spawnCannon(p, homing) {
     const dir = p.dir;
     const bl = new Bullet(p.x + dir * 14, p.y - 16, dir * 8, 0, 0);
-    bl.kind = 'cannon'; bl.hitDmg = 18; bl.power = 42; bl.vy = 0; bl.life = 0;
+    bl.kind = 'cannon'; bl.hitDmg = 18; bl.power = 42; bl.vy = 0; bl.life = 0; bl.homing = !!homing;
     this.bullets.push(bl);
     this.spawnMuzzleFlash(p.x + dir * 14, p.y - 16, dir);
     this.shake = Math.max(this.shake, 5);
