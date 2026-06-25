@@ -415,12 +415,13 @@ body.in-game #bg-layer { display: none; }     /* tijdens het spelen niet nodig (
     max(clamp(8px, 2vh, 16px), env(safe-area-inset-bottom))
     max(clamp(14px, 3.5vw, 34px), env(safe-area-inset-left));
 }
-.menu-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.menu-top { position: relative; display: flex; align-items: center; justify-content: center; gap: 10px; min-height: clamp(46px, 13vh, 96px); }
+.menu-logo-img { height: clamp(46px, 13vh, 96px); width: auto; max-width: 70%; image-rendering: pixelated; }
 .menu-logo {
   font-family: var(--pixel-font); font-weight: 900; letter-spacing: 1px;
   font-size: clamp(15px, 3vw, 28px); color: #fff; text-shadow: 2px 2px 0 #000, 0 2px 6px rgba(0,0,0,.4);
 }
-.menu-hud { display: flex; align-items: center; gap: clamp(10px, 2.4vw, 26px); }
+.menu-hud { position: absolute; right: 0; top: 0; display: flex; align-items: center; gap: clamp(8px, 2vw, 20px); }
 .menu-coins-top, .menu-userline { display: flex; align-items: center; gap: 6px; color: #fff; font-size: clamp(12px, 1.8vw, 16px); text-shadow: 1px 1px 0 #000; }
 .menu-coins-top #menu-coin-count { color: var(--gold); font-weight: bold; }
 .px-icon { display: block; image-rendering: pixelated; }
@@ -883,6 +884,19 @@ body.in-game #bg-layer { display: none; }     /* tijdens het spelen niet nodig (
 }
 .shop-tab.active { border-color: #d2622e; color: #ffe9c0; background: linear-gradient(180deg, #7a3418, #4a1c0c); box-shadow: 0 0 8px rgba(255,90,25,.5); }
 .shop-back { margin-top: 0; display: inline-flex; align-items: center; gap: 5px; }
+
+/* ====== Splash bij opstarten (logo, fadet vanzelf weg — geen JS nodig) ====== */
+#splash {
+  position: absolute; inset: 0; z-index: 200;
+  display: flex; align-items: center; justify-content: center;
+  background: radial-gradient(ellipse at 50% 45%, #5a1e0a, #160806 80%);
+  opacity: 1; transition: opacity 0.5s ease;
+}
+#splash img { width: min(80%, 560px); height: auto; image-rendering: pixelated; animation: splashPop 0.6s cubic-bezier(.2,1.4,.4,1) both; }
+#splash.fading { opacity: 0; pointer-events: none; }
+#splash.gone { display: none; }
+@keyframes splashPop { from { transform: scale(.6); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { #splash img { animation: none; } }
 
 /* ====== Win-celebratie (kort, vóór het uitslagscherm) ====== */
 .vs-win {

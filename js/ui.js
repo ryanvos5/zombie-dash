@@ -7,6 +7,9 @@ const UI = {
 
   init() {
     const $ = (id) => document.getElementById(id);
+    // splash bij opstarten netjes laten wegfaden + daarna verwijderen (gegarandeerd weg)
+    setTimeout(() => { const s = $('splash'); if (s) s.classList.add('fading'); }, 2000);
+    setTimeout(() => { const s = $('splash'); if (s) s.classList.add('gone'); }, 2600);
     this.el = {
       hud: $('hud'), touch: $('touch-controls'), pause: $('pause-btn'),
       menu: $('menu-screen'), level: $('level-screen'), shop: $('shop-screen'),

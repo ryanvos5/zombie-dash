@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 300" font-family="'Courier New', monospace" font-weight="bold">
+  <defs>
+    <linearGradient id="lava" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffefb0"/>
+      <stop offset="0.42" stop-color="#ffc23c"/>
+      <stop offset="0.72" stop-color="#ef6a1e"/>
+      <stop offset="1" stop-color="#b22a0c"/>
+    </linearGradient>
+    <linearGradient id="lavaSmall" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fff2c8"/>
+      <stop offset="0.6" stop-color="#ffd24a"/>
+      <stop offset="1" stop-color="#e8852a"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#ff8a2a" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="#ff8a2a" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- gloed achter het logo -->
+  <ellipse cx="280" cy="170" rx="270" ry="120" fill="url(#glow)"/>
+
+  <!-- impact-ster (pixel-driehoeken) achter SMASHERS -->
+  <g fill="#ffb24a" opacity="0.85" shape-rendering="crispEdges">
+    <polygon points="280,150 296,196 264,196"/>
+    <polygon points="280,250 296,204 264,204"/>
+    <polygon points="150,200 196,184 196,216"/>
+    <polygon points="410,200 364,184 364,216"/>
+    <polygon points="190,150 214,178 182,190"/>
+    <polygon points="370,150 346,178 378,190"/>
+    <polygon points="190,250 214,222 182,210"/>
+    <polygon points="370,250 346,222 378,210"/>
+  </g>
+
+  <!-- gekruiste knuppels -->
+  <g stroke-linecap="round">
+    <g transform="rotate(28 280 205)">
+      <rect x="120" y="200" width="150" height="11" rx="3" fill="#8a5a2e"/>
+      <rect x="250" y="196" width="34" height="19" rx="5" fill="#a06a36"/>
+      <rect x="120" y="200" width="150" height="3" fill="#a87a44"/>
+    </g>
+    <g transform="rotate(-28 280 205)">
+      <rect x="290" y="200" width="150" height="11" rx="3" fill="#7a4e28"/>
+      <rect x="276" y="196" width="34" height="19" rx="5" fill="#92602f"/>
+      <rect x="290" y="203" width="150" height="3" fill="#5e3c1e"/>
+    </g>
+  </g>
+
+  <!-- TINY POWER (klein, boven) -->
+  <g text-anchor="middle" font-size="46" letter-spacing="4">
+    <text x="283" y="79" fill="#1a0805">TINY POWER</text>
+    <text x="280" y="76" fill="url(#lavaSmall)" stroke="#1a0805" stroke-width="5" paint-order="stroke" stroke-linejoin="round">TINY POWER</text>
+  </g>
+
+  <!-- SMASHERS (groot) -->
+  <g text-anchor="middle" font-size="104" letter-spacing="2">
+    <text x="285" y="226" fill="#4a1204">SMASHERS</text>
+    <text x="284" y="224" fill="#6e1e08">SMASHERS</text>
+    <text x="280" y="220" fill="url(#lava)" stroke="#1a0805" stroke-width="9" paint-order="stroke" stroke-linejoin="round">SMASHERS</text>
+    <!-- glans bovenlangs -->
+    <text x="280" y="220" fill="#fff6d8" opacity="0.25">SMASHERS</text>
+  </g>
+</svg>
