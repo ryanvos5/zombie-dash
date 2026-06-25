@@ -331,8 +331,10 @@ body.is-touch #hud { justify-content: flex-start; gap: 8px; }
   overflow: hidden;                 /* hele scherm scrolt NIET; alleen de lijst binnenin */
   touch-action: none;
   padding: 8px;
-  padding-top: calc(8px + env(safe-area-inset-top));
-  padding-bottom: calc(8px + env(safe-area-inset-bottom));
+  padding-top: max(8px, env(safe-area-inset-top));
+  padding-bottom: max(8px, env(safe-area-inset-bottom));
+  padding-left: max(8px, env(safe-area-inset-left));
+  padding-right: max(8px, env(safe-area-inset-right));
 }
 
 /* globale drijvende battlemap-achtergrond achter alle menu's */
@@ -355,6 +357,11 @@ body.in-game #bg-layer { display: none; }     /* tijdens het spelen niet nodig (
 /* op deze schermen scrolt alleen de lijst, niet het paneel */
 #shop-screen .screen-inner, #leaderboard-screen .screen-inner, #chat-screen .screen-inner { overflow: hidden; }
 #shop-grid, #lb-list, .chat-messages { flex: 1 1 auto; min-height: 0; overflow-y: auto; width: 100%; }
+/* chat: online-balk vast bovenaan, berichten flexen + scrollen (geen overlap) */
+#chat-screen .chat-online { flex: 0 0 auto; max-height: 50px; width: 100%; margin-bottom: 6px; }
+#chat-screen .chat-messages { flex: 1 1 auto; min-height: 56px; max-height: none; }
+#chat-screen .chat-input-row, #chat-screen .chat-msg, #chat-screen .back-btn { flex: 0 0 auto; }
+#chat-screen .screen-title, #chat-screen .chat-online { width: 100%; }
 .ic { width: 1em; height: 1em; display: inline-block; vertical-align: -0.14em; image-rendering: pixelated; }
 .screen-title .ic { width: .92em; height: .92em; vertical-align: -0.06em; }
 
@@ -399,7 +406,13 @@ body.in-game #bg-layer { display: none; }     /* tijdens het spelen niet nodig (
 .menu-frame {
   position: relative; z-index: 1; width: 100%; max-width: 1000px; height: 100%;
   margin: auto; display: flex; flex-direction: column;
-  padding: clamp(8px, 2vh, 16px) clamp(12px, 3vw, 30px); gap: clamp(6px, 1.5vh, 14px);
+  gap: clamp(6px, 1.5vh, 14px);
+  /* binnen de veilige zone blijven: niet onder de notch/Dynamic Island of buiten de ronde hoeken */
+  padding:
+    max(clamp(8px, 2vh, 16px), env(safe-area-inset-top))
+    max(clamp(14px, 3.5vw, 34px), env(safe-area-inset-right))
+    max(clamp(8px, 2vh, 16px), env(safe-area-inset-bottom))
+    max(clamp(14px, 3.5vw, 34px), env(safe-area-inset-left));
 }
 .menu-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .menu-logo {
