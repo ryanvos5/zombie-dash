@@ -11,12 +11,44 @@
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="theme-color" content="#0d0f14" />
   <title>Tiny Power Smashers</title>
-  <link rel="icon" type="image/svg+xml" href="icon.svg?v=menu3" />
-  <link rel="apple-touch-icon" href="icon.svg?v=menu3" />
-  <link rel="stylesheet" href="css/style.css?v=menu3" />
+  <link rel="icon" type="image/svg+xml" href="icon.svg?v=menu4" />
+  <link rel="apple-touch-icon" href="icon.svg?v=menu4" />
+  <link rel="stylesheet" href="css/style.css?v=menu4" />
 </head>
 <body>
   <div id="game-root">
+    <!-- ===== Pixel-iconen (spritesheet, eigen gemaakt) ===== -->
+    <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+      <defs>
+        <symbol id="ic-coin" viewBox="0 0 16 16"><rect x="4" y="2" width="8" height="12" fill="#caa12e"/><rect x="3" y="4" width="10" height="8" fill="#ffd24a"/><rect x="6" y="4" width="2" height="8" fill="#fff0a8"/></symbol>
+        <symbol id="ic-gear" viewBox="0 0 16 16"><rect x="6" y="1" width="4" height="14" fill="#cfd6df"/><rect x="1" y="6" width="14" height="4" fill="#cfd6df"/><rect x="4" y="4" width="8" height="8" fill="#9aa3ad"/><rect x="6" y="6" width="4" height="4" fill="#2a3242"/></symbol>
+        <symbol id="ic-trophy" viewBox="0 0 16 16"><rect x="4" y="2" width="8" height="6" fill="#ffd24a"/><rect x="2" y="3" width="2" height="3" fill="#caa12e"/><rect x="12" y="3" width="2" height="3" fill="#caa12e"/><rect x="6" y="8" width="4" height="3" fill="#caa12e"/><rect x="4" y="11" width="8" height="2" fill="#caa12e"/><rect x="5" y="13" width="6" height="2" fill="#8a6a1e"/></symbol>
+        <symbol id="ic-chat" viewBox="0 0 16 16"><rect x="2" y="3" width="12" height="8" fill="#7fd0ff"/><rect x="3" y="4" width="10" height="6" fill="#bfe9ff"/><rect x="4" y="11" width="3" height="3" fill="#7fd0ff"/><rect x="5" y="6" width="2" height="2" fill="#2a4a6a"/><rect x="9" y="6" width="2" height="2" fill="#2a4a6a"/></symbol>
+        <symbol id="ic-cart" viewBox="0 0 16 16"><rect x="1" y="3" width="4" height="2" fill="#cfd6df"/><rect x="5" y="4" width="9" height="6" fill="#caa12e"/><rect x="5" y="4" width="9" height="2" fill="#ffd24a"/><rect x="6" y="11" width="2" height="2" fill="#2a3242"/><rect x="11" y="11" width="2" height="2" fill="#2a3242"/></symbol>
+        <symbol id="ic-char" viewBox="0 0 16 16"><rect x="6" y="2" width="4" height="4" fill="#e8b98a"/><rect x="6" y="2" width="4" height="1" fill="#6b4426"/><rect x="5" y="7" width="6" height="6" fill="#3a7a4a"/><rect x="3" y="8" width="2" height="4" fill="#e8b98a"/><rect x="11" y="8" width="2" height="4" fill="#e8b98a"/></symbol>
+        <symbol id="ic-hat" viewBox="0 0 16 16"><rect x="5" y="2" width="6" height="7" fill="#2a2a32"/><rect x="5" y="6" width="6" height="1" fill="#d23a2a"/><rect x="2" y="9" width="12" height="2" fill="#1a1a20"/></symbol>
+        <symbol id="ic-skull" viewBox="0 0 16 16"><rect x="4" y="3" width="8" height="7" fill="#e8e0cf"/><rect x="5" y="5" width="2" height="2" fill="#1a1a1a"/><rect x="9" y="5" width="2" height="2" fill="#1a1a1a"/><rect x="5" y="10" width="6" height="2" fill="#e8e0cf"/><rect x="6" y="10" width="1" height="2" fill="#1a1a1a"/><rect x="9" y="10" width="1" height="2" fill="#1a1a1a"/></symbol>
+        <symbol id="ic-bot" viewBox="0 0 16 16"><rect x="7" y="1" width="2" height="2" fill="#9aa3ad"/><rect x="3" y="4" width="10" height="8" fill="#9aa3ad"/><rect x="5" y="6" width="2" height="2" fill="#2ed0ff"/><rect x="9" y="6" width="2" height="2" fill="#2ed0ff"/><rect x="5" y="9" width="6" height="1" fill="#2a3242"/></symbol>
+        <symbol id="ic-key" viewBox="0 0 16 16"><rect x="3" y="4" width="5" height="5" fill="#ffd24a"/><rect x="4" y="5" width="3" height="3" fill="#2a1a06"/><rect x="8" y="6" width="6" height="2" fill="#ffd24a"/><rect x="12" y="8" width="2" height="2" fill="#ffd24a"/></symbol>
+        <symbol id="ic-back" viewBox="0 0 16 16"><rect x="3" y="7" width="10" height="2" fill="#cfd6df"/><rect x="4" y="5" width="2" height="2" fill="#cfd6df"/><rect x="4" y="9" width="2" height="2" fill="#cfd6df"/><rect x="5" y="3" width="2" height="2" fill="#cfd6df"/><rect x="5" y="11" width="2" height="2" fill="#cfd6df"/></symbol>
+        <symbol id="ic-swords" viewBox="0 0 16 16"><rect x="3" y="2" width="2" height="2" fill="#cfd6df"/><rect x="5" y="4" width="2" height="2" fill="#cfd6df"/><rect x="7" y="6" width="2" height="2" fill="#cfd6df"/><rect x="11" y="2" width="2" height="2" fill="#cfd6df"/><rect x="9" y="4" width="2" height="2" fill="#cfd6df"/><rect x="2" y="11" width="4" height="2" fill="#8a3418"/><rect x="10" y="11" width="4" height="2" fill="#8a3418"/></symbol>
+        <symbol id="ic-bolt" viewBox="0 0 16 16"><rect x="7" y="2" width="4" height="5" fill="#ffe27a"/><rect x="5" y="6" width="5" height="2" fill="#ffd24a"/><rect x="6" y="8" width="4" height="5" fill="#ffe27a"/><rect x="4" y="8" width="3" height="2" fill="#ffd24a"/></symbol>
+      </defs>
+    </svg>
+
+    <!-- ===== Battlemap-achtergrond (drijft voorbij) achter alle menu's ===== -->
+    <div id="bg-layer" aria-hidden="true">
+      <div class="scene-scroll">
+        <img class="menu-scene" src="menu-bg.svg?v=menu4" alt="" />
+        <img class="menu-scene" src="menu-bg.svg?v=menu4" alt="" />
+      </div>
+      <div class="bird b1"><span class="wing wl"></span><span class="wing wr"></span></div>
+      <div class="bird b2"><span class="wing wl"></span><span class="wing wr"></span></div>
+      <div class="bird b3"><span class="wing wl"></span><span class="wing wr"></span></div>
+      <div class="bird b4"><span class="wing wl"></span><span class="wing wr"></span></div>
+      <div class="bg-vignette"></div>
+    </div>
+
     <!-- ===== Canvas (de spelwereld) ===== -->
     <canvas id="game-canvas"></canvas>
 
@@ -74,18 +106,6 @@
 
     <!-- ===== Hoofdmenu (landscape-first, battlemap-achtergrond) ===== -->
     <div id="menu-screen" class="screen">
-      <!-- battlemap-achtergrond (drijft voorbij) + vliegende vogels -->
-      <div class="menu-bg" aria-hidden="true">
-        <div class="scene-scroll">
-          <img class="menu-scene" src="menu-bg.svg?v=menu3" alt="" />
-          <img class="menu-scene" src="menu-bg.svg?v=menu3" alt="" />
-        </div>
-        <div class="bird b1"><span class="wing wl"></span><span class="wing wr"></span></div>
-        <div class="bird b2"><span class="wing wl"></span><span class="wing wr"></span></div>
-        <div class="bird b3"><span class="wing wl"></span><span class="wing wr"></span></div>
-        <div class="bird b4"><span class="wing wl"></span><span class="wing wr"></span></div>
-      </div>
-
       <div class="menu-frame">
         <header class="menu-top">
           <div class="menu-logo">Tiny Power Smashers</div>
@@ -179,10 +199,10 @@
     <!-- ===== Shop (wapens / characters / hoeden) ===== -->
     <div id="shop-screen" class="screen hidden">
       <div class="screen-inner">
-        <h2 class="screen-title">SHOP</h2>
+        <h2 class="screen-title"><svg class="ic"><use href="#ic-cart"/></svg> SHOP</h2>
         <div id="shop-tabs" class="shop-tabs">
-          <button class="shop-tab active" data-tab="chars">🧍 Characters</button>
-          <button class="shop-tab" data-tab="hats">🎩 Hoeden</button>
+          <button class="shop-tab active" data-tab="chars"><svg class="ic"><use href="#ic-char"/></svg> Characters</button>
+          <button class="shop-tab" data-tab="hats"><svg class="ic"><use href="#ic-hat"/></svg> Hoeden</button>
         </div>
         <div class="shop-coins">Munten: <span id="shop-coin-count">0</span> ●</div>
         <div id="shop-grid" class="shop-grid"></div>
@@ -193,7 +213,7 @@
     <!-- ===== Leaderboard ===== -->
     <div id="leaderboard-screen" class="screen hidden">
       <div class="screen-inner">
-        <h2 class="screen-title">🏆 LEADERBOARD</h2>
+        <h2 class="screen-title"><svg class="ic"><use href="#ic-trophy"/></svg> LEADERBOARD</h2>
         <div id="lb-tabs" class="world-tabs">
           <button class="world-tab active" data-lb="xp">Level</button>
           <button class="world-tab" data-lb="arena">Knock-out</button>
@@ -208,7 +228,7 @@
     <!-- ===== Lobby chat ===== -->
     <div id="chat-screen" class="screen hidden">
       <div class="screen-inner chat-inner">
-        <h2 class="screen-title">💬 LOBBY CHAT</h2>
+        <h2 class="screen-title"><svg class="ic"><use href="#ic-chat"/></svg> LOBBY CHAT</h2>
         <div class="chat-online"><span class="chat-online-label">Online:</span><span id="chat-online-list"></span></div>
         <div id="chat-messages" class="chat-messages"></div>
         <div class="chat-input-row">
@@ -235,7 +255,7 @@
     <!-- ===== 1 vs 1 lobby ===== -->
     <div id="versus-screen" class="screen hidden">
       <div class="screen-inner">
-        <h2 class="screen-title">1 VS 1 ONLINE</h2>
+        <h2 class="screen-title"><svg class="ic"><use href="#ic-swords"/></svg> 1 VS 1 ONLINE</h2>
         <p class="screen-sub">Sla je tegenstander van het platform! Eerst bij 5 punten wint.</p>
         <div id="versus-lobby">
           <button id="btn-vs-host" class="big-btn">KAMER MAKEN</button>
@@ -243,7 +263,7 @@
             <input id="vs-code-input" class="auth-input" type="text" placeholder="CODE" maxlength="4" autocomplete="off" />
             <button id="btn-vs-join" class="big-btn secondary">MEEDOEN</button>
           </div>
-          <button id="btn-vs-bot" class="big-btn secondary">🤖 SPEEL TEGEN BOT</button>
+          <button id="btn-vs-bot" class="big-btn secondary"><svg class="ic"><use href="#ic-bot"/></svg> SPEEL TEGEN BOT</button>
           <div id="versus-msg" class="auth-msg"></div>
         </div>
         <div id="versus-wait" class="hidden">
@@ -380,14 +400,14 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
-  <script src="js/config.js?v=menu3"></script>
-  <script src="js/storage.js?v=menu3"></script>
-  <script src="js/net.js?v=menu3"></script>
-  <script src="js/input.js?v=menu3"></script>
-  <script src="js/sprites.js?v=menu3"></script>
-  <script src="js/entities.js?v=menu3"></script>
-  <script src="js/ui.js?v=menu3"></script>
-  <script src="js/game.js?v=menu3"></script>
-  <script src="js/main.js?v=menu3"></script>
+  <script src="js/config.js?v=menu4"></script>
+  <script src="js/storage.js?v=menu4"></script>
+  <script src="js/net.js?v=menu4"></script>
+  <script src="js/input.js?v=menu4"></script>
+  <script src="js/sprites.js?v=menu4"></script>
+  <script src="js/entities.js?v=menu4"></script>
+  <script src="js/ui.js?v=menu4"></script>
+  <script src="js/game.js?v=menu4"></script>
+  <script src="js/main.js?v=menu4"></script>
 </body>
 </html>
