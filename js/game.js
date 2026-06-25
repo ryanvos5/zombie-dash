@@ -1179,7 +1179,7 @@ const Game = {
     this.vulcanSmoke = []; this.vulcanBg = [];
     // Pirate: zeemonster-tentakel
     this.tentacle = map.pirate ? { state: 'idle', nextAt: this.time + PIRATE_TENT_EVERY, x: 360, mode: 'flat', hitP: false, hitB: false } : null;
-    this.player.cannon = 0; this.player.shieldHp = 0; this.player.gunAmmo = 0; this.player.giant = false; this.player._baseMaxHp = this.player.maxHp; this.player._caged = false;
+    this.player.cannon = 0; this.player.shieldHp = 0; this.player.gunAmmo = 0; this.player.giant = false; this.player._baseMaxHp = this.player.maxHp; this.player._caged = false; this.player.heli = false; this.player.heliMinigun = 0; this.player.heliRockets = 0;
     // Jungle: lianen + gorilla in de kooi + papegaaien
     this.vsVines = map.vines || null;
     this.gorilla = map.cage ? { x: map.cage.x, y: map.cage.floorY, hp: GORILLA_HP, maxHp: GORILLA_HP, dir: -1, alive: true, state: 'idle', swipeUntil: 0, swipeCd: 0, respawnAt: 0, hitFlash: 0, _net: 0 } : null;
@@ -1224,7 +1224,7 @@ const Game = {
       b.x = rb.x; b.y = rb.y; b.dir = this.vs.botSpawn.dir; b.onGround = true;
       b._think = 0; b._jumpCd = 0; b._shootCd = 0; b._blockUntil = 0; b._rangedId = botRanged;
       b.baseMelee = botMelee; b.fireballs = 0; b.smashRockets = 0; b._weaponUntil = 0; b._fireCd = 0;
-      b.cannon = 0; b.shieldHp = 0; b.gunAmmo = 0; b.giant = false; b._baseMaxHp = b.maxHp; b._caged = false;
+      b.cannon = 0; b.shieldHp = 0; b.gunAmmo = 0; b.giant = false; b._baseMaxHp = b.maxHp; b._caged = false; b.heli = false; b.heliMinigun = 0; b.heliRockets = 0;
       this.bot = b;
       this.vs.remote.charId = botChar;
     } else if (window.Net) {
@@ -1301,8 +1301,12 @@ const Game = {
     if (v.countdown > 0) { v.countdown -= dt; }       // korte aftelling vóór de start
     else {
       if (this.player.respawnInvuln > 0) this.player.respawnInvuln -= dt;
-      if (this.vsMode === 'smash') this.smashFire(dt);   // fireball/rocket op de vuurknop (vóór update)
-      this.player.update(dt, this);                   // eigen speler: volledige besturing/fysica
+      if (this.player.heli) {
+        this.updateHeli(dt);                          // gevechtsheli: vliegen + minigun/raketten
+      } else {
+        if (this.vsMode === 'smash') this.smashFire(dt);   // fireball/rocket op de vuurknop (vóór update)
+        this.player.update(dt, this);                   // eigen speler: volledige besturing/fysica
+      }
       this.player.x = Math.max(8, Math.min(this.vsMapW - 8, this.player.x));   // binnen de map
       this.carryOnPlatform();                          // meebewegen met bewegend platform
       if (this.vsMode === 'smash') this.updateSmash(dt);  // drops spawnen/oppakken + wapen-timer
@@ -1507,6 +1511,65 @@ const Game = {
     this.spawnMuzzleFlash(shooter.x + dir * 14, shooter.y - 16, dir);
   },
 
+  // ===== GEVECHTSHELI =====
+  updateHeli(dt) {
+    const p = this.player;
+    const frozen = (p.stunUntil && this.time < p.stunUntil) || (p.flatUntil && this.time < p.flatUntil);
+    const inp = frozen ? {} : Input.state;
+    const s = HELI_SPEED * this.dtScale;
+    if (inp.left && !inp.right) { p.x -= s; p.dir = -1; }
+    if (inp.right && !inp.left) { p.x += s; p.dir = 1; }
+    if (inp.jump) p.y -= s;
+    if (inp.duck) p.y += s;
+    p.vy = 0; p.knockVx = 0; p.onGround = false; p.walkPhase = 0;
+    // grenzen: binnen de map en niet de afgrond in (heli vliegt)
+    p.x = Math.max(14, Math.min(this.vsMapW - 14, p.x));
+    const top = ((this.vsMap && this.vsMap.camTop != null) ? this.vsMap.camTop : -40) - 24;
+    p.y = Math.max(top, Math.min(CONFIG.GROUND_Y - 2, p.y));
+    // minigun (vuurknop, ingedrukt houden = doorvuren)
+    if (!frozen && Input.state.attack && p.heliMinigun > 0 && this.time >= (p._heliFireCd || 0)) {
+      p._heliFireCd = this.time + 80; p.heliMinigun--; this.spawnHeliBullet(p);
+    }
+    // raketten (meleeknop)
+    if (!frozen && Input.state.melee && p.heliRockets > 0 && this.time >= (p._heliRocketCd || 0)) {
+      p._heliRocketCd = this.time + 600; p.heliRockets--; this.spawnVersusProjectile(p, 'rocket'); this.shake = Math.max(this.shake, 4);
+    }
+    if (p.heliMinigun <= 0 && p.heliRockets <= 0) this.endHeli(p);   // alles op -> uitstappen
+  },
+  spawnHeliBullet(p) {
+    const dir = p.dir;
+    const bl = new Bullet(p.x + dir * 18, p.y - 10 + (Math.random() - 0.5) * 3, dir * 10, 0, 0);
+    bl.kind = 'gun'; bl.hitDmg = 7; bl.power = 5; bl.vy = 0; bl.life = 0;
+    this.bullets.push(bl);
+    this.spawnMuzzleFlash(p.x + dir * 18, p.y - 10, dir);
+  },
+  endHeli(p) {
+    p.heli = false; p.heliMinigun = 0; p.heliRockets = 0;
+    p.vy = 0; p.weaponId = p.meleeId || 'bat';
+    for (let i = 0; i < 10; i++) this.particles.push(new Particle(p.x, p.y - 8, (Math.random() - 0.5) * 3, -Math.random() * 2, '#888', 320, 2));
+  },
+  drawHeli(ctx, cx, fy, dir, pal) {
+    const t = this.time, f = dir, by = fy - 24;
+    const green = '#3f5a3a', greenDk = '#26371f', glass = '#a8dcff', metal = '#7a7a7a', skin = (pal && pal.skin) || '#e8b98a';
+    const P = (c, x, y, w, h) => Sprites.px(ctx, c, Math.round(x), Math.round(y), w, h);
+    // staartboom + staartrotor (achterkant = tegengesteld aan dir)
+    P(green, cx - f * 26, by + 4, 26, 4); P(greenDk, cx - f * 26, by + 6, 26, 2);
+    const tr = 5 + Math.round(Math.abs(Math.sin(t / 28)) * 5);
+    P(metal, cx - f * 27, by + 3 - (tr - 5), 2, tr); P(metal, cx - f * 27, by + 5, 2, tr);
+    // romp
+    P(greenDk, cx - 14, by, 28, 15); P(green, cx - 13, by + 1, 26, 4); P(green, cx - 13, by + 3, 25, 9);
+    // cockpit-glas + piloot (voorkant = dir-kant)
+    P(glass, cx + f * 4, by + 3, 9, 8); P(skin, cx + f * 6, by + 4, 4, 4); P('#1a1a1a', cx + f * (f > 0 ? 8 : 6), by + 5, 1, 2);
+    // skids
+    P(metal, cx - 13, by + 16, 26, 2); P(metal, cx - 10, by + 15, 2, 2); P(metal, cx + 8, by + 15, 2, 2);
+    // hoofdrotor (draait: brede lijn die van breedte wisselt)
+    P(metal, cx - 1, by - 3, 2, 3);
+    const rw = 16 + Math.round(Math.sin(t / 26) * 9);
+    P('#cfd6df', cx - rw, by - 4, rw * 2, 2);
+    // minigun onder de neus
+    P('#2a2a2a', cx + f * 12, by + 9, f * 6, 2);
+  },
+
   updateSmash(dt) {
     const p = this.player;
     if (p._weaponUntil && this.time > p._weaponUntil) { p.meleeId = p.baseMelee || 'bat'; p.weaponId = p.rangedId || p.meleeId; p._weaponUntil = 0; p.swingWeapon = null; }
@@ -1515,9 +1578,9 @@ const Game = {
       this._dropTimer -= dt;
       if (this._dropTimer <= 0 && this.drops.length < 3) { this._dropTimer = SMASH_DROP_EVERY; this.spawnDrop(); }
     }
-    // eigen speler pakt op
+    // eigen speler pakt op (niet tijdens het vliegen in de heli)
     for (const d of this.drops) {
-      if (d.taken) continue;
+      if (d.taken || this.player.heli) continue;
       if (Math.abs(this.player.x - d.x) < 16 && Math.abs((this.player.y - 12) - d.y) < 22) {
         d.taken = true; this.applyDrop(this.player, d);
         if (window.Net && !this.vsBot) Net.versusSend('pickup', { id: d.id });
@@ -1526,7 +1589,7 @@ const Game = {
     // bot pakt op + wapen-timer
     if (this.vsBot && this.bot && !this.bot.dead) {
       for (const d of this.drops) {
-        if (d.taken || d.kind === 'giant') continue;          // bot pakt geen Giant (kan dan niet aanvallen)
+        if (d.taken || d.kind === 'giant' || d.kind === 'heli') continue;   // bot pakt geen Giant/Heli
         if (Math.abs(this.bot.x - d.x) < 16 && Math.abs((this.bot.y - 12) - d.y) < 22) { d.taken = true; this.applyDrop(this.bot, d); }
       }
       if (this.bot._weaponUntil && this.time > this.bot._weaponUntil) { this.bot.meleeId = this.bot.baseMelee || 'bat'; this.bot.weaponId = this.bot.rangedId || this.bot.meleeId; this.bot._weaponUntil = 0; this.bot.swingWeapon = null; }
@@ -1972,6 +2035,7 @@ const Game = {
     if (mid === 'cave') pool.push({ kind: 'rock', w: 8 });                          // steen alleen op Cave
     if (mid === 'pirate') pool.push({ kind: 'cannon', w: 9 });                      // kanonskogel alleen op Pirate Ship
     if (mid === 'pirate' || mid === 'sky') pool.push({ kind: 'shield', w: 9 });     // shield op Pirate + Sky
+    if (mid === 'sky' || mid === 'lava') pool.push({ kind: 'heli', w: 6 });          // gevechtsheli op Sky + Volcano
     if (mid === 'jungle') { pool.push({ kind: 'giant', w: 6 }); pool.push({ kind: 'ak47', w: 9 }); }  // Giant + AK47 op Jungle
     if (mid === 'dohyo') {                                                          // Dohyo: ALLE power-ups
       pool.push({ kind: 'lightning', w: 8 }); pool.push({ kind: 'rock', w: 8 }); pool.push({ kind: 'cannon', w: 9 });
@@ -2027,6 +2091,13 @@ const Game = {
     }
     else if (d.kind === 'cannon') { pl.cannon = (pl.cannon || 0) + 1; }            // 1 kanonskogel
     else if (d.kind === 'shield') { pl.shieldHp = SMASH_SHIELD; }                  // +50 hp schild
+    else if (d.kind === 'heli') {                                                  // gevechtsheli: instappen
+      pl.heli = true; pl.heliMinigun = HELI_MINIGUN; pl.heliRockets = HELI_ROCKETS;
+      pl._heliFireCd = 0; pl._heliRocketCd = 0;
+      pl.fireballs = 0; pl.smashRockets = 0; pl.cannon = 0; pl.gunAmmo = 0; pl.rangedId = null;
+      pl.vy = 0; pl.onGround = false; pl.y -= 18;                                  // even opstijgen
+      for (let i = 0; i < 14; i++) this.particles.push(new Particle(pl.x, pl.y + 6, (Math.random() - 0.5) * 3, Math.random() * 2, '#cfd6df', 360, 2));
+    }
   },
 
   onVersusDrop(p) {
@@ -2052,7 +2123,7 @@ const Game = {
 
   checkVersusHit() {
     const p = this.player, r = this.vs.remote;
-    if (p.giant) return;                              // reus kan niet aanvallen
+    if (p.giant || p.heli) return;                    // reus/heli gebruiken geen melee-swing
     if (!r.alive) return;
     // alleen op het moment dat een NIEUWE mep begint (1 mep = 1 treffer)
     const sw = p.swingUntil || 0;
@@ -2109,7 +2180,7 @@ const Game = {
     r.stunned = b.stunUntil && this.time < b.stunUntil;
     r.flat = b.flatUntil && this.time < b.flatUntil;
     r.rage = b.hasBuff('rage', this.time); r.burn = b.burnUntil > this.time;
-    r.shieldHp = b.shieldHp || 0; r.giant = !!b.giant;
+    r.shieldHp = b.shieldHp || 0; r.giant = !!b.giant; r.heli = !!b.heli;
     r.walkPhase = b.walkPhase; r.alive = !b.dead; r.charId = b.charId;
     r.hp = b.hp; r.maxHp = b.maxHp; r.ducking = b.ducking;
 
@@ -2228,6 +2299,7 @@ const Game = {
     b.swingWeapon = null; b.swingUntil = 0; b.stunUntil = 0; b.flatUntil = 0; b._beamSafeUntil = 0; b.combo = 0; b.comboUntil = 0; b.vine = null; b._caged = false;
     b.guard = GUARD_MAX; b._guardBroken = false; b._blockStart = 0;
     if (b.giant) { b.giant = false; if (b._baseMaxHp) b.maxHp = b._baseMaxHp; b.hp = b.maxHp; }
+    b.heli = false; b.heliMinigun = 0; b.heliRockets = 0;
     if (this.vsMode === 'smash') { b.meleeId = b.baseMelee || 'bat'; b.weaponId = b.meleeId; b.fireballs = 0; b.smashRockets = 0; b.cannon = 0; b.shieldHp = 0; b._weaponUntil = 0; b.gunAmmo = 0; }
     this.vs.remote.alive = true;
   },
@@ -2417,6 +2489,7 @@ const Game = {
     this.player.guard = GUARD_MAX; this.player._guardBroken = false; this.player._blockStart = 0;
     this.player.swingWeapon = null; this.player.swingUntil = 0;       // geen lingerende mep-animatie
     if (this.player.giant) { this.player.giant = false; if (this.player._baseMaxHp) this.player.maxHp = this.player._baseMaxHp; }  // reus eindigt bij rondewissel
+    this.player.heli = false; this.player.heliMinigun = 0; this.player.heliRockets = 0;
     this.player.hp = this.player.maxHp;
     if (this.vsMode === 'smash') {                  // elke ronde weer met de knuppel
       this.player.meleeId = this.player.baseMelee || 'bat'; this.player.rangedId = null;
@@ -2460,6 +2533,7 @@ const Game = {
     r.rage = s.rg === 1; r.burn = s.bn === 1;
     r.shieldHp = s.shp || 0;
     r.giant = s.gi === 1;
+    r.heli = s.hl === 1;
     r.alive = s.al !== 0; r.charId = s.ch || 'ryan';
     r.ducking = s.dk === 1;
     if (typeof s.h === 'number') r.hp = s.h;
@@ -2475,7 +2549,7 @@ const Game = {
       g: p.onGround ? 1 : 0, a: this.time < p.attackAnimUntil ? 1 : 0,
       sw: (this.time < (p.swingUntil || 0)) ? (p.swingWeapon || 0) : 0,
       wid: p.weaponId || 0, su: (p.stunUntil && this.time < p.stunUntil) ? 1 : 0, fl: (p.flatUntil && this.time < p.flatUntil) ? 1 : 0, ht: Storage.data.equippedHat || 'none',
-      rg: p.hasBuff('rage', this.time) ? 1 : 0, bn: (p.burnUntil > this.time) ? 1 : 0, shp: Math.round(p.shieldHp || 0), gi: p.giant ? 1 : 0,
+      rg: p.hasBuff('rage', this.time) ? 1 : 0, bn: (p.burnUntil > this.time) ? 1 : 0, shp: Math.round(p.shieldHp || 0), gi: p.giant ? 1 : 0, hl: p.heli ? 1 : 0,
       wp: p.walkPhase || 0, al: p.dead ? 0 : 1, ch: Storage.data.equippedCharacter || 'ryan',
       h: Math.round(p.hp), mh: p.maxHp, dk: p.ducking ? 1 : 0,
     });
@@ -2628,6 +2702,8 @@ const Game = {
     if (r.alive) {
       const rc = (CHARACTERS[r.charId] || CHARACTERS.ryan);
       if (r.onGround) Sprites.shadow(ctx, r.x, r.y + 1, r.giant ? 11 : 7);
+      if (r.heli) { this.drawHeli(ctx, Math.round(r.x), Math.round(r.y), r.dir, rc.palette); }
+      else {
       ctx.save(); ctx.translate(Math.round(r.x), Math.round(r.y)); const rg = r.giant ? 2.2 : 1; ctx.scale(rg, rg);
       Sprites.drawCharacter(ctx, 0, 0, r.dir, rc.palette, {
         walkPhase: r.walkPhase, airborne: !r.onGround, attacking: r.attacking, ducking: r.ducking,
@@ -2635,6 +2711,7 @@ const Game = {
         hat: r.hat || 'none', t: this.time, rage: r.rage, burning: r.burn,
       });
       ctx.restore();
+      }
       if (r.ducking) this.drawBlockGuard(ctx, Math.round(r.x), Math.round(r.y), r.dir);
       if (r.stunned) this.drawStunAura(ctx, Math.round(r.x), Math.round(r.y));
       this.drawVsMarker(ctx, Math.round(r.x), Math.round(r.y), rc.build, '#ff5a5a');
@@ -2647,6 +2724,8 @@ const Game = {
       if (!blink) {
         if (p.onGround) Sprites.shadow(ctx, p.x, p.y + 1, p.giant ? 11 : 7);
         const swinging = this.time < (p.swingUntil || 0) && p.swingWeapon;
+        if (p.heli) { this.drawHeli(ctx, Math.round(p.x), Math.round(p.y), p.dir, p.pal); }
+        else {
         ctx.save(); ctx.translate(Math.round(p.x), Math.round(p.y)); const pg = p.giant ? 2.2 : 1; ctx.scale(pg, pg);
         Sprites.drawCharacter(ctx, 0, 0, p.dir, p.pal, {
           walkPhase: p.walkPhase, airborne: !p.onGround, ducking: p.ducking,
@@ -2657,6 +2736,7 @@ const Game = {
           rage: p.hasBuff('rage', this.time), burning: p.burnUntil > this.time,
         });
         ctx.restore();
+        }
         if (p.ducking && p.onGround) this.drawBlockGuard(ctx, Math.round(p.x), Math.round(p.y), p.dir);
         if (p.stunUntil && this.time < p.stunUntil) this.drawStunAura(ctx, Math.round(p.x), Math.round(p.y));
       }
@@ -2754,6 +2834,15 @@ const Game = {
       Sprites.px(ctx, '#3a2f22', x - 2, y + 1, 3, 4);   // magazijn (gebogen)
       Sprites.px(ctx, '#1a1a1e', x - 1, y + 4, 3, 2);
       Sprites.px(ctx, '#888', x - 6, y - 2, 3, 1);
+    }
+    else if (d.kind === 'heli') {
+      // gevechtsheli-icoon
+      Sprites.px(ctx, '#cfd6df', x - 7, y - 6, 14, 2);   // hoofdrotor
+      Sprites.px(ctx, '#7a7a7a', x - 1, y - 5, 2, 2);    // mast
+      Sprites.px(ctx, '#3f5a3a', x - 5, y - 3, 9, 6);    // romp
+      Sprites.px(ctx, '#a8dcff', x + 1, y - 2, 3, 3);    // cockpit
+      Sprites.px(ctx, '#3f5a3a', x - 9, y - 1, 5, 2);    // staart
+      Sprites.px(ctx, '#7a7a7a', x - 5, y + 3, 9, 1);    // ski
     }
   },
 

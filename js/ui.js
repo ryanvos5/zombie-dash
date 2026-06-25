@@ -777,6 +777,7 @@ const UI = {
   // touch-knoppen tonen het pixel-icoon van het actieve wapen/powerup (i.p.v. emoji)
   updateTouchIcons() {
     const p = Game.player; if (!p) return;
+    if (p.heli) { this._drawTbtnIcon('tbtn-melee-ic', 'rocket'); this._drawTbtnIcon('tbtn-fire-ic', 'ak47'); return; }   // heli: raket / minigun
     const meleeId = (p.swingWeapon && Game.time < (p.swingUntil || 0)) ? p.swingWeapon : (p.meleeId || 'bat');
     let fire;
     if (p.giant) fire = 'fist';                                     // reus kan niet vuren

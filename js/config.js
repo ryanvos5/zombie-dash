@@ -416,6 +416,9 @@ const SMASH_ROCK_COUNT = 3;
 const SMASH_ROCK_FLAT = 2000;        // 2s plat (niet bewegen)
 const SMASH_SHIELD = 50;             // shield-powerup: +50 hp als blauw balkje (Pirate + Sky)
 const SMASH_ROCK_SPREAD = 55;        // spreiding rond de tegenstander
+const HELI_MINIGUN = 100;            // gevechtsheli: minigun-kogels (vuurknop)
+const HELI_ROCKETS = 3;              // gevechtsheli: raketten (meleeknop)
+const HELI_SPEED = 2.8;              // vlieg-snelheid (links/rechts/omhoog/omlaag)
 
 // bukken/blokken: parry (perfecte timing) + sterker maar breekbaar blok
 const PARRY_WINDOW = 220;            // ms na blok-start = perfecte parry (100% blok + counter)
