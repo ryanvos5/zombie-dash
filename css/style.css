@@ -356,39 +356,89 @@ body.is-touch #hud { justify-content: flex-start; gap: 8px; }
 
 .menu-buttons { display: flex; flex-direction: column; gap: 14px; align-items: center; margin: 10px 0; }
 
-/* ====== Hoofdmenu: landscape-first, past altijd in beeld (geen scroll) ====== */
-#menu-screen { overflow: hidden; touch-action: none; padding: 10px; }
-#menu-screen .menu-inner {
-  width: 100%; max-width: 920px; height: 100%;
-  display: flex; align-items: center; justify-content: center; padding: 0;
-}
-.menu-layout {
-  display: flex; flex-direction: row; align-items: center; justify-content: center;
-  gap: clamp(16px, 4vw, 44px); width: 100%;
-}
-.menu-brand { flex: 1 1 0; min-width: 0; text-align: left; }
-.menu-brand .game-title { font-size: clamp(26px, 6.2vw, 58px); margin: 0; }
-.menu-brand .subtitle { margin: 8px 0 12px; font-size: clamp(11px, 1.6vw, 14px); }
-.menu-brand .menu-coins { margin-top: 4px; font-size: 16px; }
-.menu-brand .account-bar { align-items: flex-start; margin-top: 8px; }
-.menu-brand .xp-bar-wrap { margin-left: 0; }
-.menu-brand .text-btn { margin-top: 8px; }
-.menu-actions {
-  flex: 1 1 0; display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
-  width: 100%; max-width: 470px; align-content: center;
-}
-.menu-actions .big-btn {
-  width: 100%; margin: 0; padding: 13px 8px;
-  font-size: clamp(13px, 2.3vw, 19px); box-shadow: 0 4px 0 rgba(0,0,0,0.35);
-}
-.menu-actions .span2 { grid-column: 1 / -1; }
+/* ====== Hoofdmenu: battlemap-achtergrond + pixel stenen knoppen, landscape-first ====== */
+#menu-screen { overflow: hidden; touch-action: none; padding: 0; background: #7fc0e8; }
 
-/* portret of bijna-vierkant: stapelen en centreren */
-@media (max-aspect-ratio: 1/1) {
-  .menu-layout { flex-direction: column; gap: 14px; }
-  .menu-brand { text-align: center; flex: 0 0 auto; }
-  .menu-brand .account-bar { align-items: center; }
-  .menu-actions { flex: 0 0 auto; width: 100%; max-width: 360px; }
+/* battlemap-achtergrond */
+.menu-bg { position: absolute; inset: 0; z-index: 0; overflow: hidden; }
+.menu-scene { position: absolute; inset: 0; width: 100%; height: 100%; image-rendering: pixelated; }
+/* vliegende vogels */
+.bird { position: absolute; top: 0; left: 0; width: 16px; height: 8px; }
+.bird .wing { position: absolute; top: 2px; width: 8px; height: 3px; background: #2a3744; }
+.bird .wl { left: 0; transform-origin: right center; animation: flapL .45s infinite alternate ease-in-out; }
+.bird .wr { right: 0; transform-origin: left center; animation: flapR .45s infinite alternate ease-in-out; }
+@keyframes flapL { from { transform: rotate(24deg); } to { transform: rotate(-16deg); } }
+@keyframes flapR { from { transform: rotate(-24deg); } to { transform: rotate(16deg); } }
+.bird.b1 { transform: scale(1.1);  animation: fly1 17s linear infinite; }
+.bird.b2 { transform: scale(0.8);  animation: fly2 23s linear infinite 3s; }
+.bird.b3 { transform: scale(1.0);  animation: fly3 20s linear infinite 8s; }
+.bird.b4 { transform: scale(0.7);  animation: fly1 27s linear infinite 12s; }
+@keyframes fly1 { 0% { transform: translate(-6vw, 18vh); } 50% { transform: translate(52vw, 9vh); } 100% { transform: translate(112vw, 15vh); } }
+@keyframes fly2 { 0% { transform: translate(-6vw, 30vh); } 50% { transform: translate(50vw, 22vh); } 100% { transform: translate(112vw, 28vh); } }
+@keyframes fly3 { 0% { transform: translate(-6vw, 12vh); } 50% { transform: translate(48vw, 5vh); } 100% { transform: translate(112vw, 11vh); } }
+
+/* frame: header boven, tegels in het midden, onderbalk onderaan */
+.menu-frame {
+  position: relative; z-index: 1; width: 100%; max-width: 1000px; height: 100%;
+  margin: auto; display: flex; flex-direction: column;
+  padding: clamp(8px, 2vh, 16px) clamp(12px, 3vw, 30px); gap: clamp(6px, 1.5vh, 14px);
+}
+.menu-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.menu-logo {
+  font-family: var(--pixel-font); font-weight: 900; letter-spacing: 1px;
+  font-size: clamp(15px, 3vw, 28px); color: #fff; text-shadow: 2px 2px 0 #000, 0 2px 6px rgba(0,0,0,.4);
+}
+.menu-hud { display: flex; align-items: center; gap: clamp(10px, 2.4vw, 26px); }
+.menu-coins-top, .menu-userline { display: flex; align-items: center; gap: 6px; color: #fff; font-size: clamp(12px, 1.8vw, 16px); text-shadow: 1px 1px 0 #000; }
+.menu-coins-top #menu-coin-count { color: var(--gold); font-weight: bold; }
+.px-icon { display: block; image-rendering: pixelated; }
+
+/* drie grote tegels in het midden */
+.menu-tiles {
+  flex: 1 1 auto; display: grid; grid-template-columns: 1fr 1fr 1fr;
+  gap: clamp(8px, 2.2vw, 22px); align-items: stretch; min-height: 0; padding: clamp(4px, 2vh, 18px) 0;
+}
+.menu-bottom { display: flex; align-items: flex-end; justify-content: space-between; gap: 10px; }
+.menu-bottom-right { display: flex; gap: clamp(8px, 1.6vw, 16px); }
+
+/* pixel stenen knop-stijl */
+.stone-btn, .stone-tile, .stone-icon {
+  font-family: var(--pixel-font); color: #fff; cursor: pointer;
+  text-shadow: 1px 1px 0 #000, 0 1px 3px rgba(0,0,0,.6);
+  background:
+    repeating-linear-gradient(90deg, rgba(255,255,255,.03) 0 6px, rgba(0,0,0,.05) 6px 12px),
+    linear-gradient(180deg, #6b675f, #524e48 60%, #46423c);
+  border: 0;
+  border-top: 3px solid #8d877d;
+  border-left: 3px solid #6f6a62;
+  border-right: 3px solid #38332d;
+  border-bottom: 5px solid #2a2722;
+  border-radius: 4px;
+  box-shadow: inset 0 0 0 2px rgba(0,0,0,.12), 0 4px 0 #1f1d19, 0 6px 10px rgba(0,0,0,.35);
+  image-rendering: pixelated;
+}
+.stone-btn:active, .stone-tile:active:not(:disabled), .stone-icon:active {
+  transform: translateY(3px); border-bottom-width: 3px; box-shadow: inset 0 0 0 2px rgba(0,0,0,.12), 0 1px 0 #1f1d19;
+}
+.stone-tile {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+  padding: 8px; min-height: 0;
+}
+.tile-play { font-size: clamp(20px, 4.2vw, 40px); font-weight: 900; letter-spacing: 1px; line-height: 1; }
+.tile-name { font-size: clamp(11px, 1.9vw, 17px); }
+.tile-sub { font-size: clamp(12px, 2vw, 18px); color: var(--gold); font-weight: bold; }
+.stone-tile.soon { opacity: .72; cursor: default; filter: grayscale(.35) brightness(.85); }
+.soon-name { font-size: clamp(14px, 2.6vw, 22px); font-weight: bold; }
+.stone-tile.locked { filter: grayscale(.3) brightness(.9); }
+
+.stone-btn { padding: clamp(8px,1.4vh,12px) clamp(16px, 3.4vw, 34px); font-size: clamp(13px, 2vw, 18px); }
+.stone-icon { width: clamp(34px, 6vw, 44px); height: clamp(34px, 6vw, 44px); display: flex; align-items: center; justify-content: center; padding: 0; }
+
+/* portret: tegels stapelen */
+@media (max-aspect-ratio: 3/4) {
+  .menu-tiles { grid-template-columns: 1fr; }
+  .menu-bottom { flex-direction: column; align-items: stretch; }
+  .menu-bottom-right { justify-content: center; }
 }
 
 .big-btn {

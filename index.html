@@ -10,8 +10,10 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="theme-color" content="#0d0f14" />
-  <title>Topleven Adventures — Multiplayer</title>
-  <link rel="stylesheet" href="css/style.css?v=menu1" />
+  <title>Tiny Power Smashers</title>
+  <link rel="icon" type="image/svg+xml" href="icon.svg?v=menu2" />
+  <link rel="apple-touch-icon" href="icon.svg?v=menu2" />
+  <link rel="stylesheet" href="css/style.css?v=menu2" />
 </head>
 <body>
   <div id="game-root">
@@ -70,34 +72,92 @@
       </div>
     </div>
 
-    <!-- ===== Hoofdmenu (landscape-first, multiplayer) ===== -->
+    <!-- ===== Hoofdmenu (landscape-first, battlemap-achtergrond) ===== -->
     <div id="menu-screen" class="screen">
-      <div class="screen-inner menu-inner">
-        <div class="menu-layout">
-          <div class="menu-brand">
-            <h1 class="game-title">TOPLEVEN<span>ADVENTURES</span></h1>
-            <p class="subtitle">Multiplayer · 1 vs 1 &amp; Zombie Knock-out</p>
-            <div class="menu-coins">Munten: <span id="menu-coin-count">0</span> ●</div>
-            <div id="account-bar" class="account-bar">
-              <button id="btn-account" class="text-btn">🔐 Inloggen / account</button>
-              <span id="account-status" class="account-status hidden"></span>
-              <div id="xp-bar-wrap" class="xp-bar-wrap hidden">
-                <div id="xp-bar-fill" class="xp-bar-fill"></div>
-                <span id="xp-bar-label" class="xp-bar-label"></span>
-              </div>
-              <button id="btn-nick" class="text-btn hidden">✎ Naam wijzigen</button>
-              <button id="btn-logout" class="text-btn hidden">Uitloggen</button>
-            </div>
-            <button id="btn-newgame" class="text-btn">Nieuw spel (wis voortgang)</button>
+      <!-- battlemap-achtergrond + vliegende vogels -->
+      <div class="menu-bg" aria-hidden="true">
+        <svg class="menu-scene" viewBox="0 0 320 180" preserveAspectRatio="xMidYMid slice" shape-rendering="crispEdges">
+          <rect width="320" height="180" fill="#7fc0e8"/>
+          <rect y="60" width="320" height="50" fill="#a9d0ea"/>
+          <circle cx="266" cy="40" r="20" fill="#ffe79a"/>
+          <!-- verre bergen -->
+          <path d="M-10 120 L40 70 L90 120 Z" fill="#5e7e9a"/>
+          <path d="M60 120 L120 60 L185 120 Z" fill="#4f6e88"/>
+          <path d="M160 120 L230 72 L300 120 Z" fill="#5e7e9a"/>
+          <!-- grond -->
+          <rect y="116" width="320" height="64" fill="#8db86a"/>
+          <rect y="116" width="320" height="5" fill="#6a9c4a"/>
+          <rect y="150" width="320" height="30" fill="#7aa658"/>
+          <!-- zwevende stenen platforms (battlemap) -->
+          <g>
+            <rect x="40" y="138" width="70" height="12" fill="#5e5a54"/><rect x="40" y="138" width="70" height="3" fill="#7a756e"/><rect x="40" y="148" width="70" height="2" fill="#2e2b27"/>
+            <rect x="135" y="120" width="50" height="11" fill="#5e5a54"/><rect x="135" y="120" width="50" height="3" fill="#7a756e"/><rect x="135" y="129" width="50" height="2" fill="#2e2b27"/>
+            <rect x="210" y="140" width="74" height="12" fill="#5e5a54"/><rect x="210" y="140" width="74" height="3" fill="#7a756e"/><rect x="210" y="150" width="74" height="2" fill="#2e2b27"/>
+          </g>
+        </svg>
+        <div class="bird b1"><span class="wing wl"></span><span class="wing wr"></span></div>
+        <div class="bird b2"><span class="wing wl"></span><span class="wing wr"></span></div>
+        <div class="bird b3"><span class="wing wl"></span><span class="wing wr"></span></div>
+        <div class="bird b4"><span class="wing wl"></span><span class="wing wr"></span></div>
+      </div>
+
+      <div class="menu-frame">
+        <header class="menu-top">
+          <div class="menu-logo">Tiny Power Smashers</div>
+          <div class="menu-hud">
+            <span class="menu-coins-top">
+              <svg class="px-icon" viewBox="0 0 8 8" width="16" height="16" shape-rendering="crispEdges"><rect x="2" y="1" width="4" height="6" fill="#caa12e"/><rect x="1" y="2" width="6" height="4" fill="#ffd24a"/><rect x="3" y="2" width="1" height="4" fill="#fff0a8"/></svg>
+              <span id="menu-coin-count">0</span>
+            </span>
+            <span id="menu-userline" class="menu-userline">Gast | Lvl 1</span>
+            <button id="btn-settings" class="stone-icon" title="Instellingen" aria-label="Instellingen">
+              <svg class="px-icon" viewBox="0 0 8 8" width="20" height="20" shape-rendering="crispEdges"><rect x="3" y="0" width="2" height="8" fill="#cfd6df"/><rect x="0" y="3" width="8" height="2" fill="#cfd6df"/><rect x="2" y="2" width="4" height="4" fill="#9aa3ad"/><rect x="3" y="3" width="2" height="2" fill="#2a3242"/></svg>
+            </button>
           </div>
-          <div class="menu-actions">
-            <button id="btn-versus" class="big-btn versus span2">⚔ 1 VS 1 ONLINE</button>
-            <button id="btn-arena" class="big-btn arena span2">ZOMBIE KNOCK-OUT</button>
-            <button id="btn-shop" class="big-btn secondary">🛒 SHOP</button>
-            <button id="btn-leaderboard" class="big-btn secondary">🏆 LEADERBOARD</button>
-            <button id="btn-chat" class="big-btn secondary span2">💬 LOBBY CHAT</button>
+        </header>
+
+        <main class="menu-tiles">
+          <button id="btn-arena" class="stone-tile">
+            <span class="tile-play">Play</span>
+            <span class="tile-name">Zombie Knock-out</span>
+            <span class="tile-sub" id="arena-count">3×</span>
+          </button>
+          <button id="btn-versus" class="stone-tile">
+            <span class="tile-play">Play</span>
+            <span class="tile-name">Power Smash</span>
+          </button>
+          <button class="stone-tile soon" disabled>
+            <span class="soon-name">Coming Soon!</span>
+          </button>
+        </main>
+
+        <footer class="menu-bottom">
+          <button id="btn-shop" class="stone-btn">Shop</button>
+          <div class="menu-bottom-right">
+            <button id="btn-chat" class="stone-btn">Lobby Chat</button>
+            <button id="btn-leaderboard" class="stone-btn">Leaderboard</button>
           </div>
+        </footer>
+      </div>
+    </div>
+
+    <!-- ===== Instellingen ===== -->
+    <div id="settings-screen" class="overlay hidden">
+      <div class="overlay-box">
+        <h2 class="screen-title">INSTELLINGEN</h2>
+        <div id="account-bar" class="account-bar">
+          <button id="btn-account" class="big-btn secondary">Inloggen / account</button>
+          <span id="account-status" class="account-status hidden"></span>
+          <div id="xp-bar-wrap" class="xp-bar-wrap hidden">
+            <div id="xp-bar-fill" class="xp-bar-fill"></div>
+            <span id="xp-bar-label" class="xp-bar-label"></span>
+          </div>
+          <button id="btn-nick" class="text-btn hidden">✎ Naam wijzigen</button>
+          <button id="btn-logout" class="text-btn hidden">Uitloggen</button>
         </div>
+        <button id="btn-update" class="big-btn secondary">↻ Update (verse versie)</button>
+        <button id="btn-newgame" class="text-btn">Nieuw spel (wis voortgang)</button>
+        <button id="btn-settings-close" class="big-btn">Sluiten</button>
       </div>
     </div>
 
@@ -136,8 +196,7 @@
       <div class="screen-inner">
         <h2 class="screen-title">SHOP</h2>
         <div id="shop-tabs" class="shop-tabs">
-          <button class="shop-tab active" data-tab="weapons">⚔ Wapens</button>
-          <button class="shop-tab" data-tab="chars">🧍 Characters</button>
+          <button class="shop-tab active" data-tab="chars">🧍 Characters</button>
           <button class="shop-tab" data-tab="hats">🎩 Hoeden</button>
         </div>
         <div class="shop-coins">Munten: <span id="shop-coin-count">0</span> ●</div>
@@ -312,7 +371,6 @@
     </div>
 
     <!-- ===== Spel updaten (verse versie laden zonder icoon te verwijderen) ===== -->
-    <button id="btn-update" class="update-btn hidden" title="Laad de nieuwste versie">🔄 Update</button>
 
     <!-- ===== Pauze-knop ===== -->
     <button id="pause-btn" class="hidden">II</button>
@@ -337,14 +395,14 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
-  <script src="js/config.js?v=menu1"></script>
-  <script src="js/storage.js?v=menu1"></script>
-  <script src="js/net.js?v=menu1"></script>
-  <script src="js/input.js?v=menu1"></script>
-  <script src="js/sprites.js?v=menu1"></script>
-  <script src="js/entities.js?v=menu1"></script>
-  <script src="js/ui.js?v=menu1"></script>
-  <script src="js/game.js?v=menu1"></script>
-  <script src="js/main.js?v=menu1"></script>
+  <script src="js/config.js?v=menu2"></script>
+  <script src="js/storage.js?v=menu2"></script>
+  <script src="js/net.js?v=menu2"></script>
+  <script src="js/input.js?v=menu2"></script>
+  <script src="js/sprites.js?v=menu2"></script>
+  <script src="js/entities.js?v=menu2"></script>
+  <script src="js/ui.js?v=menu2"></script>
+  <script src="js/game.js?v=menu2"></script>
+  <script src="js/main.js?v=menu2"></script>
 </body>
 </html>

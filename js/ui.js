@@ -59,6 +59,10 @@ const UI = {
       }
     };
 
+    // ---- instellingen (overlay met account / update / nieuw spel) ----
+    $('btn-settings').onclick = () => document.getElementById('settings-screen').classList.remove('hidden');
+    $('btn-settings-close').onclick = () => document.getElementById('settings-screen').classList.add('hidden');
+
     // ---- account (inloggen / registreren) ----
     this.authMode = 'login';
     $('btn-account').onclick = () => this.openAuth('login');
@@ -170,15 +174,19 @@ const UI = {
 
   // tekst van de Knock-out-menuknop bijwerken (resterende pogingen)
   updateArenaButton() {
-    const ab = document.getElementById('btn-arena');
-    if (!ab) return;
+    const c = document.getElementById('arena-count');
+    const tile = document.getElementById('btn-arena');
+    if (!c) return;
     if (window.Net && Net.ready && Net.isLoggedIn()) {
-      ab.textContent = 'ZOMBIE KNOCK-OUT';
-      Net.arenaPlaysLeft().then((n) => { if (n != null) ab.textContent = 'ZOMBIE KNOCK-OUT (' + n + '×)'; }).catch(() => {});
+      if (tile) tile.classList.remove('locked');
+      c.textContent = '…×';
+      Net.arenaPlaysLeft().then((n) => { if (n != null) c.textContent = n + '×'; }).catch(() => {});
     } else if (window.Net && Net.ready) {
-      ab.textContent = 'ZOMBIE KNOCK-OUT 🔒';
+      if (tile) tile.classList.add('locked');
+      c.textContent = 'Log in';
     } else {
-      ab.textContent = 'ZOMBIE KNOCK-OUT (' + Storage.arenaPlaysLeft() + '×)';
+      if (tile) tile.classList.remove('locked');
+      c.textContent = Storage.arenaPlaysLeft() + '×';
     }
   },
 
@@ -223,8 +231,11 @@ const UI = {
     const status = document.getElementById('account-status');
     const btnAcc = document.getElementById('btn-account');
     const btnOut = document.getElementById('btn-logout');
-    if (!status || !btnAcc || !btnOut) return;
     const inLogged = window.Net && Net.isLoggedIn && Net.isLoggedIn();
+    // header-regel "Nickname | Lvl"
+    const line = document.getElementById('menu-userline');
+    if (line) line.textContent = (inLogged ? Net.nickname() : 'Gast') + ' | Lvl ' + playerLevel(Storage.data.xp || 0);
+    if (!status || !btnAcc || !btnOut) return;
     const xpWrap = document.getElementById('xp-bar-wrap');
     const btnNick = document.getElementById('btn-nick');
     if (inLogged) {
@@ -907,9 +918,7 @@ const UI = {
 
     // muntentellers bijwerken
     this.el.menuCoins.textContent = Storage.data.coins;
-    const upBtn = document.getElementById('btn-update');
-    if (upBtn) upBtn.classList.toggle('hidden', name !== 'menu');
-    if (name === 'menu') { this.updateArenaButton(); this.ensurePresence(); }
+    if (name === 'menu') { this.updateArenaButton(); this.refreshAuthUI(); this.ensurePresence(); }
     else if (name === 'game') { this.leavePresence(); }   // tijdens het spelen niet online in de lobby
   },
 
@@ -953,10 +962,10 @@ const UI = {
   },
 
   // ---------- SHOP (wapens / characters / hoeden in tabs) ----------
-  openShop() { this._shopTab = this._shopTab || 'weapons'; this.renderShop(); this.show('shop'); },
+  openShop() { if (!this._shopTab || this._shopTab === 'weapons') this._shopTab = 'chars'; this.renderShop(); this.show('shop'); },
 
   renderShop() {
-    const tab = this._shopTab || 'weapons';
+    const tab = this._shopTab || 'chars';
     document.querySelectorAll('.shop-tab').forEach((b) => b.classList.toggle('active', b.dataset.tab === tab));
     this.el.shopCoins.textContent = Storage.data.coins;
     this.el.shopGrid.innerHTML = '';
