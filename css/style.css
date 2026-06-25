@@ -359,9 +359,11 @@ body.is-touch #hud { justify-content: flex-start; gap: 8px; }
 /* ====== Hoofdmenu: battlemap-achtergrond + pixel stenen knoppen, landscape-first ====== */
 #menu-screen { overflow: hidden; touch-action: none; padding: 0; background: #7fc0e8; }
 
-/* battlemap-achtergrond */
-.menu-bg { position: absolute; inset: 0; z-index: 0; overflow: hidden; }
-.menu-scene { position: absolute; inset: 0; width: 100%; height: 100%; image-rendering: pixelated; }
+/* battlemap-achtergrond die voorbij drijft (twee identieke scènes, naadloze loop) */
+.menu-bg { position: absolute; inset: 0; z-index: 0; overflow: hidden; background: #7fc0e8; }
+.scene-scroll { position: absolute; top: 0; bottom: 0; left: 0; display: flex; width: 200%; animation: drift 40s linear infinite; will-change: transform; }
+.menu-scene { flex: 0 0 50%; width: 50%; height: 100%; object-fit: cover; image-rendering: pixelated; }
+@keyframes drift { from { transform: translateX(0); } to { transform: translateX(-50%); } }
 /* vliegende vogels */
 .bird { position: absolute; top: 0; left: 0; width: 16px; height: 8px; }
 .bird .wing { position: absolute; top: 2px; width: 8px; height: 3px; background: #2a3744; }
@@ -393,40 +395,57 @@ body.is-touch #hud { justify-content: flex-start; gap: 8px; }
 .menu-coins-top #menu-coin-count { color: var(--gold); font-weight: bold; }
 .px-icon { display: block; image-rendering: pixelated; }
 
-/* drie grote tegels in het midden */
+/* drie tegels in het midden — gecentreerd, niet beeldvullend (zoals de mockup) */
 .menu-tiles {
   flex: 1 1 auto; display: grid; grid-template-columns: 1fr 1fr 1fr;
-  gap: clamp(8px, 2.2vw, 22px); align-items: stretch; min-height: 0; padding: clamp(4px, 2vh, 18px) 0;
+  gap: clamp(8px, 2.2vw, 22px); align-items: center; justify-items: stretch; min-height: 0; padding: clamp(4px, 2vh, 18px) 0;
 }
 .menu-bottom { display: flex; align-items: flex-end; justify-content: space-between; gap: 10px; }
 .menu-bottom-right { display: flex; gap: clamp(8px, 1.6vw, 16px); }
 
-/* pixel stenen knop-stijl */
+/* lava knop-stijl (geanimeerd: gloeiende lava die stroomt + pulseert) */
 .stone-btn, .stone-tile, .stone-icon {
-  font-family: var(--pixel-font); color: #fff; cursor: pointer;
-  text-shadow: 1px 1px 0 #000, 0 1px 3px rgba(0,0,0,.6);
+  position: relative; overflow: hidden;
+  font-family: var(--pixel-font); color: #ffe9c0; cursor: pointer;
+  text-shadow: 0 0 6px rgba(255,120,40,.9), 1px 1px 0 #000;
   background:
-    repeating-linear-gradient(90deg, rgba(255,255,255,.03) 0 6px, rgba(0,0,0,.05) 6px 12px),
-    linear-gradient(180deg, #6b675f, #524e48 60%, #46423c);
+    radial-gradient(circle at 28% 118%, rgba(255,150,50,.6), transparent 52%),
+    radial-gradient(circle at 72% -18%, rgba(255,95,25,.55), transparent 52%),
+    linear-gradient(115deg, transparent 41%, rgba(255,180,80,.30) 50%, transparent 59%),
+    linear-gradient(180deg, #531f12, #2c0f0a 68%, #1d0907);
+  background-size: 100% 100%, 100% 100%, 280% 280%, 100% 100%;
+  background-position: 0 0, 0 0, 0% 50%, 0 0;
   border: 0;
-  border-top: 3px solid #8d877d;
-  border-left: 3px solid #6f6a62;
-  border-right: 3px solid #38332d;
-  border-bottom: 5px solid #2a2722;
+  border-top: 3px solid #d2622e;
+  border-left: 3px solid #8a3418;
+  border-right: 3px solid #3e160c;
+  border-bottom: 5px solid #1a0705;
   border-radius: 4px;
-  box-shadow: inset 0 0 0 2px rgba(0,0,0,.12), 0 4px 0 #1f1d19, 0 6px 10px rgba(0,0,0,.35);
+  box-shadow: inset 0 0 14px rgba(255,90,25,.35), 0 0 10px rgba(255,80,20,.4), 0 4px 0 #170604, 0 6px 12px rgba(0,0,0,.4);
   image-rendering: pixelated;
+  animation: lavaFlow 4s linear infinite, lavaGlow 2.4s ease-in-out infinite;
+}
+@keyframes lavaFlow {
+  from { background-position: 0 0, 0 0, 0% 50%, 0 0; }
+  to   { background-position: 0 0, 0 0, 280% 50%, 0 0; }
+}
+@keyframes lavaGlow {
+  0%, 100% { box-shadow: inset 0 0 12px rgba(255,80,20,.3),  0 0 8px rgba(255,70,15,.35), 0 4px 0 #170604, 0 6px 12px rgba(0,0,0,.4); }
+  50%      { box-shadow: inset 0 0 20px rgba(255,130,45,.55), 0 0 18px rgba(255,95,25,.6), 0 4px 0 #170604, 0 6px 12px rgba(0,0,0,.4); }
 }
 .stone-btn:active, .stone-tile:active:not(:disabled), .stone-icon:active {
-  transform: translateY(3px); border-bottom-width: 3px; box-shadow: inset 0 0 0 2px rgba(0,0,0,.12), 0 1px 0 #1f1d19;
+  transform: translateY(3px); border-bottom-width: 3px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .scene-scroll, .stone-btn, .stone-tile, .stone-icon, .bird, .bird .wing { animation: none !important; }
 }
 .stone-tile {
-  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
-  padding: 8px; min-height: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+  padding: 6px; height: clamp(78px, 22vh, 128px);
 }
-.tile-play { font-size: clamp(20px, 4.2vw, 40px); font-weight: 900; letter-spacing: 1px; line-height: 1; }
-.tile-name { font-size: clamp(11px, 1.9vw, 17px); }
-.tile-sub { font-size: clamp(12px, 2vw, 18px); color: var(--gold); font-weight: bold; }
+.tile-play { font-size: clamp(17px, 3.2vw, 30px); font-weight: 900; letter-spacing: 1px; line-height: 1; }
+.tile-name { font-size: clamp(10px, 1.7vw, 15px); }
+.tile-sub { font-size: clamp(11px, 1.8vw, 16px); color: var(--gold); font-weight: bold; }
 .stone-tile.soon { opacity: .72; cursor: default; filter: grayscale(.35) brightness(.85); }
 .soon-name { font-size: clamp(14px, 2.6vw, 22px); font-weight: bold; }
 .stone-tile.locked { filter: grayscale(.3) brightness(.9); }

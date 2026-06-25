@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 180" width="320" height="180" preserveAspectRatio="xMidYMid slice" shape-rendering="crispEdges">
+  <rect width="320" height="180" fill="#7fc0e8"/>
+  <rect y="60" width="320" height="50" fill="#a9d0ea"/>
+  <circle cx="160" cy="38" r="20" fill="#ffe79a"/>
+  <!-- verre bergen (raken de randen niet, voor een nette loop) -->
+  <path d="M20 120 L70 72 L120 120 Z" fill="#5e7e9a"/>
+  <path d="M95 120 L160 58 L225 120 Z" fill="#4f6e88"/>
+  <path d="M200 120 L255 76 L300 120 Z" fill="#5e7e9a"/>
+  <!-- grond -->
+  <rect y="116" width="320" height="64" fill="#8db86a"/>
+  <rect y="116" width="320" height="5" fill="#6a9c4a"/>
+  <rect y="150" width="320" height="30" fill="#7aa658"/>
+  <!-- zwevende stenen platforms -->
+  <g>
+    <rect x="40" y="138" width="64" height="12" fill="#5e5a54"/><rect x="40" y="138" width="64" height="3" fill="#7a756e"/><rect x="40" y="148" width="64" height="2" fill="#2e2b27"/>
+    <rect x="138" y="122" width="46" height="11" fill="#5e5a54"/><rect x="138" y="122" width="46" height="3" fill="#7a756e"/><rect x="138" y="131" width="46" height="2" fill="#2e2b27"/>
+    <rect x="222" y="140" width="58" height="12" fill="#5e5a54"/><rect x="222" y="140" width="58" height="3" fill="#7a756e"/><rect x="222" y="150" width="58" height="2" fill="#2e2b27"/>
+  </g>
+</svg>

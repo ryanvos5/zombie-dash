@@ -11,9 +11,9 @@
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="theme-color" content="#0d0f14" />
   <title>Tiny Power Smashers</title>
-  <link rel="icon" type="image/svg+xml" href="icon.svg?v=menu2" />
-  <link rel="apple-touch-icon" href="icon.svg?v=menu2" />
-  <link rel="stylesheet" href="css/style.css?v=menu2" />
+  <link rel="icon" type="image/svg+xml" href="icon.svg?v=menu3" />
+  <link rel="apple-touch-icon" href="icon.svg?v=menu3" />
+  <link rel="stylesheet" href="css/style.css?v=menu3" />
 </head>
 <body>
   <div id="game-root">
@@ -74,27 +74,12 @@
 
     <!-- ===== Hoofdmenu (landscape-first, battlemap-achtergrond) ===== -->
     <div id="menu-screen" class="screen">
-      <!-- battlemap-achtergrond + vliegende vogels -->
+      <!-- battlemap-achtergrond (drijft voorbij) + vliegende vogels -->
       <div class="menu-bg" aria-hidden="true">
-        <svg class="menu-scene" viewBox="0 0 320 180" preserveAspectRatio="xMidYMid slice" shape-rendering="crispEdges">
-          <rect width="320" height="180" fill="#7fc0e8"/>
-          <rect y="60" width="320" height="50" fill="#a9d0ea"/>
-          <circle cx="266" cy="40" r="20" fill="#ffe79a"/>
-          <!-- verre bergen -->
-          <path d="M-10 120 L40 70 L90 120 Z" fill="#5e7e9a"/>
-          <path d="M60 120 L120 60 L185 120 Z" fill="#4f6e88"/>
-          <path d="M160 120 L230 72 L300 120 Z" fill="#5e7e9a"/>
-          <!-- grond -->
-          <rect y="116" width="320" height="64" fill="#8db86a"/>
-          <rect y="116" width="320" height="5" fill="#6a9c4a"/>
-          <rect y="150" width="320" height="30" fill="#7aa658"/>
-          <!-- zwevende stenen platforms (battlemap) -->
-          <g>
-            <rect x="40" y="138" width="70" height="12" fill="#5e5a54"/><rect x="40" y="138" width="70" height="3" fill="#7a756e"/><rect x="40" y="148" width="70" height="2" fill="#2e2b27"/>
-            <rect x="135" y="120" width="50" height="11" fill="#5e5a54"/><rect x="135" y="120" width="50" height="3" fill="#7a756e"/><rect x="135" y="129" width="50" height="2" fill="#2e2b27"/>
-            <rect x="210" y="140" width="74" height="12" fill="#5e5a54"/><rect x="210" y="140" width="74" height="3" fill="#7a756e"/><rect x="210" y="150" width="74" height="2" fill="#2e2b27"/>
-          </g>
-        </svg>
+        <div class="scene-scroll">
+          <img class="menu-scene" src="menu-bg.svg?v=menu3" alt="" />
+          <img class="menu-scene" src="menu-bg.svg?v=menu3" alt="" />
+        </div>
         <div class="bird b1"><span class="wing wl"></span><span class="wing wr"></span></div>
         <div class="bird b2"><span class="wing wl"></span><span class="wing wr"></span></div>
         <div class="bird b3"><span class="wing wl"></span><span class="wing wr"></span></div>
@@ -395,14 +380,14 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
-  <script src="js/config.js?v=menu2"></script>
-  <script src="js/storage.js?v=menu2"></script>
-  <script src="js/net.js?v=menu2"></script>
-  <script src="js/input.js?v=menu2"></script>
-  <script src="js/sprites.js?v=menu2"></script>
-  <script src="js/entities.js?v=menu2"></script>
-  <script src="js/ui.js?v=menu2"></script>
-  <script src="js/game.js?v=menu2"></script>
-  <script src="js/main.js?v=menu2"></script>
+  <script src="js/config.js?v=menu3"></script>
+  <script src="js/storage.js?v=menu3"></script>
+  <script src="js/net.js?v=menu3"></script>
+  <script src="js/input.js?v=menu3"></script>
+  <script src="js/sprites.js?v=menu3"></script>
+  <script src="js/entities.js?v=menu3"></script>
+  <script src="js/ui.js?v=menu3"></script>
+  <script src="js/game.js?v=menu3"></script>
+  <script src="js/main.js?v=menu3"></script>
 </body>
 </html>
