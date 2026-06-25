@@ -381,7 +381,7 @@ body.in-game #bg-layer { display: none; }     /* tijdens het spelen niet nodig (
 .menu-buttons { display: flex; flex-direction: column; gap: 14px; align-items: center; margin: 10px 0; }
 
 /* ====== Hoofdmenu: battlemap-achtergrond + pixel stenen knoppen, landscape-first ====== */
-#menu-screen { overflow: hidden; touch-action: none; padding: 0; background: #7fc0e8; }
+#menu-screen { overflow: hidden; touch-action: none; padding: 0; background: transparent; }
 
 /* battlemap-achtergrond die voorbij drijft (twee identieke scènes, naadloze loop) */
 .menu-bg { position: absolute; inset: 0; z-index: 0; overflow: hidden; background: #7fc0e8; }
