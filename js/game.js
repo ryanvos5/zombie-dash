@@ -2031,9 +2031,10 @@ const Game = {
     const sw = p.swingUntil || 0;
     if (sw && sw !== this.vs.lastSwing && this.time < sw) {
       this.vs.lastSwing = sw;
-      const reach = 36;                              // ruime melee-reach in versus
+      const reach = 40;                              // ruime melee-reach in versus
       const dx = (r.x - p.x) * p.dir;
-      if (dx > -10 && dx < reach && Math.abs(r.y - p.y) < 30) {
+      const close = Math.abs(r.x - p.x) < 24;        // bijna in elkaar -> altijd raak (ook als je net de andere kant op kijkt)
+      if ((close || (dx > -16 && dx < reach)) && Math.abs(r.y - p.y) < 34) {
         const kdir = (r.x >= p.x ? 1 : -1);
         // combo: opeenvolgende treffers binnen het venster -> hoger (x1..x5), meer schade
         p.combo = (this.time < (p.comboUntil || 0)) ? Math.min(COMBO_MAX, (p.combo || 0) + 1) : 1;
@@ -2144,7 +2145,8 @@ const Game = {
     if (bsw && bsw !== v.botLastSwing && this.time < bsw) {
       v.botLastSwing = bsw;
       const dxp = (this.player.x - b.x) * b.dir;
-      if (dxp > -10 && dxp < 36 && Math.abs(this.player.y - b.y) < 30 && this.player.respawnInvuln <= 0 && !this.player.dead) {
+      const bClose = Math.abs(this.player.x - b.x) < 24;     // bijna in elkaar -> altijd raak
+      if ((bClose || (dxp > -16 && dxp < 40)) && Math.abs(this.player.y - b.y) < 34 && this.player.respawnInvuln <= 0 && !this.player.dead) {
         const kd = this.player.x >= b.x ? 1 : -1;
         b.combo = (this.time < (b.comboUntil || 0)) ? Math.min(COMBO_MAX, (b.combo || 0) + 1) : 1;
         b.comboUntil = this.time + COMBO_WINDOW;
