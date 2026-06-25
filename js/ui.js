@@ -27,8 +27,7 @@ const UI = {
       loseKills: $('lose-kills'), loseCoins: $('lose-coins'), loseTitle: $('lose-title'),
     };
 
-    // menu knoppen
-    $('btn-play').onclick = () => { this.renderLevels(); this.show('level'); };
+    // menu knoppen (singleplayer-werelden zijn uit — focus op multiplayer)
     $('btn-shop').onclick = () => this.openShop();
     $('btn-win-shop').onclick = () => this.openShop();
     document.querySelectorAll('.shop-tab').forEach((b) => { b.onclick = () => { this._shopTab = b.dataset.tab; this.renderShop(); }; });

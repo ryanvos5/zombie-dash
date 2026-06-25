@@ -10,8 +10,8 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="theme-color" content="#0d0f14" />
-  <title>Topleven Adventures — Wereld 1</title>
-  <link rel="stylesheet" href="css/style.css?v=block1" />
+  <title>Topleven Adventures — Multiplayer</title>
+  <link rel="stylesheet" href="css/style.css?v=menu1" />
 </head>
 <body>
   <div id="game-root">
@@ -70,31 +70,34 @@
       </div>
     </div>
 
-    <!-- ===== Hoofdmenu ===== -->
+    <!-- ===== Hoofdmenu (landscape-first, multiplayer) ===== -->
     <div id="menu-screen" class="screen">
-      <div class="screen-inner">
-        <h1 class="game-title">TOPLEVEN<span>ADVENTURES</span></h1>
-        <p class="subtitle">Wereld 1 — Verlaten Stad</p>
-        <div class="menu-buttons">
-          <button id="btn-play" class="big-btn">SPELEN</button>
-          <button id="btn-versus" class="big-btn versus">⚔ 1 VS 1 ONLINE</button>
-          <button id="btn-arena" class="big-btn arena">ZOMBIE KNOCK-OUT</button>
-          <button id="btn-shop" class="big-btn secondary">🛒 SHOP</button>
-          <button id="btn-leaderboard" class="big-btn secondary">🏆 LEADERBOARD</button>
-          <button id="btn-chat" class="big-btn secondary">💬 LOBBY CHAT</button>
-        </div>
-        <div class="menu-coins">Munten: <span id="menu-coin-count">0</span> ●</div>
-        <div id="account-bar" class="account-bar">
-          <button id="btn-account" class="text-btn">🔐 Inloggen / account</button>
-          <span id="account-status" class="account-status hidden"></span>
-          <div id="xp-bar-wrap" class="xp-bar-wrap hidden">
-            <div id="xp-bar-fill" class="xp-bar-fill"></div>
-            <span id="xp-bar-label" class="xp-bar-label"></span>
+      <div class="screen-inner menu-inner">
+        <div class="menu-layout">
+          <div class="menu-brand">
+            <h1 class="game-title">TOPLEVEN<span>ADVENTURES</span></h1>
+            <p class="subtitle">Multiplayer · 1 vs 1 &amp; Zombie Knock-out</p>
+            <div class="menu-coins">Munten: <span id="menu-coin-count">0</span> ●</div>
+            <div id="account-bar" class="account-bar">
+              <button id="btn-account" class="text-btn">🔐 Inloggen / account</button>
+              <span id="account-status" class="account-status hidden"></span>
+              <div id="xp-bar-wrap" class="xp-bar-wrap hidden">
+                <div id="xp-bar-fill" class="xp-bar-fill"></div>
+                <span id="xp-bar-label" class="xp-bar-label"></span>
+              </div>
+              <button id="btn-nick" class="text-btn hidden">✎ Naam wijzigen</button>
+              <button id="btn-logout" class="text-btn hidden">Uitloggen</button>
+            </div>
+            <button id="btn-newgame" class="text-btn">Nieuw spel (wis voortgang)</button>
           </div>
-          <button id="btn-nick" class="text-btn hidden">✎ Naam wijzigen</button>
-          <button id="btn-logout" class="text-btn hidden">Uitloggen</button>
+          <div class="menu-actions">
+            <button id="btn-versus" class="big-btn versus span2">⚔ 1 VS 1 ONLINE</button>
+            <button id="btn-arena" class="big-btn arena span2">ZOMBIE KNOCK-OUT</button>
+            <button id="btn-shop" class="big-btn secondary">🛒 SHOP</button>
+            <button id="btn-leaderboard" class="big-btn secondary">🏆 LEADERBOARD</button>
+            <button id="btn-chat" class="big-btn secondary span2">💬 LOBBY CHAT</button>
+          </div>
         </div>
-        <button id="btn-newgame" class="text-btn">Nieuw spel (wis voortgang)</button>
       </div>
     </div>
 
@@ -334,14 +337,14 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
-  <script src="js/config.js?v=block1"></script>
-  <script src="js/storage.js?v=block1"></script>
-  <script src="js/net.js?v=block1"></script>
-  <script src="js/input.js?v=block1"></script>
-  <script src="js/sprites.js?v=block1"></script>
-  <script src="js/entities.js?v=block1"></script>
-  <script src="js/ui.js?v=block1"></script>
-  <script src="js/game.js?v=block1"></script>
-  <script src="js/main.js?v=block1"></script>
+  <script src="js/config.js?v=menu1"></script>
+  <script src="js/storage.js?v=menu1"></script>
+  <script src="js/net.js?v=menu1"></script>
+  <script src="js/input.js?v=menu1"></script>
+  <script src="js/sprites.js?v=menu1"></script>
+  <script src="js/entities.js?v=menu1"></script>
+  <script src="js/ui.js?v=menu1"></script>
+  <script src="js/game.js?v=menu1"></script>
+  <script src="js/main.js?v=menu1"></script>
 </body>
 </html>
