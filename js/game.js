@@ -1508,7 +1508,7 @@ const Game = {
     this.bullets.push(bl);
     this.spawnMuzzleFlash(p.x + dir * 14, p.y - 16, dir);
     this.shake = Math.max(this.shake, 5);
-    if (window.Sfx) Sfx.play('rocket');
+    if (window.Sfx) Sfx.play('cannon');
   },
 
   // AK47-kogel (Jungle): snel, rechtdoor
@@ -1528,7 +1528,7 @@ const Game = {
     if (kind === 'fire') { bl.hitDmg = 22; bl.power = 14; } else { bl.hitDmg = 40; bl.power = 26; }
     this.bullets.push(bl);
     this.spawnMuzzleFlash(shooter.x + dir * 14, shooter.y - 16, dir);
-    if (window.Sfx && shooter === this.player) Sfx.play(kind === 'rocket' ? 'rocket' : 'shoot');
+    if (window.Sfx && shooter === this.player) Sfx.play(kind === 'rocket' ? 'rocket' : 'fireball');
   },
 
   // ===== GEVECHTSHELI =====
@@ -1651,7 +1651,7 @@ const Game = {
   spawnBall(shooter, owner) {
     const dir = shooter.dir;
     this.ball = { mine: owner === 'me', owner, x: shooter.x + dir * 14, y: shooter.y - 16, vx: dir * 5.5, vy: -3, born: this.time, _cd: 0, _net: 0, grace: this.time + 250 };
-    if (window.Sfx) Sfx.play('shoot');
+    if (window.Sfx) Sfx.play('boing');
     if (owner === 'me' && window.Net && !this.vsBot) Net.versusSend('ball', { x: Math.round(this.ball.x), y: Math.round(this.ball.y), vx: +this.ball.vx.toFixed(2), vy: +this.ball.vy.toFixed(2) });
   },
   onVersusBall(p) {
@@ -1822,6 +1822,7 @@ const Game = {
     }
     if (wx == null) return;
     d.beam = { until: this.time + 320, wx, wy };
+    if (window.Sfx) Sfx.play('dragonfire');
     for (let i = 0; i < 10; i++)
       this.particles.push(new Particle(wx + (Math.random() - 0.5) * 10, wy - 12 + (Math.random() - 0.5) * 12, (Math.random() - 0.5) * 1.5, -Math.random() * 1.2, Math.random() < 0.5 ? '#ff7a2a' : '#ffd24a', 320, 2));
     this.shake = Math.max(this.shake, 4);
@@ -1889,6 +1890,7 @@ const Game = {
   // bliksem-effect op een doel (wereldpositie)
   strikeLightning(wx, wy) {
     this.lightningFx = { wx, wy, until: this.time + 450 };
+    if (window.Sfx) Sfx.play('zap');
     for (let i = 0; i < 14; i++) this.particles.push(new Particle(wx + (Math.random() - 0.5) * 12, wy - 14 + (Math.random() - 0.5) * 14, (Math.random() - 0.5) * 2, -Math.random() * 1.5, Math.random() < 0.5 ? '#9fe0ff' : '#4aa6ff', 360, 2));
     this.shake = Math.max(this.shake, 7);
   },
@@ -2076,6 +2078,7 @@ const Game = {
       const kd = dxp >= 0 ? 1 : -1;                        // weg van de reus = naar achter
       if (this.vsBot) this.applyHitToBot(kd, stomp ? 22 : 28, stomp ? -6 : -3, stomp ? 24 : 0);
       else if (window.Net) Net.versusSend('hit', { dir: kd, power: stomp ? 22 : 28, vy: stomp ? -6 : -3, dmg: stomp ? 24 : 0 });
+      if (window.Sfx) Sfx.play('stomp');
       this.shake = Math.max(this.shake, 4);
     }
   },

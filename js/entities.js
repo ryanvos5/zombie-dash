@@ -337,6 +337,7 @@ class Player {
     const key = 'lastMelee_' + w.id;
     if (game.time - (this[key] || -9999) < w.cooldown) return;
     this[key] = game.time;
+    if (window.Sfx && this === game.player) Sfx.play('swing');   // mep-zwiep
     this.attackAnimUntil = game.time + 140;
     this.swingWeapon = w.id;                 // welk wapen er nu gezwaaid wordt (voor de tekening)
     this.swingUntil = game.time + 140;
