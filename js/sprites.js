@@ -50,6 +50,7 @@ const Sprites = {
     const curly = pose.hair === 'curly';
     const spiky = pose.hair === 'spiky';
     const bald = pose.hair === 'bald';
+    const back = pose.hair === 'back';
 
     // breedtes (fors = breder, lang = dunner, klein = smaller, stevig = breed & laag)
     const bh = bulky ? 6 : (tall ? 4 : (small ? 4 : (stocky ? 6 : 5)));   // halve romp-breedte
@@ -121,6 +122,15 @@ const Sprites = {
         this.px(ctx, pal.hair, sxp, headTop - 1 - heights[i], 2, heights[i] + 1);
         this.px(ctx, pal.hairDark, sxp, headTop - 1 - heights[i], 1, heights[i] + 1);
       }
+    } else if (back) {
+      // strak naar achteren gekamd, kort
+      this.px(ctx, pal.hair, cx - hh - 1, headTop - 2, hh * 2 + 2, 4);        // kapsel bovenop
+      this.px(ctx, pal.hairDark, cx - hh - 1, headTop - 2, hh * 2 + 2, 1);
+      const backX = dir > 0 ? cx - hh - 2 : cx + hh;                          // achterkant van het hoofd
+      this.px(ctx, pal.hair, backX, headTop - 1, 3, 6);                       // pluk naar achteren
+      this.px(ctx, pal.hairDark, backX + (dir > 0 ? 0 : 2), headTop - 1, 1, 6);
+      this.px(ctx, pal.hair, cx - hh - 1, headTop, 2, 3);                     // korte bakkebaarden
+      this.px(ctx, pal.hair, cx + hh - 1, headTop, 2, 3);
     } else if (curly) {
       // bobbelige krullen bovenop + aan de zijkanten
       for (let i = -hh - 1; i <= hh - 1; i += 2) {

@@ -1154,8 +1154,9 @@ const Game = {
     this.vsCamX = 0; this.vsCamY = 0;
     this.worldId = -1;
     this.level = { versus: true, parkour: true, mode: 'versus', length: this.vsMapW, isBoss: false };
-    // Power Smash: iedereen start met de knuppel; anders je eigen uitrusting
-    const baseMelee = mode === 'smash' ? 'bat' : Storage.data.equippedMelee;
+    // Power Smash: iedereen start met de knuppel (of het start-wapen van je character); anders je eigen uitrusting
+    const myChar = CHARACTERS[Storage.data.equippedCharacter] || {};
+    const baseMelee = mode === 'smash' ? (myChar.startMelee || 'bat') : Storage.data.equippedMelee;
     const rangedId = mode === 'both' ? Storage.data.equippedRanged : null;
     this.player = new Player(baseMelee, rangedId, Storage.data.equippedCharacter);
     this.player.maxJumps = 2; this.player.jumps = 2;
@@ -1216,7 +1217,7 @@ const Game = {
       const ids = CHARACTER_ORDER.slice();
       const botChar = ids[Math.floor(Math.random() * ids.length)] || 'ryan';
       const melees = ['bat', 'machete', 'sword', 'axe', 'mace', 'katana'];
-      const botMelee = mode === 'smash' ? 'bat' : melees[Math.floor(Math.random() * melees.length)];
+      const botMelee = mode === 'smash' ? ((CHARACTERS[botChar] && CHARACTERS[botChar].startMelee) || 'bat') : melees[Math.floor(Math.random() * melees.length)];
       const guns = ['pistol', 'uzi', 'ak47'];
       const botRanged = mode === 'both' ? guns[Math.floor(Math.random() * guns.length)] : null;
       const b = new Player(botMelee, botRanged, botChar);

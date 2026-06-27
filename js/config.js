@@ -219,8 +219,20 @@ const CHARACTERS = {
     },
     desc: 'Elke 15s 3s RAGE (2× schade). 85 HP. Pas vanaf level 4.'
   },
+  yarno: {
+    id: 'yarno', name: 'Yarno', cost: 600,
+    maxHp: 100, speedMul: 1.08, meleeMul: 1.0, build: 'normal', hair: 'back', startMelee: 'dagger',
+    palette: {
+      hair: '#161616', hairDark: '#000000',     // zwart, naar achteren
+      skin: '#d8a878', skinDark: '#b8895e',
+      eye: '#3a2414',                            // bruine ogen
+      shirt: '#2f6f6a', shirtDark: '#1c4a46',    // teal outfit
+      pants: '#24303a', shoe: '#101418',
+    },
+    desc: 'Gebalanceerd, iets sneller. Start met een dagger.'
+  },
 };
-const CHARACTER_ORDER = ['ryan', 'jenze', 'tygo', 'vince', 'timo', 'just', 'ricky'];
+const CHARACTER_ORDER = ['ryan', 'jenze', 'tygo', 'vince', 'timo', 'just', 'ricky', 'yarno'];
 const SHIELD_BLOCK_CD = 3000;   // ms cooldown nadat Tygo's schild een treffer blokt
 
 /* ---------- LEVELS (Wereld 1: Verlaten Stad) ----------
