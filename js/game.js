@@ -1883,6 +1883,7 @@ const Game = {
     this.caveArmed = -1;
     this._caveArmAt = this.time + CAVE_ARM_MS;
     this.shake = Math.max(this.shake, 5);
+    if (window.Sfx) Sfx.play('beam');
   },
   onCaveArm(p) { if (!this.caveWall) this.caveArmed = (p && typeof p.idx === 'number') ? p.idx : -1; },
   onCaveWall() { this.triggerCaveWall(); },
@@ -1933,7 +1934,7 @@ const Game = {
   _vulcanPhase(state) {
     const v = this.vulcan; v.state = state;
     if (state === 'bubble') v.nextAt = this.time + VULCAN_BUBBLE;
-    else if (state === 'erupt') { v.nextAt = this.time + VULCAN_ERUPT; v.hitP = false; v.hitB = false; this.shake = Math.max(this.shake, 6); }
+    else if (state === 'erupt') { v.nextAt = this.time + VULCAN_ERUPT; v.hitP = false; v.hitB = false; this.shake = Math.max(this.shake, 6); if (window.Sfx) Sfx.play('lava'); }
     else v.nextAt = this.time + VULCAN_EVERY;
   },
   onVersusLava(p) { if (this.vulcan && p && p.ph) this._vulcanPhase(p.ph); },
@@ -1965,7 +1966,7 @@ const Game = {
   _tentPhase(state) {
     const v = this.tentacle; v.state = state;
     if (state === 'warn') v.nextAt = this.time + PIRATE_TENT_WARN;
-    else if (state === 'strike') { v.nextAt = this.time + PIRATE_TENT_STRIKE; v.hitP = false; v.hitB = false; this.shake = Math.max(this.shake, 6); }
+    else if (state === 'strike') { v.nextAt = this.time + PIRATE_TENT_STRIKE; v.hitP = false; v.hitB = false; this.shake = Math.max(this.shake, 6); if (window.Sfx) Sfx.play('monster'); }
     else v.nextAt = this.time + PIRATE_TENT_EVERY;
   },
   _tentHit(e) {
@@ -1999,7 +2000,7 @@ const Game = {
         if (Math.abs(target.x - g.x) > 14) g.x += g.dir * 0.5 * this.dtScale;
         g.x = Math.max(cg.x - cg.w / 2 + 12, Math.min(cg.x + cg.w / 2 - 12, g.x));
         if (this.time >= g.swipeCd && Math.abs(target.x - g.x) < GORILLA_REACH && Math.abs(target.y - g.y) < 38) {
-          g.swipeCd = this.time + GORILLA_SWIPE_CD; g.swipeUntil = this.time + 260; g.state = 'swipe'; g._hitDone = false; this.shake = Math.max(this.shake, 5);
+          g.swipeCd = this.time + GORILLA_SWIPE_CD; g.swipeUntil = this.time + 260; g.state = 'swipe'; g._hitDone = false; this.shake = Math.max(this.shake, 5); if (window.Sfx) Sfx.play('gorilla');
         }
       }
       if (g.state === 'swipe' && this.time < g.swipeUntil && !g._hitDone) {
@@ -2103,6 +2104,7 @@ const Game = {
     if (Math.abs(tx - m.x) > 2) m.dir = tx >= m.x ? 1 : -1;
     if (oppNear && Math.abs(opp.x - m.x) < 18 && Math.abs(opp.y - m.y) < 22 && this.time >= (m.atkCd || 0) && (!this.vsBot || opp.respawnInvuln <= 0)) {
       m.atkCd = this.time + 850;
+      if (window.Sfx) Sfx.play('monkey');
       const kd = opp.x >= m.x ? 1 : -1;
       if (this.vsBot) this.applyHitToBot(kd, 6, -3, 8);
       else if (window.Net) Net.versusSend('hit', { dir: kd, power: 6, vy: -3, dmg: 8 });

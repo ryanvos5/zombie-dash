@@ -78,6 +78,11 @@ const Sfx = {
       case 'dragonfire': this._noise(0.55, 0.42, 1100, 280); this._tone(110, 0.5, 'sawtooth', 0.2, 70); break;     // draak-vuurstraal
       case 'boing': this._tone(280, 0.2, 'sine', 0.32, 820); break;                            // strandbal
       case 'stomp': this._tone(95, 0.22, 'square', 0.5, 38); this._noise(0.2, 0.42, 420); break;                   // reus-dreun
+      case 'monster': this._tone(85, 0.5, 'sawtooth', 0.42, 48); this._noise(0.4, 0.34, 650, 250); break;          // zeemonster-tentakel (gromp)
+      case 'monkey': [880, 760, 1040].forEach((f, i) => setTimeout(() => this._tone(f, 0.07, 'square', 0.22, f * 1.15), i * 70)); break;  // aap-gekrijs
+      case 'gorilla': this._tone(70, 0.6, 'square', 0.46, 42); this._noise(0.5, 0.4, 520, 200); break;             // gorilla-brul
+      case 'lava': this._noise(0.6, 0.46, 520, 160); this._tone(58, 0.55, 'square', 0.36, 120); break;             // vulkaan-uitbarsting
+      case 'beam': this._tone(220, 0.42, 'sawtooth', 0.26, 1500); this._noise(0.2, 0.2, 4000); break;              // cave-straal
       case 'pickup': this._tone(660, 0.09, 'square', 0.25); setTimeout(() => this._tone(990, 0.11, 'square', 0.25), 80); break;
       case 'coin': this._tone(940, 0.07, 'square', 0.22); setTimeout(() => this._tone(1320, 0.1, 'square', 0.22), 60); break;
       case 'bounce': this._tone(440, 0.08, 'sine', 0.25, 300); break;
