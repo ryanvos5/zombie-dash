@@ -2286,6 +2286,7 @@ const Game = {
   beginRoundFreeze(msg) {
     this.vs.roundFreezeUntil = this.time + 2200;       // ~2,2s freeze
     this.vs.roundMsg = msg;
+    if (window.Sfx) Sfx.play((msg && msg.indexOf('JIJ') === 0) ? 'roundwin' : 'roundlose');
     this.dragons = [];                                  // draken stoppen bij rondewissel
     this.rocks = [];
     this.caveWall = null; this.caveArmed = -1; this._caveArmAt = this.time + CAVE_ARM_MS;
