@@ -1453,6 +1453,7 @@ const Game = {
   onVersusShot(p) {
     if (!this.ghostBullets) this.ghostBullets = [];
     if (this.ghostBullets.length < 40) this.ghostBullets.push({ x: p.x, y: p.y, vx: p.vx, life: 1200, kind: p.k || 0 });
+    if (window.Sfx) { const k = p.k; Sfx.play(k === 'cannon' ? 'cannon' : k === 'rocket' ? 'rocket' : k === 'fire' ? 'fireball' : 'gun'); }   // tegenstander hoort je 'm afvuren
   },
 
   // ---- camera (volgt de eigen speler binnen de map-grenzen) ----
@@ -1656,7 +1657,7 @@ const Game = {
   },
   onVersusBall(p) {
     if (!p) return;
-    if (!this.ball) this.ball = { mine: false, owner: 'foe', born: this.time, grace: this.time };
+    if (!this.ball) { this.ball = { mine: false, owner: 'foe', born: this.time, grace: this.time }; if (window.Sfx) Sfx.play('boing'); }
     this.ball.mine = false; this.ball.x = p.x; this.ball.y = p.y; this.ball.vx = p.vx; this.ball.vy = p.vy;
   },
   explodeBall() {
@@ -2388,7 +2389,7 @@ const Game = {
         b.gunAmmo--; b._shootCd = this.time + 220;
         if (b.gunAmmo <= 0) { b.rangedId = null; b.weaponId = b.meleeId || 'bat'; }
       }
-      if (bl) { b.dir = sdir; this.botBullets.push(bl); this.spawnMuzzleFlash(b.x + sdir * 14, b.y - 16, sdir); }
+      if (bl) { b.dir = sdir; this.botBullets.push(bl); this.spawnMuzzleFlash(b.x + sdir * 14, b.y - 16, sdir); if (window.Sfx) Sfx.play(bl.kind === 'cannon' ? 'cannon' : bl.kind === 'rocket' ? 'rocket' : bl.kind === 'fire' ? 'fireball' : 'gun'); }
     }
     // bot-kogels bewegen + de speler raken
     if (this.botBullets && this.botBullets.length) {
