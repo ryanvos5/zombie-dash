@@ -1287,6 +1287,11 @@ const Game = {
     const lvl = Math.max(1, Math.min(10, opts.diff || 5));
     this.botLevel = lvl;
     this.botCfg = BOT_PROFILES[lvl - 1];
+    if (opts.journey) {
+      // Journey-mensapen zijn vechters: ze pakken geen ranged wapen op, dus laat ze niet op
+      // schiet-afstand blijven hangen — ze komen naar je toe en meppen (diff bepaalt het tempo).
+      this.botCfg = Object.assign({}, this.botCfg, { standoff: 22, aggro: Math.max(this.botCfg.aggro, 0.85), jumpy: Math.max(this.botCfg.jumpy, 0.6) });
+    }
     if (this.vsBot) {
       const ids = CHARACTER_ORDER.filter((id) => !CHARACTERS[id].journeyOnly);   // bot pakt geen Journey-only karakters
       const botChar = opts.botChar || (opts.boss ? 'kong' : (ids[Math.floor(Math.random() * ids.length)] || 'ryan'));
