@@ -216,19 +216,28 @@ const UI = {
     });
   },
   pickJourneyLevel(n) {
-    // animatie-verhaal alleen vóór het allereerste potje (level 1, nog niks gehaald)
-    if (n === 1 && (Storage.data.journey1 || 0) === 0) {
-      this.playStory();
-      return;
-    }
+    const script = this._journeyStoryFor(n);
+    if (script) { this.playStory(script, n); return; }
     this.startJourneyLevel(n);
   },
-  // verhaal-cutscene op het canvas afspelen, daarna level 1
-  playStory() {
+  // welk verhaaltje hoort bij dit level? (intro vóór lvl 1, confrontatie bij elke nieuwe aap)
+  // speelt alleen de eerste keer: niet als je het level al gehaald hebt, en niet 2x per sessie
+  _journeyStoryFor(n) {
+    Game._seenStory = Game._seenStory || {};
+    if (Game._seenStory[n]) return null;
+    if (n === 1 && (Storage.data.journey1 || 0) === 0) return 'intro';
+    if (n === 5 && !Storage.journeyCleared(5)) return 'baviaan';   // eerste Baviaan
+    if (n === 10 && !Storage.journeyCleared(10)) return 'koba';    // eerste Koba
+    if (n === 15 && !Storage.journeyCleared(15)) return 'kong';    // Gorilla King (eindbaas)
+    return null;
+  },
+  // verhaal-cutscene op het canvas afspelen, daarna het level starten
+  playStory(script, n) {
     ['menu', 'level', 'shop', 'journey', 'arena', 'win', 'lose', 'versus', 'leaderboard', 'chat'].forEach((s) => this.el[s].classList.add('hidden'));
     document.body.classList.add('in-game');
     this.el.hud.classList.add('hidden'); this.el.touch.classList.add('hidden'); this.el.pause.classList.add('hidden');
-    Game.playJourneyIntro(() => this.startJourneyLevel(1));
+    Game._seenStory = Game._seenStory || {}; Game._seenStory[n] = true;
+    Game.playJourneyIntro(script, () => this.startJourneyLevel(n));
   },
   startJourneyLevel(n) {
     document.getElementById('versus-result').classList.add('hidden');

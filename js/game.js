@@ -1159,13 +1159,35 @@ const Game = {
     this.journey = { world: 1, idx, lv };   // startVersus reset 'm; opnieuw zetten
   },
 
-  // ===== Journey: verhaal-cutscene (speelt op het canvas) =====
-  playJourneyIntro(onDone) {
+  // ===== Journey: verhaal-cutscenes (spelen op het canvas) =====
+  // 'intro' = aangespoeld/ontvoerd (vóór level 1). De andere scripts spelen de eerste
+  // keer dat je een NIEUWE mensaap tegenkomt: baviaan (lvl 5), koba (lvl 10), kong (lvl 15).
+  _storyDef(script) {
+    const S = {
+      baviaan: { theme: 'beach', foe: 'baviaan', scale: 1.12, caps: [
+        'Je breekt los en vlucht langs de vloedlijn…',
+        'Maar een grotere, getekende BAVIAAN verspert je de weg.',
+        'Hij bonkt op z\'n borst — vechten is je enige uitweg!'] },
+      koba: { theme: 'jungle', foe: 'koba', scale: 1.16, caps: [
+        'Diep in de jungle doemt de oude APENTEMPEL op.',
+        'KOBA, de bruut die de horde leidt, wacht je op.',
+        'Versla hem om door te dringen tot de top.'] },
+      kong: { theme: 'jungle', foe: 'kong', scale: 1.5, caps: [
+        'Op de top torent de troon van de GORILLA KING.',
+        'De koning van het eiland brult — de grond trilt.',
+        'Dit is het laatste gevecht. Versla de GORILLA KING!'] },
+    };
+    return S[script] || null;
+  },
+  playJourneyIntro(script, onDone) {
+    if (typeof script === 'function') { onDone = script; script = 'intro'; }
+    this._storyScript = script || 'intro';
+    this._storyData = (this._storyScript !== 'intro') ? this._storyDef(this._storyScript) : null;
     this._storyDone = onDone; this._storyElapsed = 0;
     this._storyChar = CHARACTERS[Storage.data.equippedCharacter] || CHARACTERS.ryan;
     this.state = 'story';
     const el = document.getElementById('journey-story'); if (el) el.classList.remove('hidden');
-    if (window.Sfx) Sfx.music('beach');
+    if (window.Sfx) Sfx.music(this._storyData && this._storyData.theme === 'jungle' ? 'jungle' : 'beach');
   },
   skipStory() { this.finishStory(); },
   finishStory() {
@@ -1178,15 +1200,40 @@ const Game = {
   _storyApe(ctx, x, fy, dir, ph) {
     Sprites.drawCharacter(ctx, Math.round(x), Math.round(fy), dir, CHARACTERS.aapje.palette, { walkPhase: ph, airborne: false, weapon: null, build: 'small', hair: 'natural' });
   },
-  renderStory() {
-    const ctx = this.ctx, W = CONFIG.VIEW_W, H = CONFIG.VIEW_H, t = this._storyElapsed || 0, gy = CONFIG.GROUND_Y;
-    const ch = this._storyChar || CHARACTERS.ryan, pose0 = { build: ch.build, hair: ch.hair };
-    // achtergrond: lucht + zee + strand
+  // een tegenstander-mensaap tekenen (eventueel groter geschaald, voor de eindbaas)
+  _storyFighter(ctx, charId, fx, fy, dir, ph, scale, opts) {
+    const c = CHARACTERS[charId] || CHARACTERS.aapje;
+    const o = Object.assign({ walkPhase: ph, weapon: null, build: c.build, hair: c.hair }, opts || {});
+    const s = scale || 1;
+    if (s === 1) { Sprites.drawCharacter(ctx, Math.round(fx), Math.round(fy), dir, c.palette, o); return; }
+    ctx.save(); ctx.translate(Math.round(fx), Math.round(fy)); ctx.scale(s, s);
+    Sprites.drawCharacter(ctx, 0, 0, dir, c.palette, o);
+    ctx.restore();
+  },
+  _storyBg(t, theme) {
+    const ctx = this.ctx, W = CONFIG.VIEW_W, H = CONFIG.VIEW_H, gy = CONFIG.GROUND_Y;
+    if (theme === 'jungle') {
+      const sky = ctx.createLinearGradient(0, 0, 0, H); sky.addColorStop(0, '#2f6e3a'); sky.addColorStop(1, '#7fc06a'); ctx.fillStyle = sky; ctx.fillRect(0, 0, W, H);
+      ctx.fillStyle = '#256033'; for (let x = -10; x < W + 10; x += 26) { ctx.beginPath(); ctx.arc(x, 38, 18, 0, 6.2832); ctx.fill(); }
+      ctx.fillStyle = '#2e7a3f'; for (let x = 6; x < W + 10; x += 30) { ctx.beginPath(); ctx.arc(x, 58, 16, 0, 6.2832); ctx.fill(); }
+      ctx.fillStyle = '#5b3a22'; for (let i = 0; i < 3; i++) { ctx.fillRect(22 + i * 72, 60, 8, gy - 60); }
+      ctx.fillStyle = '#3d6b2e'; ctx.fillRect(0, gy, W, H - gy); ctx.fillStyle = '#2f5524'; ctx.fillRect(0, gy + 6, W, H - gy - 6);
+      return;
+    }
     const sky = ctx.createLinearGradient(0, 0, 0, H); sky.addColorStop(0, '#8ad0f0'); sky.addColorStop(1, '#cde7f7'); ctx.fillStyle = sky; ctx.fillRect(0, 0, W, H);
     ctx.fillStyle = '#3f9fd0'; ctx.fillRect(0, gy - 30, W, 30); ctx.fillStyle = '#56b0dd'; ctx.fillRect(0, gy - 30, W, 5);
     for (let x = 0; x < W; x += 14) { const wob = Math.round(Math.sin(t / 300 + x * 0.1) * 2); Sprites.px(ctx, '#cdeaf7', x + ((t * 0.03) % 14), gy - 22 + wob, 7, 2); }
     ctx.fillStyle = '#e3c882'; ctx.fillRect(0, gy, W, H - gy); ctx.fillStyle = '#caa860'; ctx.fillRect(0, gy + 6, W, H - gy - 6);
     ctx.fillStyle = '#ffe79a'; ctx.beginPath(); ctx.arc(W - 46, 30, 14, 0, 6.2832); ctx.fill();
+  },
+  renderStory() {
+    const t = this._storyElapsed || 0;
+    if (this._storyScript && this._storyScript !== 'intro') { this._storyBg(t, this._storyData ? this._storyData.theme : 'beach'); this._renderClash(t); }
+    else { this._storyBg(t, 'beach'); this._renderIntro(t); }
+  },
+  _renderIntro(t) {
+    const ctx = this.ctx, W = CONFIG.VIEW_W, gy = CONFIG.GROUND_Y;
+    const ch = this._storyChar || CHARACTERS.ryan, pose0 = { build: ch.build, hair: ch.hair };
     const cap = document.getElementById('journey-cap');
     if (t < 2600) {                                   // op een vlot komt de speler aandrijven
       const prog = Math.min(1, t / 2400), px = 36 + prog * (W * 0.5 - 36), py = gy - 6 + Math.sin(t / 200) * 1.5;
@@ -1205,6 +1252,30 @@ const Game = {
       this._storyApe(ctx, px + 16, gy - 2, -1, t / 60); this._storyApe(ctx, px + 36, gy - 2, -1, t / 60 + 2);
       for (let i = 0; i < 3; i++) Sprites.px(ctx, '#d8c9a0', px - 12 - i * 7, gy - 2 - (i % 2) * 2, 3, 3);
       if (cap) cap.textContent = 'Wilde MENSAPEN grijpen je en sleuren je het oerwoud in!';
+    } else { this.finishStory(); }
+  },
+  // confrontatie-cutscene: speler loopt op, tegenstander-aap komt opdagen, face-off
+  _renderClash(t) {
+    const ctx = this.ctx, W = CONFIG.VIEW_W, gy = CONFIG.GROUND_Y;
+    const sc = this._storyData; if (!sc) { this.finishStory(); return; }
+    const ch = this._storyChar || CHARACTERS.ryan, pose0 = { build: ch.build, hair: ch.hair };
+    const cap = document.getElementById('journey-cap');
+    const px = Math.round(W * 0.30), fxT = W * 0.68;
+    if (t < 2400) {                                   // speler loopt het beeld in
+      const prog = Math.min(1, t / 2200), x = -20 + prog * (px + 20);
+      Sprites.drawCharacter(ctx, Math.round(x), gy - 2, 1, ch.palette, Object.assign({ walkPhase: t / 70, weapon: null }, pose0));
+      if (cap) cap.textContent = sc.caps[0];
+    } else if (t < 5000) {                            // tegenstander-aap komt van rechts opzetten
+      Sprites.drawCharacter(ctx, px, gy - 2, 1, ch.palette, Object.assign({ weapon: null }, pose0));
+      const prog = Math.min(1, (t - 2400) / 2300), fx = (W + 34) + prog * (fxT - (W + 34));
+      this._storyFighter(ctx, sc.foe, fx, gy - 2, -1, t / 64, sc.scale);
+      if (cap) cap.textContent = sc.caps[1];
+    } else if (t < 7600) {                            // face-off: aap stampt/bonkt op de borst
+      Sprites.drawCharacter(ctx, px, gy - 2, 1, ch.palette, Object.assign({ weapon: null }, pose0));
+      const bob = Math.abs(Math.sin((t - 5000) / 110)) * 2.5;
+      this._storyFighter(ctx, sc.foe, fxT, gy - 2 - bob, -1, 0, sc.scale);
+      for (let i = 0; i < 3; i++) { const a = (t / 70 + i) % 3; Sprites.px(ctx, '#ffffff', Math.round(fxT - 12 - a * 4), gy - 22 - i * 3, 2, 2); }
+      if (cap) cap.textContent = sc.caps[2];
     } else { this.finishStory(); }
   },
 
