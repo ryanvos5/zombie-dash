@@ -1539,10 +1539,8 @@ const Game = {
       if (!this.player.dead && (this.player.y > this.vsFallY || this.player.hp <= 0)) this.localFell();
     }
 
-    // camera framet beide spelers; daarna ze binnen dat (gezoomde) beeld houden
+    // camera blijft op jou en zoomt mee; niemand wordt verplaatst (bot valt dus niet meer geforceerd)
     this.updateVersusCamera();
-    this.clampToVersusView(this.player);
-    if (this.vsBot) this.clampToVersusView(this.bot);
 
     // ghost-kogels van de tegenstander (alleen visueel)
     if (this.ghostBullets && this.ghostBullets.length) {
@@ -1655,53 +1653,47 @@ const Game = {
     if (window.Sfx) { const k = p.k; Sfx.play(k === 'cannon' ? 'cannon' : k === 'rocket' ? 'rocket' : k === 'fire' ? 'fireball' : 'gun'); }   // tegenstander hoort je 'm afvuren
   },
 
-  // ---- camera (framet ALTIJD jou én de tegenstander; ver = uitzoomen, dichtbij = inzoomen) ----
+  // ---- camera: blijft op JOU; schuift/zoomt mee naar de tegenstander als 'ie redelijk dichtbij is.
+  // Niemand wordt verplaatst. Is de tegenstander te ver -> focus op jezelf (die mag dan uit beeld). ----
   updateVersusCamera() {
     const W = CONFIG.VIEW_W, H = CONFIG.VIEW_H, GY = CONFIG.GROUND_Y;
     const mapW = this.vsMapW || W;
     const p = this.player;
     const opp = this.vsBot ? this.bot : (this.vs ? this.vs.remote : null);
     const oppLive = !!(opp && (this.vsBot ? !opp.dead : opp.alive));
+    const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
-    // camera-midden blijft dicht bij JOU en schuift maar een fractie mee met de tegenstander
-    // (BIAS 0=alleen jij, 0.5=precies tussenin). De zoom houdt de tegenstander toch in beeld.
-    const BIAS = 0.3;
-    let cx, cy, spanX, spanY;
+    const BIAS = 0.3, MX = 70, MY = 70, ZMIN = 0.6, ZMAX = 1.45;
+    const SHIFT_X = 100, SHIFT_Y = 60;                    // max hoeveel het beeld naar de tegenstander schuift
+    const CAPW = W / (2 * ZMIN), CAPH = H / (2 * ZMIN);   // tegenstander telt mee tot deze grens (daarna focus op jou)
+
+    let cx, cy, halfW, halfH;
     if (oppLive && !p.dead) {
-      cx = p.x + (opp.x - p.x) * BIAS; cy = p.y + (opp.y - p.y) * BIAS;
-      // breedte/hoogte die nodig is om het (verschoven) midden zodat beiden passen
-      spanX = Math.abs(p.x - opp.x) * 2 * (1 - BIAS);
-      spanY = Math.abs(p.y - opp.y) * 2 * (1 - BIAS);
-    } else {                                   // iemand weg/dood -> volg de levende
+      const dx = opp.x - p.x, dy = opp.y - p.y;
+      const sx = clamp(dx * BIAS, -SHIFT_X, SHIFT_X);
+      const sy = clamp(dy * BIAS, -SHIFT_Y, SHIFT_Y);
+      cx = p.x + sx; cy = p.y + sy;
+      // JIJ altijd ruim in beeld (ondergrens); tegenstander meenemen tot de zoom-grens (bovengrens)
+      halfW = clamp(Math.abs(dx - sx) + MX, Math.abs(sx) + MX, CAPW);
+      halfH = clamp(Math.abs(dy - sy) + MY, Math.abs(sy) + MY, CAPH);
+    } else {                                   // tegenstander weg/dood -> alleen jou volgen
       const f = (p.dead && oppLive) ? opp : p;
-      cx = f.x; cy = f.y - 22; spanX = 0; spanY = 0;
+      cx = f.x; cy = f.y - 22; halfW = MX + 24; halfH = MY;
     }
 
-    // doel-zoom: net genoeg uitzoomen om beiden + marge te tonen
-    const MX = 66, MY = 70, ZMIN = 0.52, ZMAX = 1.45;
-    let z = Math.min(W / (spanX + MX * 2), H / (spanY + MY * 2));
-    z = Math.max(ZMIN, Math.min(ZMAX, z));
-    this.vsCamZoom += (z - this.vsCamZoom) * 0.12;   // soepel zoomen
+    let z = Math.min(W / (2 * halfW), H / (2 * halfH));
+    z = clamp(z, ZMIN, ZMAX);
+    this.vsCamZoom += (z - this.vsCamZoom) * 0.1;        // rustig zoomen
     const zz = this.vsCamZoom, visW = W / zz, visH = H / zz;
 
-    // doel-camera = wereldcoördinaat linksboven in beeld
     let tx;
     if (mapW <= visW) tx = (mapW - visW) / 2;                       // map smaller dan beeld -> gecentreerd
-    else tx = Math.max(0, Math.min(mapW - visW, cx - visW / 2));
+    else tx = clamp(cx - visW / 2, 0, mapW - visW);
     let ty = cy - visH / 2;
     ty = Math.min(ty, (GY + 28) - visH);          // grond laag in beeld houden (niet te veel afgrond)
     ty = Math.max(ty, -200);                       // niet eindeloos de lucht in
-    this.vsCamX += (tx - this.vsCamX) * 0.16;
-    this.vsCamY += (ty - this.vsCamY) * 0.18;
-  },
-
-  // beide spelers binnen het zichtbare (gezoomde) beeld houden, zodat je elkaar altijd ziet
-  clampToVersusView(e) {
-    if (!e || e.dead) return;
-    const W = CONFIG.VIEW_W, H = CONFIG.VIEW_H, zz = this.vsCamZoom || 1;
-    const visW = W / zz, visH = H / zz;
-    e.x = Math.max(this.vsCamX + 12, Math.min(this.vsCamX + visW - 12, e.x));
-    if (e.y < this.vsCamY + 12) { e.y = this.vsCamY + 12; if (e.vy < 0) e.vy = 0; }   // niet boven beeld uit
+    this.vsCamX += (tx - this.vsCamX) * 0.14;
+    this.vsCamY += (ty - this.vsCamY) * 0.16;
   },
 
   // ---- POWER SMASH: vuurknop, drops, pickups ----
