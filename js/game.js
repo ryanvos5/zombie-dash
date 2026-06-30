@@ -1663,11 +1663,15 @@ const Game = {
     const opp = this.vsBot ? this.bot : (this.vs ? this.vs.remote : null);
     const oppLive = !!(opp && (this.vsBot ? !opp.dead : opp.alive));
 
-    // middelpunt + spanwijdte tussen de twee spelers
+    // camera-midden blijft dicht bij JOU en schuift maar een fractie mee met de tegenstander
+    // (BIAS 0=alleen jij, 0.5=precies tussenin). De zoom houdt de tegenstander toch in beeld.
+    const BIAS = 0.3;
     let cx, cy, spanX, spanY;
     if (oppLive && !p.dead) {
-      cx = (p.x + opp.x) / 2; cy = (p.y + opp.y) / 2;
-      spanX = Math.abs(p.x - opp.x); spanY = Math.abs(p.y - opp.y);
+      cx = p.x + (opp.x - p.x) * BIAS; cy = p.y + (opp.y - p.y) * BIAS;
+      // breedte/hoogte die nodig is om het (verschoven) midden zodat beiden passen
+      spanX = Math.abs(p.x - opp.x) * 2 * (1 - BIAS);
+      spanY = Math.abs(p.y - opp.y) * 2 * (1 - BIAS);
     } else {                                   // iemand weg/dood -> volg de levende
       const f = (p.dead && oppLive) ? opp : p;
       cx = f.x; cy = f.y - 22; spanX = 0; spanY = 0;
