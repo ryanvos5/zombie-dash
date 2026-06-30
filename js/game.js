@@ -163,7 +163,16 @@ const Game = {
     if (next <= world.levels.length) this.startLevel(this.worldId, next);
     else { UI.renderLevels(); UI.show('level'); }
   },
-  retryLevel() { this.startLevel(this.worldId, this.level.id); },
+  retryLevel() {
+    const pauseScreen = document.getElementById('pause-screen');
+    if (this.journey) {                                    // Journey: zelfde level opnieuw
+      const idx = this.journey.idx;
+      this.vsPaused = false; if (pauseScreen) pauseScreen.classList.add('hidden');
+      UI.startJourneyLevel(idx);
+      return;
+    }
+    this.startLevel(this.worldId, this.level.id);
+  },
 
   togglePause() {
     const pauseScreen = document.getElementById('pause-screen');
@@ -173,6 +182,10 @@ const Game = {
     } else if (this.state === 'paused') {
       this.state = 'playing';
       if (pauseScreen) pauseScreen.classList.add('hidden');
+    } else if (this.state === 'versus' && this.journey) {   // Journey: singleplayer, dus pauzeren mag
+      this.vsPaused = !this.vsPaused;
+      if (this.vsPaused) Input.clear();
+      if (pauseScreen) pauseScreen.classList.toggle('hidden', !this.vsPaused);
     }
   },
 
@@ -180,6 +193,8 @@ const Game = {
   quitToMenu() {
     const pauseScreen = document.getElementById('pause-screen');
     if (pauseScreen) pauseScreen.classList.add('hidden');
+    this.vsPaused = false;
+    if (this.journey || this.state === 'versus') { this.quitVersus(); return; }   // Journey/versus netjes opruimen
     this.state = 'menu';
     Input.clear();
     UI.show('menu');
@@ -1307,6 +1322,7 @@ const Game = {
     opts = opts || {};
     this.journeyDrops = opts.journeyDrops || null;     // Journey: extra powerup-pool per level
     this._bossBot = !!opts.boss;                        // Journey-eindbaas (Gorilla King)
+    this.vsPaused = false;                              // verse pot is nooit gepauzeerd
     if (!opts.journey) this.journey = null;            // alleen Journey-context houden bij een Journey-potje
     if (window.Net && Net.lobby) Net.lobbyLeave();   // niet meer "online in de lobby" tijdens een potje
     const map = opts.mapObj || VERSUS_MAPS.find((m) => m.id === opts.mapId) || VERSUS_MAPS[0];
@@ -3745,7 +3761,7 @@ const Game = {
 
     if (this.state === 'playing') this.update(dt);
     if (['playing', 'paused'].includes(this.state)) this.render();
-    if (this.state === 'versus') { this.updateVersus(dt); this.renderVersus(); }
+    if (this.state === 'versus') { if (!this.vsPaused) this.updateVersus(dt); this.renderVersus(); }
     if (this.state === 'story') {
       this._storyClock = (this._storyClock || 0) + dt;                                   // ambient (golven) loopt door
       if (!this._storyFrozen) this._storyElapsed = (this._storyElapsed || 0) + dt;       // segment-animatie; bevriest aan het eind

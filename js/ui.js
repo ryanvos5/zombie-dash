@@ -241,12 +241,14 @@ const UI = {
     document.getElementById('versus-result').classList.add('hidden');
     this.showVersus();                  // juiste HUD/touch-setup, alle schermen weg
     Game.startJourney(n);
+    this.el.pause.classList.remove('hidden');   // Journey heeft een pauzeknop (singleplayer)
   },
   showJourneyResult(won, idx, unlocks, rewards, myScore, oppScore) {
     const levels = JOURNEY[1].levels, total = levels.length, hasNext = won && idx < total;
     const vw = document.getElementById('vs-win'); if (vw) vw.classList.add('hidden');   // win-celebratie weg
     const rb = document.getElementById('vs-round-banner'); if (rb) rb.classList.add('hidden');
     this.el.touch.classList.add('hidden'); document.body.classList.remove('in-game');
+    this.el.pause.classList.add('hidden');
     document.getElementById('versus-hud').classList.add('hidden');
     const t = document.getElementById('vs-result-title');
     t.textContent = won ? (idx >= total ? 'EILAND VERSLAGEN! 🏆' : 'LEVEL GEHAALD!') : 'VERLOREN';
