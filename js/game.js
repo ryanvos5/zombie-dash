@@ -1663,35 +1663,38 @@ const Game = {
     const oppLive = !!(opp && (this.vsBot ? !opp.dead : opp.alive));
     const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
-    const BIAS = 0.3, MX = 70, MY = 70, ZMIN = 0.6, ZMAX = 1.45;
-    const SHIFT_X = 100, SHIFT_Y = 60;                    // max hoeveel het beeld naar de tegenstander schuift
-    const CAPW = W / (2 * ZMIN), CAPH = H / (2 * ZMIN);   // tegenstander telt mee tot deze grens (daarna focus op jou)
+    const BIAS = 0.3, MX = 70, ZMIN = 0.6, ZMAX = 1.45;
+    const DEAD_X = 70, SHIFT_X = 110, CAPW = W / (2 * ZMIN);   // binnen DEAD_X leunt/zoomt het beeld NIET
 
-    let cx, cy, halfW, halfH;
+    // ---- HORIZONTAAL: blijf op jou; leun/zoom pas naar de tegenstander voorbij de deadzone ----
+    let cx, halfW;
     if (oppLive && !p.dead) {
-      const dx = opp.x - p.x, dy = opp.y - p.y;
-      const sx = clamp(dx * BIAS, -SHIFT_X, SHIFT_X);
-      const sy = clamp(dy * BIAS, -SHIFT_Y, SHIFT_Y);
-      cx = p.x + sx; cy = p.y + sy;
-      // JIJ altijd ruim in beeld (ondergrens); tegenstander meenemen tot de zoom-grens (bovengrens)
-      halfW = clamp(Math.abs(dx - sx) + MX, Math.abs(sx) + MX, CAPW);
-      halfH = clamp(Math.abs(dy - sy) + MY, Math.abs(sy) + MY, CAPH);
+      const dx = opp.x - p.x, dxA = Math.abs(dx), sgn = dx >= 0 ? 1 : -1;
+      const beyond = Math.max(0, dxA - DEAD_X);                 // afstand voorbij de deadzone
+      const sx = sgn * Math.min(beyond * BIAS, SHIFT_X);
+      cx = p.x + sx;
+      const playerHalf = Math.abs(sx) + MX;                     // jij altijd ruim in beeld
+      const oppHalf = Math.abs(dx - sx) + MX * 0.7;             // tegenstander erbij (tot de zoom-grens)
+      halfW = clamp(Math.max(playerHalf, oppHalf), MX, CAPW);
     } else {                                   // tegenstander weg/dood -> alleen jou volgen
       const f = (p.dead && oppLive) ? opp : p;
-      cx = f.x; cy = f.y - 22; halfW = MX + 24; halfH = MY;
+      cx = f.x; halfW = MX;
     }
-
-    let z = Math.min(W / (2 * halfW), H / (2 * halfH));
-    z = clamp(z, ZMIN, ZMAX);
-    this.vsCamZoom += (z - this.vsCamZoom) * 0.1;        // rustig zoomen
+    let z = clamp(W / (2 * halfW), ZMIN, ZMAX);   // zoom is puur HORIZONTAAL -> sprongen pulsen de zoom niet
+    this.vsCamZoom += (z - this.vsCamZoom) * 0.1;
     const zz = this.vsCamZoom, visW = W / zz, visH = H / zz;
 
     let tx;
     if (mapW <= visW) tx = (mapW - visW) / 2;                       // map smaller dan beeld -> gecentreerd
     else tx = clamp(cx - visW / 2, 0, mapW - visW);
-    let ty = cy - visH / 2;
-    ty = Math.min(ty, (GY + 28) - visH);          // grond laag in beeld houden (niet te veel afgrond)
-    ty = Math.max(ty, -200);                       // niet eindeloos de lucht in
+
+    // ---- VERTICAAL: puur op JOU. Vast (grond onderin); pas omhoog scrollen als jij hoog springt ----
+    // (de tegenstander beweegt het beeld dus NIET op en neer)
+    const restTy = (GY + 28) - visH;              // rustpositie: grond laag in beeld
+    const followTy = p.y - visH * 0.32;           // hoog springen: jou bij de bovenkant houden
+    let ty = Math.min(restTy, followTy);          // alleen omhoog volgen (springen), nooit omlaag wiebelen
+    ty = Math.max(ty, -200);
+
     this.vsCamX += (tx - this.vsCamX) * 0.14;
     this.vsCamY += (ty - this.vsCamY) * 0.16;
   },
