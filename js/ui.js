@@ -245,7 +245,7 @@ const UI = {
     this.showVersus();                  // juiste HUD/touch-setup, alle schermen weg
     Game.startJourney(n);
   },
-  showJourneyResult(won, idx, unlocks, rewards) {
+  showJourneyResult(won, idx, unlocks, rewards, myScore, oppScore) {
     const levels = JOURNEY[1].levels, total = levels.length, hasNext = won && idx < total;
     const vw = document.getElementById('vs-win'); if (vw) vw.classList.add('hidden');   // win-celebratie weg
     const rb = document.getElementById('vs-round-banner'); if (rb) rb.classList.add('hidden');
@@ -254,10 +254,11 @@ const UI = {
     const t = document.getElementById('vs-result-title');
     t.textContent = won ? (idx >= total ? 'EILAND VERSLAGEN! 🏆' : 'LEVEL GEHAALD!') : 'VERLOREN';
     t.className = 'screen-title ' + (won ? 'win' : 'lose');
-    document.getElementById('vs-result-score').textContent = (levels[idx - 1] ? levels[idx - 1].name : ('Level ' + idx));
+    document.getElementById('vs-result-score').textContent = (myScore || 0) + ' – ' + (oppScore || 0);
     const xpEl = document.getElementById('vs-result-xp');
     xpEl.classList.remove('hidden');
-    xpEl.innerHTML = won ? 'Level ' + idx + ' gehaald!' : 'Probeer het opnieuw.';
+    const lvlName = (levels[idx - 1] ? levels[idx - 1].name : ('Level ' + idx));
+    xpEl.innerHTML = lvlName + '<br>' + (won ? 'Level ' + idx + ' gehaald!' : 'Probeer het opnieuw.');
     const voteBox = document.getElementById('vs-result-vote'); if (voteBox) voteBox.classList.add('hidden');
     const rs = document.getElementById('vs-rematch-status'); if (rs) rs.textContent = '';
     const rbtn = document.getElementById('btn-vs-rematch');

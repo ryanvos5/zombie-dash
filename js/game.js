@@ -3008,8 +3008,9 @@ const Game = {
       }
       if (window.Sfx) Sfx.play(won ? 'win' : 'lose');
       const self = this, name = won ? 'JIJ' : ((jr.lv && jr.lv.boss) ? 'GORILLA KING' : 'BOT');
+      const myScore = this.vs ? this.vs.myScore : 0, oppScore = this.vs ? this.vs.oppScore : 0;
       UI.showWinCelebration(name, won);
-      setTimeout(function () { if (self.state === 'versusOver') UI.showJourneyResult(won, idx, unlocks, rewards); }, 2600);
+      setTimeout(function () { if (self.state === 'versusOver') UI.showJourneyResult(won, idx, unlocks, rewards, myScore, oppScore); }, 2600);
       return;
     }
     // betrouwbaar de uitslag naar de tegenstander sturen (paar keer tegen pakketverlies)
