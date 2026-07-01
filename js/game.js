@@ -1640,6 +1640,10 @@ const Game = {
         const stun = b._stun || 0;
         if (this.vsBot) { this.applyHitToBot(kd, power, vy, dmg); if (stun && this.bot) this.bot.stunUntil = Math.max(this.bot.stunUntil || 0, this.time + stun); }
         else if (window.Net) Net.versusSend('hit', { dir: kd, power: power, vy: vy, dmg: dmg, stun: stun });
+        if (b.kind === 'fire') {                          // vuurbal laat ook branden
+          if (this.vsBot) { if (this.bot && this.bot.respawnInvuln <= 0) this.bot.burnUntil = this.time + 3000; }
+          else if (window.Net) Net.versusSend('burn', {});
+        }
         this.spawnBlood(b.x, b.y);
         if (b.kind === 'cannon') this.shake = Math.max(this.shake, 8);
         if (b.kind) for (let i = 0; i < 8; i++) this.particles.push(new Particle(b.x, b.y, (Math.random() - 0.5) * 3, -Math.random() * 2, b.kind === 'rocket' ? '#ffd24a' : (b.kind === 'cannon' ? '#888' : '#ff7a2a'), 320, 2));
@@ -3079,11 +3083,13 @@ const Game = {
       if (won) {
         const first = !Storage.journeyCleared(idx);
         unlocks = Storage.clearJourneyLevel(idx);
-        const coins = (jr.lv && jr.lv.boss) ? 150 : 40, xp = (jr.lv && jr.lv.boss) ? 60 : 20;
-        if (first) {
-          Storage.data.coins = (Storage.data.coins || 0) + coins; Storage.data.xp = (Storage.data.xp || 0) + xp; Storage.save();
-          rewards.push({ type: 'earn', coins, xp });
-        }
+        // eerste keer: volledige beloning; opnieuw spelen: 50 munten (geen xp)
+        const coins = first ? ((jr.lv && jr.lv.boss) ? 150 : 40) : 50;
+        const xp = first ? ((jr.lv && jr.lv.boss) ? 60 : 20) : 0;
+        Storage.data.coins = (Storage.data.coins || 0) + coins;
+        if (xp) Storage.data.xp = (Storage.data.xp || 0) + xp;
+        Storage.save();
+        rewards.push({ type: 'earn', coins, xp });
         for (const u of unlocks) rewards.push({ type: u.type, id: u.id, name: u.name });   // unlock-kaartjes
       }
       if (window.Sfx) Sfx.play(won ? 'win' : 'lose');

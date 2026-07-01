@@ -1216,10 +1216,11 @@ const UI = {
       const card = document.createElement('div');
       card.className = 'shop-card powerup-card' + (count > 0 ? ' owned' : '');
       const inLo = Storage.inLoadout(id);
-      card.innerHTML =
-        '<div class="pu-ico">' + pu.icon + '</div>' +
-        '<div><div class="w-name">' + pu.name + (count > 0 ? ' <span class="pu-count">x' + count + '</span>' : '') + '</div>' +
-        '<div class="w-stats">' + pu.desc + '</div></div>';
+      const cv = document.createElement('canvas'); cv.width = 44; cv.height = 44; cv.className = 'pu-ico';
+      this._puIcon(cv, pu.kind);
+      const info = document.createElement('div');
+      info.innerHTML = '<div class="w-name">' + pu.name + (count > 0 ? ' <span class="pu-count">x' + count + '</span>' : '') + '</div><div class="w-stats">' + pu.desc + '</div>';
+      card.appendChild(cv); card.appendChild(info);
       const btn = document.createElement('button');
       btn.className = 'shop-buy';
       if (mode === 'shop') {
@@ -1238,6 +1239,15 @@ const UI = {
   },
   flashLoadoutFull() {
     const c = document.getElementById('inv-loadout-count'); if (c) { c.classList.add('flash'); setTimeout(() => c.classList.remove('flash'), 500); }
+  },
+  // het echte drop-plaatje van een power-up op een klein canvas tekenen (hergebruikt Game.drawDrop)
+  _puIcon(canvas, kind) {
+    const ctx = canvas.getContext('2d'); ctx.imageSmoothingEnabled = false;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const sc = canvas.width / 20;
+    ctx.save(); ctx.translate(canvas.width / 2, canvas.height / 2 + sc); ctx.scale(sc, sc);
+    if (typeof Game !== 'undefined' && Game.drawDrop) Game.drawDrop(ctx, { kind, x: 0, y: 0, id: 0 });
+    ctx.restore();
   },
 
   // ---------- INVENTARIS ----------
@@ -1297,7 +1307,11 @@ const UI = {
       const pu = SHOP_POWERUPS[id]; const n = Storage.powerupCount(id);
       slot.classList.remove('empty'); slot.dataset.pu = id; slot.disabled = n <= 0;
       slot.classList.toggle('depleted', n <= 0);
-      slot.innerHTML = '<span class="lo-ico">' + pu.icon + '</span><span class="lo-n">' + n + '</span>';
+      slot.innerHTML = '';
+      const cv = document.createElement('canvas'); cv.width = 30; cv.height = 30; cv.className = 'lo-ico';
+      this._puIcon(cv, pu.kind);
+      const nEl = document.createElement('span'); nEl.className = 'lo-n'; nEl.textContent = n;
+      slot.appendChild(cv); slot.appendChild(nEl);
     });
     bar.classList.toggle('hidden', lo.length === 0);
   },

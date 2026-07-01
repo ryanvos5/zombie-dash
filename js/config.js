@@ -591,10 +591,11 @@ const SHOP_POWERUPS = {
   shield:   { name: 'Schild',   cost: 90,  kind: 'shield',   icon: '🛡', desc: 'Schild dat een flinke klap opvangt.' },
   speed:    { name: 'Speed',    cost: 70,  kind: 'speed',    icon: '⚡', desc: 'Even een stuk sneller.' },
   rage:     { name: 'Rage',     cost: 100, kind: 'rage',     icon: '⚔', desc: 'Even veel meer klap-schade.' },
-  fireball: { name: 'Vuurbal',  cost: 120, kind: 'fireball', icon: '🔥', desc: '3 vuurballen om te schieten.' },
-  giant:    { name: 'Reus',     cost: 160, kind: 'giant',    icon: '👊', desc: 'Word even een enorme reus.' },
+  fireball: { name: 'Vuurbal',  cost: 120, kind: 'fireball', icon: '🔥', desc: '3 vuurballen die ook laten branden.' },
+  giant:    { name: 'Reus',     cost: 350, kind: 'giant',    icon: '👊', desc: 'Word even een enorme reus.' },
+  dragon:   { name: 'Draak',    cost: 350, kind: 'dragon',   icon: '🐉', desc: 'Roep een draak op die vuur spuwt naar je tegenstander.' },
 };
-const POWERUP_ORDER = ['heal', 'shield', 'speed', 'rage', 'fireball', 'giant'];
+const POWERUP_ORDER = ['heal', 'shield', 'speed', 'rage', 'fireball', 'giant', 'dragon'];
 
 /* ---------- BOT-MOEILIJKHEID (level 1..10) ----------
    Elk level heeft een eigen speelstijl. Velden:
