@@ -22,6 +22,7 @@ const DEFAULT_SAVE = {
   journey1: 0,                  // hoogst gehaalde Journey-level in wereld 1 (0 = nog niets)
   powerups: {},                 // gekochte power-ups in de inventaris: { id: aantal }
   loadout: [],                  // max 3 power-up-ids die je meeneemt in een match
+  chests: [],                   // kist-slots (max 3): { r: rarity, u: unlockAt(ms) 0=nog niet begonnen }
   xp: 0,                        // ervaring uit multiplayer-duels (level = playerLevel(xp))
   mpWins: 0,                    // gewonnen 1v1-duels
   mpLosses: 0,                  // verloren 1v1-duels
@@ -47,6 +48,7 @@ const Storage = {
       if (typeof this.data.journey1 !== 'number') this.data.journey1 = 0;
       if (!this.data.powerups || typeof this.data.powerups !== 'object') this.data.powerups = {};
       if (!Array.isArray(this.data.loadout)) this.data.loadout = [];
+      if (!Array.isArray(this.data.chests)) this.data.chests = [];
       if (typeof this.data.xp !== 'number') this.data.xp = 0;
       if (typeof this.data.mpWins !== 'number') this.data.mpWins = 0;
       if (typeof this.data.mpLosses !== 'number') this.data.mpLosses = 0;
@@ -87,6 +89,8 @@ const Storage = {
     const cpu = cloud.powerups || {};
     for (const k of Object.keys(cpu)) d.powerups[k] = Math.max(d.powerups[k] || 0, cpu[k] || 0);
     if ((!d.loadout || !d.loadout.length) && Array.isArray(cloud.loadout)) d.loadout = cloud.loadout.slice(0, 3);
+    // kisten: neem de rij met de meeste kisten (anti-verlies)
+    if (Array.isArray(cloud.chests) && cloud.chests.length > (d.chests || []).length) d.chests = cloud.chests;
     d.mpWins = Math.max(d.mpWins || 0, cloud.mpWins || 0);
     d.mpLosses = Math.max(d.mpLosses || 0, cloud.mpLosses || 0);
     for (const w of (cloud.ownedWeapons || [])) if (!d.ownedWeapons.includes(w)) d.ownedWeapons.push(w);
@@ -250,6 +254,67 @@ const Storage = {
     if (i >= 0) this.data.loadout.splice(i, 1);
     else { if (this.data.loadout.length >= 3) return false; this.data.loadout.push(id); }
     this.save(); return true;
+  },
+
+  // ---- kisten (loot uit online matches) ----
+  now() { try { return Date.now(); } catch (e) { return 0; } },
+  chests() { return this.data.chests || (this.data.chests = []); },
+  canReceiveChest() { return this.chests().length < CHEST_SLOTS; },
+  addChest(rarity) {
+    if (!CHEST_TYPES[rarity] || !this.canReceiveChest()) return false;
+    this.chests().push({ r: rarity, u: 0 }); this.save(); return true;
+  },
+  startChest(i) {
+    const c = this.chests()[i]; if (!c || c.u > 0) return false;
+    c.u = this.now() + CHEST_TYPES[c.r].dur; this.save(); return true;
+  },
+  chestSecondsLeft(i) {
+    const c = this.chests()[i]; if (!c || c.u <= 0) return -1;      // -1 = nog niet gestart
+    return Math.max(0, Math.ceil((c.u - this.now()) / 1000));
+  },
+  chestReady(i) { const c = this.chests()[i]; return !!(c && c.u > 0 && this.now() >= c.u); },
+  // kans op een kist na een online match (win = grotere kans); geeft de rarity terug of null
+  rollChestDrop(won) {
+    if (!this.canReceiveChest()) return null;
+    if (Math.random() >= (won ? CHEST_WIN_CHANCE : CHEST_LOSS_CHANCE)) return null;
+    let tot = 0; for (const k of CHEST_ORDER) tot += CHEST_RARITY_WEIGHTS[k];
+    let r = Math.random() * tot, rarity = 'common';
+    for (const k of CHEST_ORDER) { r -= CHEST_RARITY_WEIGHTS[k]; if (r <= 0) { rarity = k; break; } }
+    this.addChest(rarity);
+    return rarity;
+  },
+  // beloningen bepalen voor een kist-rarity
+  rollChestRewards(rarity) {
+    const t = CHEST_TYPES[rarity] || CHEST_TYPES.common;
+    const ri = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
+    const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+    const wpick = (pairs) => { let tot = 0; for (const p of pairs) tot += p[1]; let r = Math.random() * tot; for (const p of pairs) { r -= p[1]; if (r <= 0) return p[0]; } return pairs[0][0]; };
+    const gold = ri(t.gold[0], t.gold[1]), xp = ri(t.xp[0], t.xp[1]);
+    const pus = {}; const add = (id) => { pus[id] = (pus[id] || 0) + 1; };
+    const simple = ['heal', 'shield', 'speed', 'rage'];
+    if (rarity === 'common') { if (Math.random() < 0.45) add(pick(simple)); }
+    else if (rarity === 'rare') { if (Math.random() < 0.75) add(pick(simple)); if (Math.random() < 0.30) add(pick(simple)); }
+    else if (rarity === 'epic') {
+      const pool = [['heal', 5], ['shield', 5], ['speed', 5], ['rage', 5], ['fireball', 3], ['ak47', 2], ['rocket', 1.3]];
+      const n = ri(2, 4); for (let i = 0; i < n; i++) add(wpick(pool));
+    } else {   // legendary: alle power-ups, de goede zeldzamer
+      const pool = [['heal', 6], ['shield', 6], ['speed', 6], ['rage', 6], ['fireball', 3], ['ak47', 2.4], ['rocket', 1.6], ['giant', 1.4], ['dragon', 1]];
+      const n = ri(5, 8); for (let i = 0; i < n; i++) add(wpick(pool));
+    }
+    return { rarity, gold, xp, pus };
+  },
+  // een klaar-staande kist ophalen -> beloning toepassen + slot vrijmaken
+  collectChest(i) {
+    if (!this.chestReady(i)) return null;
+    const c = this.chests()[i];
+    const rw = this.rollChestRewards(c.r);
+    this.data.coins = (this.data.coins || 0) + rw.gold;
+    this.data.xp = (this.data.xp || 0) + rw.xp;
+    this.data.powerups = this.data.powerups || {};
+    for (const id in rw.pus) this.data.powerups[id] = (this.data.powerups[id] || 0) + rw.pus[id];
+    this.chests().splice(i, 1);
+    this.save();
+    return rw;
   },
 
   // ---- Journey (singleplayer) ----

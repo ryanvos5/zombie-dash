@@ -3108,7 +3108,7 @@ const Game = {
     }
     // online: kanaal OPEN houden zodat een rematch mogelijk is (kanaal sluit pas bij menu/lobby)
     // tegen de bot: GEEN XP/wins. Echt duel: XP + wins (sync't naar de leaderboard).
-    let gained = 0, coinsEarned = 0;
+    let gained = 0, coinsEarned = 0, chestDrop = null;
     if (!isBot) {
       gained = (won ? 100 : XP_LOSS) + (this._comboXp || 0);   // winst 100 XP + verdiende combo-XP
       coinsEarned = won ? 75 : 20;                              // winnaar 75 munten, verliezer 20
@@ -3117,6 +3117,7 @@ const Game = {
       if (won) Storage.data.mpWins = (Storage.data.mpWins || 0) + 1;
       else Storage.data.mpLosses = (Storage.data.mpLosses || 0) + 1;
       Storage.save();
+      chestDrop = Storage.rollChestDrop(won);                  // soms een kist uit de match
     } else if (won && this.botLevel === 10) {           // win van de zwaarste bot -> kleine beloning
       gained = 30; coinsEarned = 50;
       Storage.data.xp = (Storage.data.xp || 0) + gained;
@@ -3124,7 +3125,7 @@ const Game = {
       Storage.save();
     }
     const myScore = this.vs ? this.vs.myScore : 0, oppScore = this.vs ? this.vs.oppScore : 0;
-    if (peerLeft) { UI.showVersusResult(won, myScore, oppScore, gained, isBot, coinsEarned, peerLeft); return; }
+    if (peerLeft) { UI.showVersusResult(won, myScore, oppScore, gained, isBot, coinsEarned, peerLeft, chestDrop); return; }
     // korte win-celebratie met de naam van de winnaar, dan pas het uitslagscherm
     const winnerName = won
       ? ((window.Net && Net.isLoggedIn && Net.isLoggedIn()) ? Net.nickname() : 'Jij')
@@ -3134,7 +3135,7 @@ const Game = {
     const self = this;
     setTimeout(function () {
       if (self.state !== 'versusOver') return;   // intussen weggegaan
-      UI.showVersusResult(won, myScore, oppScore, gained, isBot, coinsEarned, peerLeft);
+      UI.showVersusResult(won, myScore, oppScore, gained, isBot, coinsEarned, peerLeft, chestDrop);
     }, 2600);
   },
 

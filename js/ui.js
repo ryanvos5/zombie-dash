@@ -33,6 +33,7 @@ const UI = {
     };
 
     if (window.MenuBg) { MenuBg.init(); MenuBg.start(); }   // dynamische vulkaan-achtergrond
+    this.renderChests();                                    // kist-balk op het menu
 
     // menu knoppen (singleplayer-werelden zijn uit — focus op multiplayer)
     $('btn-shop').onclick = () => this.openShop();
@@ -42,6 +43,7 @@ const UI = {
     $('btn-inventory').onclick = () => this.openInventory();
     $('btn-inventory-back').onclick = () => this.show('menu');
     document.querySelectorAll('#inv-tabs .shop-tab').forEach((b) => { b.onclick = () => { this._invTab = b.dataset.invtab; this.renderInventory(); }; });
+    document.querySelectorAll('.chest-slot').forEach((b) => { b.onclick = () => this.chestClick(+b.dataset.chest); });
     document.querySelectorAll('.loadout-slot').forEach((b) => {
       b.onclick = () => { const id = b.dataset.pu; if (id) { Game.usePowerupSlot(id); } };
     });
@@ -332,6 +334,18 @@ const UI = {
       Sprites.drawCharacter(ctx, 0, 42, 1, cc.palette, { weapon: cc.forcedMelee || 'bat', build: cc.build, hair: cc.hair, hat: r.id });
       ctx.restore();
       nameEl.textContent = 'Nieuwe hoed: ' + (r.name || (HATS[r.id] && HATS[r.id].name) || '');
+    } else if (r.type === 'pu') {   // power-up uit een kist
+      title.textContent = '🎁 POWER-UP';
+      const pu = SHOP_POWERUPS[r.id] || {};
+      ctx.save(); ctx.translate(cv.width / 2, cv.height / 2 - 6); ctx.scale(2.6, 2.6);
+      if (Game && Game.drawDrop) Game.drawDrop(ctx, { kind: pu.kind, x: 0, y: 0, id: 0 });
+      ctx.restore();
+      nameEl.textContent = (pu.name || r.id) + (r.n > 1 ? '  x' + r.n : '');
+    } else if (r.type === 'chest') {   // nieuwe kist uit een match
+      title.textContent = '📦 NIEUWE KIST!';
+      ctx.save(); ctx.translate(cv.width / 2, cv.height / 2 - 6); ctx.scale(2.8, 2.8);
+      this._chestArt(ctx, r.rarity); ctx.restore();
+      nameEl.textContent = (CHEST_TYPES[r.rarity] || {}).name + '-kist — open in het menu!';
     } else { // 'earn' — munten + xp
       title.textContent = '🏆 BELONING';
       this._drawCoinXp(ctx, cv, r.coins || 0, r.xp || 0);
@@ -1035,7 +1049,7 @@ const UI = {
     el.classList.remove('hidden');
   },
 
-  showVersusResult(won, myScore, oppScore, xpGained, isBot, coinsEarned, peerLeft) {
+  showVersusResult(won, myScore, oppScore, xpGained, isBot, coinsEarned, peerLeft, chestDrop) {
     const vw = document.getElementById('vs-win'); if (vw) vw.classList.add('hidden');
     // knop-bindingen herstellen (Journey kan ze hebben overschreven)
     document.getElementById('btn-vs-rematch').onclick = () => this.doRematch();
@@ -1091,7 +1105,10 @@ const UI = {
     this.refreshAuthUI();
     document.getElementById('versus-screen').classList.add('hidden');
     // gewonnen met beloning -> munten/xp-popup bovenop de uitslag
-    if (won && (xpGained > 0 || coinsEarned > 0)) this.showRewards([{ type: 'earn', coins: coinsEarned, xp: xpGained }]);
+    const rlist = [];
+    if (won && (xpGained > 0 || coinsEarned > 0)) rlist.push({ type: 'earn', coins: coinsEarned, xp: xpGained });
+    if (chestDrop) { rlist.push({ type: 'chest', rarity: chestDrop }); this.renderChests(); }   // nieuwe kist in het menu
+    if (rlist.length) this.showRewards(rlist);
   },
 
   // ---- REMATCH ----
@@ -1154,6 +1171,8 @@ const UI = {
     const lb = document.getElementById('loadout-bar'); if (lb) lb.classList.add('hidden');   // loadout niet op menu's
     // vulkaan-achtergrond alleen laten draaien op de menuschermen (niet in het spel)
     if (window.MenuBg) { if (!inGame) MenuBg.start(); else MenuBg.stop(); }
+    // kisten + live timer alleen op het hoofdmenu
+    if (name === 'menu') { this.renderChests(); this._startChestTimer(); } else this._stopChestTimer();
 
     // muntentellers bijwerken
     this.el.menuCoins.textContent = Storage.data.coins;
@@ -1218,7 +1237,9 @@ const UI = {
   renderPowerupCards(grid, mode) {
     POWERUP_ORDER.forEach((id) => {
       const pu = SHOP_POWERUPS[id]; if (!pu) return;
+      if (mode === 'shop' && pu.chestOnly) return;              // kist-only power-ups niet te koop
       const count = Storage.powerupCount(id);
+      if (mode === 'inventory' && pu.chestOnly && count <= 0) return;   // pas tonen als je 'm hebt
       const card = document.createElement('div');
       card.className = 'shop-card powerup-card' + (count > 0 ? ' owned' : '');
       const inLo = Storage.inLoadout(id);
@@ -1326,6 +1347,62 @@ const UI = {
     });
     bar.classList.toggle('hidden', lo.length === 0);
   },
+
+  // ---------- KISTEN (op het hoofdmenu) ----------
+  renderChests() {
+    const bar = document.getElementById('chest-bar'); if (!bar) return;
+    const chests = Storage.chests();
+    bar.querySelectorAll('.chest-slot').forEach((slot, i) => {
+      const c = chests[i];
+      slot.innerHTML = '';
+      if (!c) { slot.className = 'chest-slot empty'; slot.disabled = true; slot.style.borderColor = ''; slot.innerHTML = '<span class="chest-lbl">Leeg</span>'; return; }
+      const t = CHEST_TYPES[c.r], ready = Storage.chestReady(i);
+      slot.className = 'chest-slot' + (ready ? ' ready' : '') + (c.u <= 0 ? ' idle' : ''); slot.disabled = false;
+      slot.style.borderColor = t.col;
+      const cv = document.createElement('canvas'); cv.width = 48; cv.height = 40; cv.className = 'chest-ico';
+      this._drawChestIcon(cv, c.r, ready);
+      const lbl = document.createElement('span'); lbl.className = 'chest-lbl';
+      lbl.textContent = ready ? 'OPHALEN!' : (c.u <= 0 ? t.name : this._fmtChestTime(Storage.chestSecondsLeft(i)));
+      slot.appendChild(cv); slot.appendChild(lbl);
+    });
+  },
+  _fmtChestTime(s) {
+    if (s == null || s < 0) return 'Open';
+    const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
+    if (h > 0) return h + 'u' + (m < 10 ? '0' : '') + m + 'm';
+    if (m > 0) return m + 'm' + (sec < 10 ? '0' : '') + sec + 's';
+    return sec + 's';
+  },
+  _chestArt(ctx, rarity) {
+    const t = CHEST_TYPES[rarity] || CHEST_TYPES.common;
+    const px = (c, x, y, w, h) => { ctx.fillStyle = c; ctx.fillRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h)); };
+    px(t.col, -13, -2, 26, 12);                     // onderkant
+    px('rgba(0,0,0,0.35)', -13, 7, 26, 3);
+    px(t.col, -14, -10, 28, 8);                     // deksel
+    px('rgba(255,255,255,0.25)', -14, -10, 28, 2);
+    px(t.band, -14, -4, 28, 2);                     // gouden band horizontaal
+    px(t.band, -2, -10, 4, 20);                     // gouden band verticaal
+    px('#2a1c08', -3, -1, 6, 5); px('#ffd24a', -1, 1, 2, 2);   // slot
+  },
+  _drawChestIcon(canvas, rarity, ready) {
+    const ctx = canvas.getContext('2d'); ctx.imageSmoothingEnabled = false; ctx.clearRect(0, 0, canvas.width, canvas.height);
+    if (ready) { const g = ctx.createRadialGradient(canvas.width / 2, canvas.height / 2, 2, canvas.width / 2, canvas.height / 2, 22); g.addColorStop(0, (CHEST_TYPES[rarity] || {}).band || '#fff'); g.addColorStop(1, 'rgba(255,255,255,0)'); ctx.globalAlpha = 0.65; ctx.fillStyle = g; ctx.fillRect(0, 0, canvas.width, canvas.height); ctx.globalAlpha = 1; }
+    ctx.save(); ctx.translate(canvas.width / 2, canvas.height / 2 + 3); this._chestArt(ctx, rarity); ctx.restore();
+  },
+  chestClick(i) {
+    const c = Storage.chests()[i]; if (!c) return;
+    if (window.Sfx) Sfx.play('click');
+    if (Storage.chestReady(i)) { const rw = Storage.collectChest(i); this.renderChests(); if (rw) this.showChestRewards(rw); }
+    else if (c.u <= 0) { Storage.startChest(i); this.renderChests(); }   // tik = openen (timer start)
+    // bezig met openen: laat de timer gewoon lopen
+  },
+  showChestRewards(rw) {
+    const list = [{ type: 'earn', coins: rw.gold, xp: rw.xp }];
+    for (const id in rw.pus) list.push({ type: 'pu', id, n: rw.pus[id] });
+    this.showRewards(list);
+  },
+  _startChestTimer() { if (this._chestIv) return; this._chestIv = setInterval(() => this.renderChests(), 1000); },
+  _stopChestTimer() { if (this._chestIv) { clearInterval(this._chestIv); this._chestIv = 0; } },
 
   renderWeaponCards() {
     const grid = this.el.shopGrid;

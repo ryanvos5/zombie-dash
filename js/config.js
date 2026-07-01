@@ -143,7 +143,7 @@ const CHARACTERS = {
     desc: 'Gebalanceerd. Snelste loper.'
   },
   tygo: {
-    id: 'tygo', name: 'Tygo', cost: 700, lvl: 10,
+    id: 'tygo', name: 'Tygo', cost: 2100, lvl: 10,
     maxHp: 110, speedMul: 1.0, meleeMul: 1.0, build: 'tall', hair: 'natural',
     dblJumpMul: 1.22,                          // iets hogere/langere dubbel-jump
     palette: {
@@ -156,7 +156,7 @@ const CHARACTERS = {
     desc: 'Lang & taai (+10 HP). Hogere dubbel-jump. Gebruikt elk melee-wapen.'
   },
   just: {
-    id: 'just', name: 'Just', cost: 800, lvl: 12,
+    id: 'just', name: 'Just', cost: 2400, lvl: 12,
     maxHp: 130, speedMul: 0.8, meleeMul: 1.2, build: 'stocky', hair: 'bald',
     groundPound: true,
     palette: {
@@ -169,7 +169,7 @@ const CHARACTERS = {
     desc: 'Dik & klein, traag maar sterk (+30 HP, +20% melee). Stamp bij de landing schade in de buurt.'
   },
   timo: {
-    id: 'timo', name: 'Timo', cost: 900, lvl: 4,
+    id: 'timo', name: 'Timo', cost: 2700, lvl: 4,
     maxHp: 90, speedMul: 1.05, meleeMul: 1.0, build: 'small', hair: 'natural',
     extraJump: true,
     palette: {
@@ -182,7 +182,7 @@ const CHARACTERS = {
     desc: 'Klein & wendbaar (kleine hitbox). Heeft een extra (kleinere) dubbel-jump.'
   },
   vince: {
-    id: 'vince', name: 'Vince', cost: 850, lvl: 8,
+    id: 'vince', name: 'Vince', cost: 2550, lvl: 8,
     maxHp: 100, speedMul: 1.0, meleeMul: 1.0, build: 'normal', hair: 'spiky',
     fireAura: true,
     palette: {
@@ -195,7 +195,7 @@ const CHARACTERS = {
     desc: 'Gebalanceerd. Elke 30s een vuuraura (5s): wie je dan aanraakt brandt 3s.'
   },
   jenze: {
-    id: 'jenze', name: 'Jenze', cost: 450, lvl: 2,
+    id: 'jenze', name: 'Jenze', cost: 1350, lvl: 2,
     maxHp: 140, speedMul: 0.9, meleeMul: 1.3, build: 'bulky', hair: 'curly',
     palette: {
       hair: '#6b4426', hairDark: '#4a2e18',  // bruine krullen
@@ -207,7 +207,7 @@ const CHARACTERS = {
     desc: 'Fors & taai: +40 HP, +30% melee, iets trager.'
   },
   ricky: {
-    id: 'ricky', name: 'Ricky', cost: 700, lvl: 6,
+    id: 'ricky', name: 'Ricky', cost: 2100, lvl: 6,
     maxHp: 85, speedMul: 1.0, meleeMul: 1.0, build: 'normal', hair: 'natural',
     autoRage: true, rageEvery: 15000,
     palette: {
@@ -220,7 +220,7 @@ const CHARACTERS = {
     desc: 'Elke 15s 3s RAGE (2× schade). 85 HP.'
   },
   yarno: {
-    id: 'yarno', name: 'Yarno', cost: 600, lvl: 13,
+    id: 'yarno', name: 'Yarno', cost: 1800, lvl: 13,
     maxHp: 100, speedMul: 1.08, meleeMul: 1.0, build: 'normal', hair: 'back', startMelee: 'dagger',
     palette: {
       hair: '#161616', hairDark: '#000000',     // zwart, naar achteren
@@ -508,19 +508,19 @@ function comboXp(n) { return Math.round(15 + (Math.min(n, COMBO_MAX) - 1) * (60 
 /* ---------- HOEDEN (cosmetisch, voor je character) ---------- */
 const HATS = {
   none:      { name: 'Geen hoed', cost: 0,   lvl: 0,  desc: 'Geen hoofddeksel.' },
-  cap:       { name: 'Pet', cost: 150,        lvl: 2,  desc: 'Klassieke rode pet.' },
-  beanie:    { name: 'Muts', cost: 200,       lvl: 2,  desc: 'Warme muts met pom.' },
-  party:     { name: 'Feesthoedje', cost: 120,lvl: 3,  desc: 'Feestje!' },
-  fedora:    { name: 'Gleufhoed', cost: 300,  lvl: 4,  desc: 'Stijlvolle gleufhoed.' },
-  cowboy:    { name: 'Cowboyhoed', cost: 350, lvl: 4,  desc: 'Yeehaw.' },
-  chef:      { name: 'Koksmuts', cost: 300,   lvl: 6,  desc: 'Voor de chef.' },
-  grad:      { name: 'Diploma-hoed', cost: 350, lvl: 7, desc: 'Geslaagd!' },
-  tophat:    { name: 'Hoge hoed', cost: 450,  lvl: 7,  desc: 'Deftig.' },
-  propeller: { name: 'Propellerpet', cost: 500, lvl: 7, desc: 'Met draaiende propeller.' },
-  wizard:    { name: 'Tovenaarshoed', cost: 550, lvl: 8, desc: 'Magisch.' },
-  viking:    { name: 'Vikinghelm', cost: 650, lvl: 9,  desc: 'Met horens.' },
-  crown:     { name: 'Kroon', cost: 900,      lvl: 10, desc: 'Voor de koning.' },
-  halo:      { name: 'Halo', cost: 800,       lvl: 15, desc: 'Engelachtig.' },
+  cap:       { name: 'Pet', cost: 450,        lvl: 2,  desc: 'Klassieke rode pet.' },
+  beanie:    { name: 'Muts', cost: 600,       lvl: 2,  desc: 'Warme muts met pom.' },
+  party:     { name: 'Feesthoedje', cost: 360,lvl: 3,  desc: 'Feestje!' },
+  fedora:    { name: 'Gleufhoed', cost: 900,  lvl: 4,  desc: 'Stijlvolle gleufhoed.' },
+  cowboy:    { name: 'Cowboyhoed', cost: 1050, lvl: 4,  desc: 'Yeehaw.' },
+  chef:      { name: 'Koksmuts', cost: 900,   lvl: 6,  desc: 'Voor de chef.' },
+  grad:      { name: 'Diploma-hoed', cost: 1050, lvl: 7, desc: 'Geslaagd!' },
+  tophat:    { name: 'Hoge hoed', cost: 1350,  lvl: 7,  desc: 'Deftig.' },
+  propeller: { name: 'Propellerpet', cost: 1500, lvl: 7, desc: 'Met draaiende propeller.' },
+  wizard:    { name: 'Tovenaarshoed', cost: 1650, lvl: 8, desc: 'Magisch.' },
+  viking:    { name: 'Vikinghelm', cost: 1950, lvl: 9,  desc: 'Met horens.' },
+  crown:     { name: 'Kroon', cost: 2700,      lvl: 10, desc: 'Voor de koning.' },
+  halo:      { name: 'Halo', cost: 2400,       lvl: 15, desc: 'Engelachtig.' },
   // ---- Journey-unlock hoeden (eiland-thema, niet te koop) ----
   leafcrown: { name: 'Bladerkroon', cost: 0, journeyOnly: true, desc: 'Eiland-kroon van bladeren. Via Journey.' },
   tikimask:  { name: 'Tiki-masker', cost: 0, journeyOnly: true, desc: 'Houten stammenmasker. Via Journey.' },
@@ -594,8 +594,22 @@ const SHOP_POWERUPS = {
   fireball: { name: 'Vuurbal',  cost: 120, kind: 'fireball', icon: '🔥', desc: '3 vuurballen die ook laten branden.' },
   giant:    { name: 'Reus',     cost: 350, kind: 'giant',    icon: '👊', desc: 'Word even een enorme reus.' },
   dragon:   { name: 'Draak',    cost: 350, kind: 'dragon',   icon: '🐉', desc: 'Roep een draak op die vuur spuwt naar je tegenstander.' },
+  ak47:     { name: 'AK47',     cost: 0,   kind: 'ak47',     icon: '🔫', desc: 'Machinegeweer met 50 kogels. Alleen uit kisten.', chestOnly: true },
+  rocket:   { name: 'Raket',    cost: 0,   kind: 'rocket',   icon: '🚀', desc: 'Raketwerper. Alleen uit kisten.', chestOnly: true },
 };
-const POWERUP_ORDER = ['heal', 'shield', 'speed', 'rage', 'fireball', 'giant', 'dragon'];
+const POWERUP_ORDER = ['heal', 'shield', 'speed', 'rage', 'fireball', 'giant', 'dragon', 'ak47', 'rocket'];
+
+/* ---------- KISTEN (loot uit online matches, Clash-stijl met unlock-timers) ---------- */
+const CHEST_TYPES = {
+  common:    { name: 'Common',    col: '#b0763a', band: '#e6b070', dur: 2 * 3600e3,   gold: [50, 100],   xp: [25, 150] },
+  rare:      { name: 'Rare',      col: '#3a7ad0', band: '#9fceff', dur: 3.5 * 3600e3, gold: [100, 220],  xp: [75, 250] },
+  epic:      { name: 'Epic',      col: '#8a3ad0', band: '#cf9dff', dur: 8 * 3600e3,   gold: [350, 550],  xp: [150, 400] },
+  legendary: { name: 'Legendary', col: '#e8a81c', band: '#fff0a0', dur: 14 * 3600e3,  gold: [500, 1000], xp: [250, 700] },
+};
+const CHEST_ORDER = ['common', 'rare', 'epic', 'legendary'];
+const CHEST_WIN_CHANCE = 0.5, CHEST_LOSS_CHANCE = 0.15;               // kans op een kist na een online match
+const CHEST_RARITY_WEIGHTS = { common: 62, rare: 26, epic: 9, legendary: 3 };   // betere kisten veel zeldzamer
+const CHEST_SLOTS = 3;                                                // je kunt er max 3 hebben
 
 /* ---------- BOT-MOEILIJKHEID (level 1..10) ----------
    Elk level heeft een eigen speelstijl. Velden:
