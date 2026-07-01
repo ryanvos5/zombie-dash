@@ -842,6 +842,7 @@ const UI = {
   openBotSetup() {
     this.leaveLobby();
     this._botSetup = true;
+    this._mmBotLevel = 0;                 // oefen-bot: geen echte inzet (geen XP/munten/kisten)
     this._myVote = { map: VERSUS_MAPS[0].id, mode: 'smash' };
     document.getElementById('versus-lobby').classList.add('hidden');
     document.getElementById('versus-result').classList.add('hidden');
@@ -1111,7 +1112,7 @@ const UI = {
     el.classList.remove('hidden');
   },
 
-  showVersusResult(won, myScore, oppScore, xpGained, isBot, coinsEarned, peerLeft, chestDrop) {
+  showVersusResult(won, myScore, oppScore, xpGained, isBot, coinsEarned, peerLeft, chestDrop, mmBot) {
     const vw = document.getElementById('vs-win'); if (vw) vw.classList.add('hidden');
     // knop-bindingen herstellen (Journey kan ze hebben overschreven)
     document.getElementById('btn-vs-rematch').onclick = () => this.doRematch();
@@ -1127,17 +1128,15 @@ const UI = {
     t.className = 'screen-title ' + (won ? 'win' : 'lose');
     document.getElementById('vs-result-score').textContent = myScore + ' – ' + oppScore;
     const xpEl = document.getElementById('vs-result-xp');
-    if (isBot && (xpGained > 0 || coinsEarned > 0)) {
-      xpEl.classList.remove('hidden');
-      xpEl.innerHTML = '🤖 Bot Lvl 10 verslagen!<br>+' + (xpGained || 0) + ' XP  ·  +' + (coinsEarned || 0) + ' ● munten';
-    } else if (isBot) {
-      xpEl.classList.remove('hidden');
-      xpEl.textContent = '🤖 Oefenpotje tegen de bot — geen XP';
-    } else {
-      xpEl.classList.remove('hidden');
-      xpEl.innerHTML = '+' + (xpGained || 0) + ' XP  ·  +' + (coinsEarned || 0) + ' ● munten<br>' +
+    xpEl.classList.remove('hidden');
+    if (!isBot || mmBot) {                       // online OF matchmaking-bot -> echte beloning tonen
+      xpEl.innerHTML = (mmBot ? '🤖 Bot verslagen!<br>' : '') + '+' + (xpGained || 0) + ' XP  ·  +' + (coinsEarned || 0) + ' ● munten<br>' +
         'Level ' + playerLevel(Storage.data.xp || 0) +
         (window.Net && Net.isLoggedIn() ? '' : '  (log in om mee te tellen)');
+    } else if (xpGained > 0 || coinsEarned > 0) {
+      xpEl.innerHTML = '🤖 Bot Lvl 10 verslagen!<br>+' + (xpGained || 0) + ' XP  ·  +' + (coinsEarned || 0) + ' ● munten';
+    } else {
+      xpEl.textContent = '🤖 Oefenpotje tegen de bot — geen XP';
     }
     // rematch-knop voorbereiden
     this._rematchMine = false; this._rematchPeer = false; this._vsStarted = false; this._isBotResult = !!isBot;

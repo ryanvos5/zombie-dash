@@ -1331,6 +1331,7 @@ const Game = {
     opts = opts || {};
     this.journeyDrops = opts.journeyDrops || null;     // Journey: extra powerup-pool per level
     this._bossBot = !!opts.boss;                        // Journey-eindbaas (Gorilla King)
+    this._mmBot = !!opts.mmLevel;                       // matchmaking-bot: echte inzet (XP/munten/kisten als online)
     this.vsPaused = false;                              // verse pot is nooit gepauzeerd
     if (!opts.journey) this.journey = null;            // alleen Journey-context houden bij een Journey-potje
     if (window.Net && Net.lobby) Net.lobbyLeave();   // niet meer "online in de lobby" tijdens een potje
@@ -3115,7 +3116,8 @@ const Game = {
     // online: kanaal OPEN houden zodat een rematch mogelijk is (kanaal sluit pas bij menu/lobby)
     // tegen de bot: GEEN XP/wins. Echt duel: XP + wins (sync't naar de leaderboard).
     let gained = 0, coinsEarned = 0, chestDrop = null;
-    if (!isBot) {
+    const realStakes = !isBot || this._mmBot;                  // online OF matchmaking-bot = echte inzet
+    if (realStakes) {
       gained = (won ? 100 : XP_LOSS) + (this._comboXp || 0);   // winst 100 XP + verdiende combo-XP
       coinsEarned = won ? 75 : 20;                              // winnaar 75 munten, verliezer 20
       Storage.data.xp = (Storage.data.xp || 0) + gained;
@@ -3123,15 +3125,15 @@ const Game = {
       if (won) Storage.data.mpWins = (Storage.data.mpWins || 0) + 1;
       else Storage.data.mpLosses = (Storage.data.mpLosses || 0) + 1;
       Storage.save();
-      chestDrop = Storage.rollChestDrop(won);                  // soms een kist uit de match
-    } else if (won && this.botLevel === 10) {           // win van de zwaarste bot -> kleine beloning
+      chestDrop = Storage.rollChestDrop(won);                  // soms een kist (ook tegen de matchmaking-bot)
+    } else if (won && this.botLevel === 10) {           // win van de zwaarste OEFEN-bot -> kleine beloning
       gained = 30; coinsEarned = 50;
       Storage.data.xp = (Storage.data.xp || 0) + gained;
       Storage.data.coins = (Storage.data.coins || 0) + coinsEarned;
       Storage.save();
     }
     const myScore = this.vs ? this.vs.myScore : 0, oppScore = this.vs ? this.vs.oppScore : 0;
-    if (peerLeft) { UI.showVersusResult(won, myScore, oppScore, gained, isBot, coinsEarned, peerLeft, chestDrop); return; }
+    if (peerLeft) { UI.showVersusResult(won, myScore, oppScore, gained, isBot, coinsEarned, peerLeft, chestDrop, this._mmBot); return; }
     // korte win-celebratie met de naam van de winnaar, dan pas het uitslagscherm
     const winnerName = won
       ? ((window.Net && Net.isLoggedIn && Net.isLoggedIn()) ? Net.nickname() : 'Jij')
@@ -3141,7 +3143,7 @@ const Game = {
     const self = this;
     setTimeout(function () {
       if (self.state !== 'versusOver') return;   // intussen weggegaan
-      UI.showVersusResult(won, myScore, oppScore, gained, isBot, coinsEarned, peerLeft, chestDrop);
+      UI.showVersusResult(won, myScore, oppScore, gained, isBot, coinsEarned, peerLeft, chestDrop, this._mmBot);
     }, 2600);
   },
 
