@@ -163,7 +163,7 @@ const Sprites = {
     if (pose.hat && pose.hat !== 'none') this.drawHat(ctx, pose.hat, cx, headTop, hh, dir, pose.t || 0);
 
     // --- arm + wapen ---
-    this.drawArmAndWeapon(ctx, cx, torsoTop, dir, pal, weapon, pose.attacking, bh, pose.shielding);
+    this.drawArmAndWeapon(ctx, cx, torsoTop, dir, pal, weapon, pose.attacking, bh, pose.shielding, pose.swing);
 
     // --- in brand staan (burn) ---
     if (pose.burning) {
@@ -279,7 +279,7 @@ const Sprites = {
     }
   },
 
-  drawArmAndWeapon(ctx, cx, torsoTop, dir, pal, weaponId, attacking, bh, shielding) {
+  drawArmAndWeapon(ctx, cx, torsoTop, dir, pal, weaponId, attacking, bh, shielding, swing) {
     const armY = torsoTop + 3;
     const reach = attacking ? 9 : 5;
     const sh = (bh || 5) - 2;   // schouder-offset (breder bij fors lijf)
@@ -299,6 +299,17 @@ const Sprites = {
       this.px(ctx, '#6b7480', sx + (dir > 0 ? 3 : 0), sy, 1, sH);            // rand-schaduw
       this.px(ctx, '#e2c558', sx + 1, sy + (sH >> 1) - 1, 2, 2);            // embleem
       return;
+    }
+
+    // echte zwaai: arm + wapen roteren rond de schouder (van omhoog-achter naar omlaag-voor)
+    const doSwing = w.type === 'melee' && attacking;
+    if (doSwing) {
+      const p = (swing == null) ? 1 : Math.max(0, Math.min(1, swing));
+      const e = 1 - Math.pow(1 - p, 3);                 // easeOutCubic -> snelle chop
+      const angle = -0.95 + (0.75 - (-0.95)) * e;       // -0.95 rad (omhoog/achter) .. +0.75 rad (omlaag/voor)
+      const pivotX = cx + dir * (sh - 1), pivotY = armY + 1;
+      ctx.save();
+      ctx.translate(pivotX, pivotY); ctx.rotate(dir * angle); ctx.translate(-pivotX, -pivotY);
     }
 
     // arm (huidskleur)
@@ -376,6 +387,7 @@ const Sprites = {
         this.px(ctx, gunDark, handX + 4 * flip, armY + 2, 3 * flip, 4); // gebogen magazijn
       }
     }
+    if (doSwing) ctx.restore();
   },
 
   /* ---------- ZOMBIE (dispatch op type) ---------- */

@@ -3257,9 +3257,12 @@ const Game = {
       if (r.onGround) Sprites.shadow(ctx, r.x, r.y + 1, r.giant ? 11 : 7);
       if (r.heli) { this.drawHeli(ctx, Math.round(r.x), Math.round(r.y), r.dir, rc.palette); }
       else {
+      // zwaai-voortgang met een lokale klok (werkt voor bot én online: alleen een attacking-flag beschikbaar)
+      if (r.attacking) { if (!r._swStart) r._swStart = this.time; } else r._swStart = 0;
+      const rSwing = r.attacking ? Math.max(0, Math.min(1, (this.time - r._swStart) / 150)) : 0;
       ctx.save(); ctx.translate(Math.round(r.x), Math.round(r.y)); const rg = r.giant ? 2.2 : 1; ctx.scale(rg, rg);
       Sprites.drawCharacter(ctx, 0, 0, r.dir, rc.palette, {
-        walkPhase: r.walkPhase, airborne: !r.onGround, attacking: r.attacking, ducking: r.ducking,
+        walkPhase: r.walkPhase, airborne: !r.onGround, attacking: r.attacking, ducking: r.ducking, swing: rSwing,
         weapon: r.giant ? null : (r.swingWeapon || r.heldWeapon || 'bat'), build: rc.build, hair: rc.hair, squash: r.flat,
         hat: r.hat || 'none', t: this.time, rage: r.rage, burning: r.burn,
       });
@@ -3280,9 +3283,10 @@ const Game = {
         if (p.heli) { this.drawHeli(ctx, Math.round(p.x), Math.round(p.y), p.dir, p.pal); }
         else {
         ctx.save(); ctx.translate(Math.round(p.x), Math.round(p.y)); const pg = p.giant ? 2.2 : 1; ctx.scale(pg, pg);
+        const pSwing = this.time < p.attackAnimUntil ? Math.max(0, Math.min(1, 1 - (p.attackAnimUntil - this.time) / 150)) : 0;
         Sprites.drawCharacter(ctx, 0, 0, p.dir, p.pal, {
           walkPhase: p.walkPhase, airborne: !p.onGround, ducking: p.ducking,
-          attacking: this.time < p.attackAnimUntil,
+          attacking: this.time < p.attackAnimUntil, swing: pSwing,
           weapon: p.giant ? null : (swinging ? p.swingWeapon : p.weaponId), build: p.build, hair: p.hairStyle,
           squash: (p.flatUntil && this.time < p.flatUntil),
           hat: Storage.data.equippedHat, t: this.time,
