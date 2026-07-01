@@ -895,7 +895,8 @@ const UI = {
   },
 
   // tegenstander aanwezig -> open de vote-lobby (NIET meteen starten)
-  _onVersusMatch() {
+  _onVersusMatch(role) {
+    if (role === 'host' || role === 'guest') this._vsRole = role;   // echte rol van Net (belangrijk bij matchmaking)
     if (this._mmSearching) this._matchmakingConnected();   // via matchmaking: mm-scherm weg, lobby tonen
     if (window.Net && Net.lobby) Net.lobbyLeave();   // chat niet meer nodig tijdens het potje
     document.getElementById('vs-peer-status').textContent = '✅ Tegenstander aanwezig!';
