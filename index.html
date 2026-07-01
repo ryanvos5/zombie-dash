@@ -11,9 +11,9 @@
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="theme-color" content="#0d0f14" />
   <title>Tiny Power Smashers</title>
-  <link rel="icon" type="image/svg+xml" href="icon.svg?v=menu40" />
-  <link rel="apple-touch-icon" href="icon.svg?v=menu40" />
-  <link rel="stylesheet" href="css/style.css?v=menu40" />
+  <link rel="icon" type="image/svg+xml" href="icon.svg?v=menu41" />
+  <link rel="apple-touch-icon" href="icon.svg?v=menu41" />
+  <link rel="stylesheet" href="css/style.css?v=menu41" />
 </head>
 <body>
   <div id="game-root">
@@ -50,7 +50,7 @@
     </div>
 
     <!-- ===== Splash bij opstarten (logo, fadet vanzelf weg) ===== -->
-    <div id="splash"><img src="logo.svg?v=menu40" alt="Tiny Power Smashers" /></div>
+    <div id="splash"><img src="logo.svg?v=menu41" alt="Tiny Power Smashers" /></div>
 
     <!-- ===== Canvas (de spelwereld) ===== -->
     <canvas id="game-canvas"></canvas>
@@ -111,7 +111,7 @@
     <div id="menu-screen" class="screen">
       <div class="menu-frame">
         <header class="menu-top">
-          <img class="menu-logo-img" src="logo.svg?v=menu40" alt="Tiny Power Smashers" />
+          <img class="menu-logo-img" src="logo.svg?v=menu41" alt="Tiny Power Smashers" />
           <div class="menu-hud">
             <span class="menu-coins-top">
               <svg class="px-icon" viewBox="0 0 8 8" width="16" height="16" shape-rendering="crispEdges"><rect x="2" y="1" width="4" height="6" fill="#caa12e"/><rect x="1" y="2" width="6" height="4" fill="#ffd24a"/><rect x="3" y="2" width="1" height="4" fill="#fff0a8"/></svg>
@@ -131,6 +131,7 @@
             <span class="tile-sub" id="journey-prog">Wereld 1</span>
           </button>
           <button id="btn-versus" class="stone-tile">
+            <span class="tile-badge">Online</span>
             <span class="tile-play">Play</span>
             <span class="tile-name">Power Smash</span>
           </button>
@@ -140,7 +141,7 @@
         </main>
 
         <footer class="menu-bottom">
-          <button id="btn-shop" class="stone-btn">Shop</button>
+          <button id="btn-shop" class="stone-btn"><svg class="ic"><use href="#ic-cart"/></svg> Shop</button>
           <button id="btn-inventory" class="stone-btn">Inventaris</button>
           <div class="menu-bottom-right">
             <button id="btn-chat" class="stone-btn">Lobby Chat</button>
@@ -237,14 +238,14 @@
     <div id="inventory-screen" class="screen hidden">
       <div class="screen-inner">
         <h2 class="screen-title">🎒 INVENTARIS</h2>
-        <div class="inv-hint">Kies max <b>3</b> power-ups om mee te nemen. In een match activeer je ze; per gebruik gaat er 1 van je voorraad af.</div>
-        <div class="inv-sec">Power-ups &nbsp;<span class="inv-load">loadout <span id="inv-loadout-count">0</span>/3</span></div>
-        <div id="inv-powerups" class="shop-grid"></div>
-        <div class="inv-sec">Characters</div>
-        <div id="inv-chars" class="shop-grid"></div>
-        <div class="inv-sec">Hoeden</div>
-        <div id="inv-hats" class="shop-grid"></div>
-        <button class="back-btn" id="btn-inventory-back"><svg class="ic"><use href="#ic-back"/></svg> TERUG</button>
+        <div id="inv-tabs" class="shop-tabs">
+          <button class="shop-tab active" data-invtab="powerups"><svg class="ic"><use href="#ic-bolt"/></svg> Power-ups</button>
+          <button class="shop-tab" data-invtab="chars"><svg class="ic"><use href="#ic-char"/></svg> Characters</button>
+          <button class="shop-tab" data-invtab="hats"><svg class="ic"><use href="#ic-hat"/></svg> Hoeden</button>
+          <button class="back-btn" id="btn-inventory-back"><svg class="ic"><use href="#ic-back"/></svg> TERUG</button>
+        </div>
+        <div class="inv-hint hidden" id="inv-hint"></div>
+        <div id="inv-grid" class="shop-grid"></div>
       </div>
     </div>
 
@@ -465,15 +466,15 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
-  <script src="js/config.js?v=menu40"></script>
-  <script src="js/storage.js?v=menu40"></script>
-  <script src="js/audio.js?v=menu40"></script>
-  <script src="js/net.js?v=menu40"></script>
-  <script src="js/input.js?v=menu40"></script>
-  <script src="js/sprites.js?v=menu40"></script>
-  <script src="js/entities.js?v=menu40"></script>
-  <script src="js/ui.js?v=menu40"></script>
-  <script src="js/game.js?v=menu40"></script>
-  <script src="js/main.js?v=menu40"></script>
+  <script src="js/config.js?v=menu41"></script>
+  <script src="js/storage.js?v=menu41"></script>
+  <script src="js/audio.js?v=menu41"></script>
+  <script src="js/net.js?v=menu41"></script>
+  <script src="js/input.js?v=menu41"></script>
+  <script src="js/sprites.js?v=menu41"></script>
+  <script src="js/entities.js?v=menu41"></script>
+  <script src="js/ui.js?v=menu41"></script>
+  <script src="js/game.js?v=menu41"></script>
+  <script src="js/main.js?v=menu41"></script>
 </body>
 </html>

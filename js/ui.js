@@ -39,6 +39,7 @@ const UI = {
     $('btn-journey').onclick = () => this.openJourney();
     $('btn-inventory').onclick = () => this.openInventory();
     $('btn-inventory-back').onclick = () => this.show('menu');
+    document.querySelectorAll('#inv-tabs .shop-tab').forEach((b) => { b.onclick = () => { this._invTab = b.dataset.invtab; this.renderInventory(); }; });
     document.querySelectorAll('.loadout-slot').forEach((b) => {
       b.onclick = () => { const id = b.dataset.pu; if (id) { Game.usePowerupSlot(id); } };
     });
@@ -1250,14 +1251,19 @@ const UI = {
     ctx.restore();
   },
 
-  // ---------- INVENTARIS ----------
-  openInventory() { this.renderInventory(); this.show('inventory'); },
+  // ---------- INVENTARIS (3 tabs: power-ups / characters / hoeden) ----------
+  openInventory() { if (!this._invTab) this._invTab = 'powerups'; this.renderInventory(); this.show('inventory'); },
   renderInventory() {
-    document.getElementById('inv-loadout-count').textContent = Storage.loadout().length;
-    const puGrid = document.getElementById('inv-powerups'); puGrid.innerHTML = '';
-    this.renderPowerupCards(puGrid, 'inventory');
-    this.renderOwnedChars(document.getElementById('inv-chars'));
-    this.renderOwnedHats(document.getElementById('inv-hats'));
+    const tab = this._invTab || 'powerups';
+    document.querySelectorAll('#inv-tabs .shop-tab').forEach((b) => b.classList.toggle('active', b.dataset.invtab === tab));
+    const grid = document.getElementById('inv-grid'); grid.innerHTML = '';
+    const hint = document.getElementById('inv-hint');
+    if (tab === 'powerups') {
+      hint.classList.remove('hidden');
+      hint.innerHTML = 'Kies max <b>3</b> power-ups voor je loadout (<span id="inv-loadout-count">' + Storage.loadout().length + '</span>/3). In een match activeer je ze; per gebruik gaat er 1 af.';
+      this.renderPowerupCards(grid, 'inventory');
+    } else if (tab === 'chars') { hint.classList.add('hidden'); this.renderOwnedChars(grid); }
+    else { hint.classList.add('hidden'); this.renderOwnedHats(grid); }
   },
   _spriteCard(palette, opts, nameHtml, owned) {
     const card = document.createElement('div');
