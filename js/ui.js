@@ -61,6 +61,8 @@ const UI = {
         else this.show('menu');
       };
     });
+    // TERUG in het versus-scherm: eerst matchmaking + verbinding netjes stoppen
+    $('btn-vs-back').onclick = () => { this._stopMatchmaking(); this.leaveLobby(); if (window.Net) Net.leaveVersus(); this.show('menu'); };
 
     // pauze
     this.el.pause.onclick = () => Game.togglePause();
@@ -1234,6 +1236,7 @@ const UI = {
     if (window.MenuBg) { if (!inGame) MenuBg.start(); else MenuBg.stop(); }
     // kisten + live timer alleen op het hoofdmenu
     if (name === 'menu') { this.renderChests(); this._startChestTimer(); } else this._stopChestTimer();
+    if (name !== 'versus') this._stopMatchmaking();   // buiten het versus-scherm nooit blijven zoeken
 
     // muntentellers bijwerken
     this.el.menuCoins.textContent = Storage.data.coins;
