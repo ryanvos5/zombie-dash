@@ -594,10 +594,18 @@ const SHOP_POWERUPS = {
   fireball: { name: 'Vuurbal',  cost: 120, kind: 'fireball', icon: '🔥', desc: '3 vuurballen die ook laten branden.' },
   giant:    { name: 'Reus',     cost: 350, kind: 'giant',    icon: '👊', desc: 'Word even een enorme reus.' },
   dragon:   { name: 'Draak',    cost: 350, kind: 'dragon',   icon: '🐉', desc: 'Roep een draak op die vuur spuwt naar je tegenstander.' },
-  ak47:     { name: 'AK47',     cost: 0,   kind: 'ak47',     icon: '🔫', desc: 'Machinegeweer met 50 kogels. Alleen uit kisten.', chestOnly: true },
-  rocket:   { name: 'Raket',    cost: 0,   kind: 'rocket',   icon: '🚀', desc: 'Raketwerper. Alleen uit kisten.', chestOnly: true },
+  ak47:      { name: 'AK47',        cost: 0, kind: 'ak47',      icon: '🔫', desc: 'Machinegeweer met 50 kogels. Alleen uit kisten.', chestOnly: true },
+  rocket:    { name: 'Raket',       cost: 0, kind: 'rocket',    icon: '🚀', desc: 'Raketwerper. Alleen uit kisten.', chestOnly: true },
+  cannon:    { name: 'Kanon',       cost: 0, kind: 'cannon',    icon: '💣', desc: 'Kanonskogel die richt op je tegenstander. Alleen uit kisten.', chestOnly: true },
+  beachball: { name: 'Strandbal',   cost: 0, kind: 'beachball', icon: '🏐', desc: 'Kaats de tegenstander weg met de strandbal. Alleen uit kisten.', chestOnly: true },
+  coco:      { name: 'Kokosbom',    cost: 0, kind: 'coco',      icon: '🥥', desc: 'Lobt en ontploft met knockback. Alleen uit kisten.', chestOnly: true },
+  boom:      { name: 'Boemerang',   cost: 0, kind: 'boom',      icon: '🪃', desc: 'Vliegt uit en keert terug. Alleen uit kisten.', chestOnly: true },
+  dart:      { name: 'Gifdart',     cost: 0, kind: 'dart',      icon: '🎯', desc: 'Snelle dart die verdooft. Alleen uit kisten.', chestOnly: true },
+  rock:      { name: 'Rotsblok',    cost: 0, kind: 'rock',      icon: '🪨', desc: 'Laat rotsblokken op je tegenstander vallen. Alleen uit kisten.', chestOnly: true },
+  lightning: { name: 'Bliksem',     cost: 0, kind: 'lightning', icon: '🌩', desc: 'Verdoof je tegenstander met de bliksem. Alleen uit kisten.', chestOnly: true },
+  heli:      { name: 'Gevechtsheli', cost: 0, kind: 'heli',     icon: '🚁', desc: 'Stap in een gevechtsheli met minigun + raketten. Alleen uit kisten.', chestOnly: true },
 };
-const POWERUP_ORDER = ['heal', 'shield', 'speed', 'rage', 'fireball', 'giant', 'dragon', 'ak47', 'rocket'];
+const POWERUP_ORDER = ['heal', 'shield', 'speed', 'rage', 'fireball', 'giant', 'dragon', 'ak47', 'rocket', 'cannon', 'beachball', 'coco', 'boom', 'dart', 'rock', 'lightning', 'heli'];
 
 /* ---------- KISTEN (loot uit online matches, Clash-stijl met unlock-timers) ---------- */
 const CHEST_TYPES = {
