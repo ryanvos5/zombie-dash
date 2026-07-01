@@ -2861,16 +2861,17 @@ const Game = {
     const dx = p.x - b.x;
     const aDx = Math.abs(dx);
     const face = () => { if (aDx > 8) b.dir = dx > 0 ? 1 : -1; };
-    const inRange = aDx < 32 && Math.abs(p.y - b.y) < 24;
+    const inRange = aDx < 32 && Math.abs(p.y - b.y) < 32;    // ook lichte sprongen -> bot kan je in de lucht raken
     if (inRange) { if (!b._inRangeSince) b._inRangeSince = now; } else b._inRangeSince = 0;
     // speler aan het blokken (bukken op de grond)? -> niet blind in het schild rammen
     const pBlock = p.ducking && p.onGround && !p._guardBroken;
     if (pBlock) { if (!b._sawBlockAt) b._sawBlockAt = now; } else b._sawBlockAt = 0;
     const canMelee = () => {
       if (!inRange || now < (b._meleeCd || 0)) return false;
-      if (!b._inRangeSince || (now - b._inRangeSince) < cfg.react) return false;
-      // schild op: wacht tot 't zakt en straf dan meteen af; bij lang turtelen af en toe doorzetten (guard-druk)
-      if (pBlock) return (now - b._sawBlockAt) > 700 && Math.random() < (0.02 + cfg.aggro * 0.04);
+      const reactNeed = (!p.onGround || !b.onGround) ? Math.min(cfg.react, 130) : cfg.react;   // luchtaanval = snappier
+      if (!b._inRangeSince || (now - b._inRangeSince) < reactNeed) return false;
+      // schild op: wacht kort en straf af, maar val er wél geregeld in aan zodat je kunt blocken/pareren
+      if (pBlock) return (now - b._sawBlockAt) > 350 && Math.random() < (0.035 + cfg.aggro * 0.06);
       return true;
     };
     // onregelmatige mep-timing -> je kunt niet op ritme perfect blocken
