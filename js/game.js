@@ -2528,6 +2528,19 @@ const Game = {
     if (window.Net && !this.vsBot) Net.versusSend('drop', { id, kind, x, y, wid });
   },
 
+  // power-up uit je loadout activeren tijdens een match -> effect toepassen + 1 uit je voorraad
+  usePowerupSlot(id) {
+    if (this.state !== 'versus' || this.vsPaused) return false;
+    const p = this.player; if (!p || p.dead) return false;
+    if (this.vs && (this.vs.countdown > 0 || this.vs.roundFreezeUntil > this.time)) return false;
+    const pu = SHOP_POWERUPS[id]; if (!pu) return false;
+    if (Storage.powerupCount(id) <= 0) return false;
+    if (!Storage.usePowerup(id)) return false;
+    this.applyDrop(p, { kind: pu.kind, x: p.x, y: p.y - 8, wid: 'bat' });
+    if (window.UI && UI.renderLoadoutBar) UI.renderLoadoutBar();
+    return true;
+  },
+
   applyDrop(pl, d) {
     if (window.Sfx && pl === this.player) Sfx.play('pickup');
     for (let i = 0; i < 8; i++) this.particles.push(new Particle(d.x, d.y, (Math.random() - 0.5) * 2, -Math.random() * 2, '#ffe27a', 340, 2));

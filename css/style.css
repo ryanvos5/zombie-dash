@@ -435,8 +435,29 @@ body.in-game #bg-layer { display: none; }     /* tijdens het spelen niet nodig (
   flex: 1 1 auto; display: grid; grid-template-columns: 1fr 1fr 1fr;
   gap: clamp(8px, 2.2vw, 22px); align-items: center; justify-items: stretch; min-height: 0; padding: clamp(4px, 2vh, 18px) 0;
 }
-.menu-bottom { display: flex; align-items: flex-end; justify-content: space-between; gap: 10px; }
+.menu-bottom { display: flex; align-items: flex-end; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
 .menu-bottom-right { display: flex; gap: clamp(8px, 1.6vw, 16px); }
+
+/* ---- Inventaris + power-ups ---- */
+.inv-hint { font-size: 12px; color: var(--text-dim); margin: 2px 0 8px; line-height: 1.4; }
+.inv-sec { font-family: var(--pixel-font); font-weight: 900; font-size: 14px; color: #ffe27a; text-align: left; margin: 14px 4px 6px; text-shadow: 1px 1px 0 #000; }
+.inv-load { font-size: 11px; color: #bcd0e8; font-family: var(--body-font, inherit); font-weight: normal; }
+#inv-loadout-count.flash { color: #ff6a6a; }
+.powerup-card { display: flex; align-items: center; gap: 8px; }
+.powerup-card .pu-ico { font-size: 26px; width: 40px; min-width: 40px; text-align: center; }
+.powerup-card > div:nth-child(2) { flex: 1; text-align: left; }
+.pu-count { color: #7affa0; font-size: 12px; }
+.shop-card.in-loadout { outline: 2px solid #7affa0; outline-offset: -2px; }
+
+/* loadout-balk in de match (links, power-ups activeren) */
+#loadout-bar { position: absolute; left: max(6px, env(safe-area-inset-left)); top: 46px; z-index: 22; display: flex; flex-direction: column; gap: 7px; pointer-events: none; }
+#loadout-bar.hidden { display: none; }
+.loadout-slot { pointer-events: auto; width: 44px; height: 44px; border-radius: 10px; border: 2px solid rgba(180,195,220,0.5); background: rgba(20,26,38,0.72); color: #fff; cursor: pointer; position: relative; display: flex; align-items: center; justify-content: center; touch-action: none; -webkit-user-select: none; user-select: none; padding: 0; }
+.loadout-slot:active { transform: scale(0.92); }
+.loadout-slot.empty { display: none; }
+.loadout-slot.depleted { opacity: 0.4; }
+.loadout-slot .lo-ico { font-size: 22px; line-height: 1; }
+.loadout-slot .lo-n { position: absolute; right: 3px; bottom: 1px; font-size: 11px; font-weight: bold; color: #7affa0; text-shadow: 1px 1px 0 #000; }
 
 /* lava knop-stijl (geanimeerd: gloeiende lava die stroomt + pulseert) */
 .stone-btn, .stone-tile, .stone-icon {

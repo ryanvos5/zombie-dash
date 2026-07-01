@@ -24,6 +24,7 @@ const UI = {
       menuCoins: $('menu-coin-count'), shopCoins: $('shop-coin-count'),
       levelGrid: $('level-grid'), shopGrid: $('shop-grid'),
       arena: $('arena-screen'), versus: $('versus-screen'),
+      inventory: $('inventory-screen'),
       leaderboard: $('leaderboard-screen'), chat: $('chat-screen'),
       arenaRound: $('arena-round'), arenaCoins: $('arena-coins'), arenaBest: $('arena-best'),
       arenaLeft: $('arena-left'), arenaRecord: $('arena-record'),
@@ -36,6 +37,11 @@ const UI = {
     $('btn-win-shop').onclick = () => this.openShop();
     document.querySelectorAll('.shop-tab').forEach((b) => { b.onclick = () => { this._shopTab = b.dataset.tab; this.renderShop(); }; });
     $('btn-journey').onclick = () => this.openJourney();
+    $('btn-inventory').onclick = () => this.openInventory();
+    $('btn-inventory-back').onclick = () => this.show('menu');
+    document.querySelectorAll('.loadout-slot').forEach((b) => {
+      b.onclick = () => { const id = b.dataset.pu; if (id) { Game.usePowerupSlot(id); } };
+    });
     $('btn-journey-skip').onclick = () => Game.skipStory();
     $('btn-journey-next').onclick = () => Game.storyNext();
     const aa = $('btn-arena-again'); if (aa) aa.onclick = () => this.show('menu');   // oude arena-knop (mode is weg)
@@ -232,7 +238,7 @@ const UI = {
   },
   // verhaal-cutscene op het canvas afspelen, daarna het level starten
   playStory(script, n) {
-    ['menu', 'level', 'shop', 'journey', 'arena', 'win', 'lose', 'versus', 'leaderboard', 'chat'].forEach((s) => this.el[s].classList.add('hidden'));
+    ['menu', 'level', 'shop', 'journey', 'arena', 'win', 'lose', 'versus', 'leaderboard', 'chat', 'inventory'].forEach((s) => this.el[s].classList.add('hidden'));
     document.body.classList.add('in-game');
     this.el.hud.classList.add('hidden'); this.el.touch.classList.add('hidden'); this.el.pause.classList.add('hidden');
     Game.playJourneyIntro(script, () => this.startJourneyLevel(n));
@@ -250,6 +256,7 @@ const UI = {
     const rb = document.getElementById('vs-round-banner'); if (rb) rb.classList.add('hidden');
     this.el.touch.classList.add('hidden'); document.body.classList.remove('in-game');
     this.el.pause.classList.add('hidden');
+    document.getElementById('loadout-bar').classList.add('hidden');
     document.getElementById('versus-hud').classList.add('hidden');
     const t = document.getElementById('vs-result-title');
     t.textContent = won ? (idx >= total ? 'EILAND VERSLAGEN! 🏆' : 'LEVEL GEHAALD!') : 'VERLOREN';
@@ -928,7 +935,7 @@ const UI = {
   },
 
   showVersus() {
-    ['menu', 'level', 'shop', 'journey', 'arena', 'win', 'lose', 'versus', 'leaderboard', 'chat'].forEach((s) =>
+    ['menu', 'level', 'shop', 'journey', 'arena', 'win', 'lose', 'versus', 'leaderboard', 'chat', 'inventory'].forEach((s) =>
       this.el[s].classList.add('hidden'));
     document.body.classList.add('in-game');
     this.el.hud.classList.add('hidden');
@@ -937,6 +944,7 @@ const UI = {
     this.el.touch.classList.toggle('hidden', !Input.isTouch());
     document.getElementById('versus-hud').classList.remove('hidden');
     document.getElementById('btn-vs-quit').classList.remove('hidden');   // ✕ tonen (online); Journey verbergt 'm
+    this.renderLoadoutBar();                                             // power-up-loadout onderin
   },
 
   // touch-knoppen tonen het pixel-icoon van het actieve wapen/powerup (i.p.v. emoji)
@@ -1031,6 +1039,7 @@ const UI = {
     document.getElementById('btn-vs-menu').onclick = () => { document.getElementById('versus-result').classList.add('hidden'); this.leaveLobby(); this.show('menu'); };
     const rb = document.getElementById('vs-round-banner'); if (rb) rb.classList.add('hidden');
     document.getElementById('versus-hud').classList.add('hidden');
+    document.getElementById('loadout-bar').classList.add('hidden');
     document.body.classList.remove('in-game');
     this.el.touch.classList.add('hidden');
     const t = document.getElementById('vs-result-title');
@@ -1125,7 +1134,7 @@ const UI = {
   },
 
   show(name) {
-    ['menu', 'level', 'shop', 'journey', 'arena', 'win', 'lose', 'versus', 'leaderboard', 'chat'].forEach((s) => {
+    ['menu', 'level', 'shop', 'journey', 'arena', 'win', 'lose', 'versus', 'leaderboard', 'chat', 'inventory'].forEach((s) => {
       this.el[s].classList.toggle('hidden', s !== name);
     });
     const inGame = (name === 'game');
@@ -1138,6 +1147,7 @@ const UI = {
     const vh = document.getElementById('versus-hud'); if (vh) vh.classList.add('hidden');
     const vrb = document.getElementById('vs-round-banner'); if (vrb) vrb.classList.add('hidden');
     const vw = document.getElementById('vs-win'); if (vw) vw.classList.add('hidden');
+    const lb = document.getElementById('loadout-bar'); if (lb) lb.classList.add('hidden');   // loadout niet op menu's
 
     // muntentellers bijwerken
     this.el.menuCoins.textContent = Storage.data.coins;
@@ -1194,7 +1204,102 @@ const UI = {
     this.el.shopGrid.innerHTML = '';
     if (tab === 'chars') this.renderCharCards();
     else if (tab === 'hats') this.renderHatCards();
+    else if (tab === 'powerups') this.renderPowerupCards(this.el.shopGrid, 'shop');
     else this.renderWeaponCards();
+  },
+
+  // power-up-kaartjes: KOOP (meermaals) in de shop; in de inventaris = loadout aan/uit + aantal
+  renderPowerupCards(grid, mode) {
+    POWERUP_ORDER.forEach((id) => {
+      const pu = SHOP_POWERUPS[id]; if (!pu) return;
+      const count = Storage.powerupCount(id);
+      const card = document.createElement('div');
+      card.className = 'shop-card powerup-card' + (count > 0 ? ' owned' : '');
+      const inLo = Storage.inLoadout(id);
+      card.innerHTML =
+        '<div class="pu-ico">' + pu.icon + '</div>' +
+        '<div><div class="w-name">' + pu.name + (count > 0 ? ' <span class="pu-count">x' + count + '</span>' : '') + '</div>' +
+        '<div class="w-stats">' + pu.desc + '</div></div>';
+      const btn = document.createElement('button');
+      btn.className = 'shop-buy';
+      if (mode === 'shop') {
+        const afford = Storage.data.coins >= pu.cost;
+        btn.classList.add(afford ? 'buy' : 'cant');
+        btn.textContent = 'KOOP — ' + pu.cost + ' ●';
+        btn.onclick = () => { if (Storage.buyPowerup(id)) this.renderShop(); };
+      } else {                              // inventaris: loadout-toggle
+        if (count <= 0) { card.classList.add('locked'); btn.classList.add('cant'); btn.textContent = 'Koop in shop'; }
+        else if (inLo) { btn.classList.add('equipped'); btn.textContent = '✓ IN LOADOUT'; card.classList.add('in-loadout'); btn.onclick = () => { Storage.toggleLoadout(id); this.renderInventory(); }; }
+        else { btn.classList.add('equip'); btn.textContent = 'KIES'; btn.onclick = () => { if (!Storage.toggleLoadout(id)) this.flashLoadoutFull(); this.renderInventory(); }; }
+      }
+      card.appendChild(btn);
+      grid.appendChild(card);
+    });
+  },
+  flashLoadoutFull() {
+    const c = document.getElementById('inv-loadout-count'); if (c) { c.classList.add('flash'); setTimeout(() => c.classList.remove('flash'), 500); }
+  },
+
+  // ---------- INVENTARIS ----------
+  openInventory() { this.renderInventory(); this.show('inventory'); },
+  renderInventory() {
+    document.getElementById('inv-loadout-count').textContent = Storage.loadout().length;
+    const puGrid = document.getElementById('inv-powerups'); puGrid.innerHTML = '';
+    this.renderPowerupCards(puGrid, 'inventory');
+    this.renderOwnedChars(document.getElementById('inv-chars'));
+    this.renderOwnedHats(document.getElementById('inv-hats'));
+  },
+  _spriteCard(palette, opts, nameHtml, owned) {
+    const card = document.createElement('div');
+    card.className = 'shop-card' + (owned ? ' owned' : '');
+    const canvas = document.createElement('canvas'); canvas.width = 110; canvas.height = 64;
+    const cctx = canvas.getContext('2d'); cctx.imageSmoothingEnabled = false;
+    cctx.save(); cctx.translate(55, 4); cctx.scale(1.4, 1.4);
+    Sprites.drawCharacter(cctx, 0, 38, 1, palette, opts); cctx.restore();
+    const info = document.createElement('div'); info.innerHTML = nameHtml;
+    card.appendChild(canvas); card.appendChild(info);
+    return card;
+  },
+  renderOwnedChars(grid) {
+    grid.innerHTML = '';
+    CHARACTER_ORDER.forEach((cid) => {
+      if (!Storage.ownsCharacter(cid)) return;
+      const c = CHARACTERS[cid]; const equipped = Storage.data.equippedCharacter === cid;
+      const card = this._spriteCard(c.palette, { weapon: c.startMelee || c.forcedMelee || 'bat', build: c.build, hair: c.hair, hat: Storage.data.equippedHat }, '<div class="w-name">' + c.name + '</div>', true);
+      const btn = document.createElement('button'); btn.className = 'shop-buy';
+      if (equipped) { btn.classList.add('equipped'); btn.textContent = 'UITGERUST'; }
+      else { btn.classList.add('equip'); btn.textContent = 'UITRUSTEN'; btn.onclick = () => { Storage.equipCharacter(cid); this.renderInventory(); }; }
+      card.appendChild(btn); grid.appendChild(card);
+    });
+  },
+  renderOwnedHats(grid) {
+    grid.innerHTML = '';
+    const cc = CHARACTERS[Storage.data.equippedCharacter] || CHARACTERS.ryan;
+    HAT_ORDER.forEach((hid) => {
+      if (!Storage.ownsHat(hid)) return;
+      const h = HATS[hid]; const equipped = Storage.data.equippedHat === hid;
+      const card = this._spriteCard(cc.palette, { weapon: cc.forcedMelee || 'bat', build: cc.build, hair: cc.hair, hat: hid }, '<div class="w-name">' + h.name + '</div>', true);
+      const btn = document.createElement('button'); btn.className = 'shop-buy';
+      if (equipped) { btn.classList.add('equipped'); btn.textContent = hid === 'none' ? 'OP' : 'OP'; }
+      else { btn.classList.add('equip'); btn.textContent = hid === 'none' ? 'AF' : 'OPZETTEN'; btn.onclick = () => { Storage.equipHat(hid); this.renderInventory(); }; }
+      card.appendChild(btn); grid.appendChild(card);
+    });
+  },
+
+  // ---------- LOADOUT-BALK (in de match) ----------
+  renderLoadoutBar() {
+    const bar = document.getElementById('loadout-bar'); if (!bar) return;
+    const lo = Storage.loadout();
+    const slots = bar.querySelectorAll('.loadout-slot');
+    slots.forEach((slot, i) => {
+      const id = lo[i];
+      if (!id) { slot.classList.add('empty'); slot.dataset.pu = ''; slot.innerHTML = ''; slot.disabled = true; return; }
+      const pu = SHOP_POWERUPS[id]; const n = Storage.powerupCount(id);
+      slot.classList.remove('empty'); slot.dataset.pu = id; slot.disabled = n <= 0;
+      slot.classList.toggle('depleted', n <= 0);
+      slot.innerHTML = '<span class="lo-ico">' + pu.icon + '</span><span class="lo-n">' + n + '</span>';
+    });
+    bar.classList.toggle('hidden', lo.length === 0);
   },
 
   renderWeaponCards() {

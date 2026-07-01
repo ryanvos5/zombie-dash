@@ -584,6 +584,18 @@ const JOURNEY = {
   },
 };
 
+/* ---------- SHOP-POWERUPS (koop met munten -> inventaris; activeer 1 per keer in een match) ----------
+   'kind' = welk drop-effect wordt toegepast (hergebruikt applyDrop). Meermaals te kopen (stapelt). */
+const SHOP_POWERUPS = {
+  heal:     { name: 'Medipack', cost: 60,  kind: 'health',   icon: '➕', desc: 'Herstelt meteen 40 HP.' },
+  shield:   { name: 'Schild',   cost: 90,  kind: 'shield',   icon: '🛡', desc: 'Schild dat een flinke klap opvangt.' },
+  speed:    { name: 'Speed',    cost: 70,  kind: 'speed',    icon: '⚡', desc: 'Even een stuk sneller.' },
+  rage:     { name: 'Rage',     cost: 100, kind: 'rage',     icon: '⚔', desc: 'Even veel meer klap-schade.' },
+  fireball: { name: 'Vuurbal',  cost: 120, kind: 'fireball', icon: '🔥', desc: '3 vuurballen om te schieten.' },
+  giant:    { name: 'Reus',     cost: 160, kind: 'giant',    icon: '👊', desc: 'Word even een enorme reus.' },
+};
+const POWERUP_ORDER = ['heal', 'shield', 'speed', 'rage', 'fireball', 'giant'];
+
 /* ---------- BOT-MOEILIJKHEID (level 1..10) ----------
    Elk level heeft een eigen speelstijl. Velden:
    meleeCd = ms tussen meppen, block = blokkans, aggro = hoe vaak 'ie de aanval zoekt,

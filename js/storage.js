@@ -20,6 +20,8 @@ const DEFAULT_SAVE = {
   arenaBest: 0,                 // hoogste ronde in Zombie Knock-out (oude mode)
   arenaPlays: { date: '', count: 0 }, // dagelijkse speel-limiet
   journey1: 0,                  // hoogst gehaalde Journey-level in wereld 1 (0 = nog niets)
+  powerups: {},                 // gekochte power-ups in de inventaris: { id: aantal }
+  loadout: [],                  // max 3 power-up-ids die je meeneemt in een match
   xp: 0,                        // ervaring uit multiplayer-duels (level = playerLevel(xp))
   mpWins: 0,                    // gewonnen 1v1-duels
   mpLosses: 0,                  // verloren 1v1-duels
@@ -43,6 +45,8 @@ const Storage = {
       if (typeof this.data.rockets !== 'number') this.data.rockets = 0;
       if (typeof this.data.arenaBest !== 'number') this.data.arenaBest = 0;
       if (typeof this.data.journey1 !== 'number') this.data.journey1 = 0;
+      if (!this.data.powerups || typeof this.data.powerups !== 'object') this.data.powerups = {};
+      if (!Array.isArray(this.data.loadout)) this.data.loadout = [];
       if (typeof this.data.xp !== 'number') this.data.xp = 0;
       if (typeof this.data.mpWins !== 'number') this.data.mpWins = 0;
       if (typeof this.data.mpLosses !== 'number') this.data.mpLosses = 0;
@@ -78,6 +82,11 @@ const Storage = {
     d.arenaBest = Math.max(d.arenaBest || 0, cloud.arenaBest || 0);
     d.journey1 = Math.max(d.journey1 || 0, cloud.journey1 || 0);
     d.xp = Math.max(d.xp || 0, cloud.xp || 0);
+    // power-ups: neem per soort het hoogste aantal (anti-verlies); loadout: houd de lokale keuze
+    d.powerups = d.powerups || {};
+    const cpu = cloud.powerups || {};
+    for (const k of Object.keys(cpu)) d.powerups[k] = Math.max(d.powerups[k] || 0, cpu[k] || 0);
+    if ((!d.loadout || !d.loadout.length) && Array.isArray(cloud.loadout)) d.loadout = cloud.loadout.slice(0, 3);
     d.mpWins = Math.max(d.mpWins || 0, cloud.mpWins || 0);
     d.mpLosses = Math.max(d.mpLosses || 0, cloud.mpLosses || 0);
     for (const w of (cloud.ownedWeapons || [])) if (!d.ownedWeapons.includes(w)) d.ownedWeapons.push(w);
@@ -213,6 +222,34 @@ const Storage = {
   equipHat(id) {
     if (!this.ownsHat(id)) return false;
     this.data.equippedHat = id; this.save(); return true;
+  },
+
+  // ---- power-ups (inventaris + loadout) ----
+  powerupCount(id) { return (this.data.powerups && this.data.powerups[id]) || 0; },
+  buyPowerup(id) {
+    const pu = SHOP_POWERUPS[id]; if (!pu) return false;
+    if (!this.spendCoins(pu.cost)) return false;
+    this.data.powerups = this.data.powerups || {};
+    this.data.powerups[id] = (this.data.powerups[id] || 0) + 1;
+    this.save(); return true;
+  },
+  // 1 exemplaar verbruiken (bij activeren in een match); geeft true als het lukte
+  usePowerup(id) {
+    if (this.powerupCount(id) <= 0) return false;
+    this.data.powerups[id]--;
+    if (this.data.powerups[id] <= 0) delete this.data.powerups[id];
+    this.save(); return true;
+  },
+  // loadout (max 3): een power-up aan/uit zetten voor de volgende match
+  loadout() { return (this.data.loadout || []).filter((id) => SHOP_POWERUPS[id]); },
+  inLoadout(id) { return (this.data.loadout || []).includes(id); },
+  toggleLoadout(id) {
+    if (!SHOP_POWERUPS[id]) return false;
+    this.data.loadout = this.data.loadout || [];
+    const i = this.data.loadout.indexOf(id);
+    if (i >= 0) this.data.loadout.splice(i, 1);
+    else { if (this.data.loadout.length >= 3) return false; this.data.loadout.push(id); }
+    this.save(); return true;
   },
 
   // ---- Journey (singleplayer) ----
