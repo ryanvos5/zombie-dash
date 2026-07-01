@@ -1179,7 +1179,7 @@ const Game = {
       };
     }
     this.journey = { world: 1, idx, lv };
-    this.startVersus('host', { mapObj, mode: 'smash', bot: true, diff: lv.diff, journey: true, journeyDrops: (lv.drops || []), boss: !!lv.boss, botChar: lv.bot });
+    this.startVersus('host', { mapObj, mode: 'smash', bot: true, diff: lv.diff, journey: true, journeyDrops: (lv.drops || []), boss: !!lv.boss, botChar: lv.bot, swapSides: Math.random() < 0.5 });
     this.journey = { world: 1, idx, lv };   // startVersus reset 'm; opnieuw zetten
   },
 
@@ -1386,18 +1386,19 @@ const Game = {
     this.rockets = 0;
     this.boss = null; this.shake = 0; this.cam.x = 0; this.time = 0; this.dtScale = 1;
     this.buildVersusPlatforms(map);
-    const base = role === 'host' ? map.spawnL : map.spawnR;
-    const sp = { x: base.x, y: base.y, dir: role === 'host' ? 1 : -1 };
+    const meLeft = (role === 'host') !== !!opts.swapSides;   // host = links, tenzij deze pot geswapt is
+    const base = meLeft ? map.spawnL : map.spawnR;
+    const sp = { x: base.x, y: base.y, dir: meLeft ? 1 : -1 };
     this.player.x = sp.x; this.player.y = sp.y; this.player.dir = sp.dir; this.player.onGround = true;
-    const rb = role === 'host' ? map.spawnR : map.spawnL;
+    const rb = meLeft ? map.spawnR : map.spawnL;
     this.vs = {
-      role, spawn: sp, botSpawn: { x: rb.x, y: rb.y, dir: role === 'host' ? -1 : 1 },
+      role, spawn: sp, botSpawn: { x: rb.x, y: rb.y, dir: meLeft ? -1 : 1 },
       myScore: 0, oppScore: 0, target: mode === 'smash' ? SMASH_ROUNDS : 5,
       countdown: 3000, lastSwing: 0, botLastSwing: 0, netTimer: 0, over: false,
       roundFreezeUntil: 0, roundMsg: '',
       remote: {
         x: rb.x, y: rb.y, tx: rb.x, ty: rb.y,
-        dir: role === 'host' ? -1 : 1, walkPhase: 0, attacking: false, swingWeapon: null, heldWeapon: 'bat',
+        dir: meLeft ? -1 : 1, walkPhase: 0, attacking: false, swingWeapon: null, heldWeapon: 'bat',
         alive: true, charId: 'ryan', lastSeen: 0, hp: 100, maxHp: 100,
       },
     };

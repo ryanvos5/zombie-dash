@@ -878,7 +878,7 @@ const UI = {
     this._vsStarted = true;
     document.querySelector('.vs-wait-label').classList.remove('hidden');
     const v = this._myVote || { map: (Game.vsMap && Game.vsMap.id) || VERSUS_MAPS[0].id };
-    Game.startVersus('host', { mapId: v.map, mode: 'smash', bot: true, diff: this._botDiff || 5, mmLevel: this._mmBotLevel || 0 });
+    Game.startVersus('host', { mapId: v.map, mode: 'smash', bot: true, diff: this._botDiff || 5, mmLevel: this._mmBotLevel || 0, swapSides: Math.random() < 0.5 });
   },
 
   // in een kamer: toon code, wacht op tegenstander
@@ -997,16 +997,17 @@ const UI = {
     const mine = this._myVote, peer = this._peer || mine;
     const map = (mine.map === peer.map) ? mine.map : (Math.random() < 0.5 ? mine.map : peer.map);
     const mode = 'smash';                                   // online is altijd Power Smash
-    if (window.Net) Net.versusSend('begin', { map, mode });
-    this._beginMatch(map, mode);
+    const swap = Math.random() < 0.5;                       // host beslist de kant (soms links, soms rechts)
+    if (window.Net) Net.versusSend('begin', { map, mode, swap });
+    this._beginMatch(map, mode, swap);
   },
-  onLobbyBegin(p) { this._beginMatch(p.map, p.mode); },
-  _beginMatch(map, mode) {
+  onLobbyBegin(p) { this._beginMatch(p.map, p.mode, p.swap); },
+  _beginMatch(map, mode, swap) {
     if (this._vsStarted) return;
     this._vsStarted = true;
     this.cancelCountdown();
     document.getElementById('versus-result').classList.add('hidden');   // uitslag weg bij (re)start
-    Game.startVersus(this._vsRole || 'host', { mapId: map, mode: mode });
+    Game.startVersus(this._vsRole || 'host', { mapId: map, mode: mode, swapSides: !!swap });
   },
 
   leaveLobby() {
@@ -1211,8 +1212,9 @@ const UI = {
       const peer = (this._peer && this._peer.map) || mine;
       const map = (mine === peer) ? mine : (Math.random() < 0.5 ? mine : peer);   // oneens -> loting
       const mode = 'smash';
-      if (window.Net) Net.versusSend('begin', { map, mode });
-      this._beginMatch(map, mode);
+      const swap = Math.random() < 0.5;                                            // ook bij rematch: kant loten
+      if (window.Net) Net.versusSend('begin', { map, mode, swap });
+      this._beginMatch(map, mode, swap);
     } else {
       const rs = document.getElementById('vs-rematch-status'); if (rs) rs.textContent = 'Starten…';
     }
