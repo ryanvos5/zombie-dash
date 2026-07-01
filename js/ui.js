@@ -32,6 +32,8 @@ const UI = {
       loseKills: $('lose-kills'), loseCoins: $('lose-coins'), loseTitle: $('lose-title'),
     };
 
+    if (window.MenuBg) { MenuBg.init(); MenuBg.start(); }   // dynamische vulkaan-achtergrond
+
     // menu knoppen (singleplayer-werelden zijn uit — focus op multiplayer)
     $('btn-shop').onclick = () => this.openShop();
     $('btn-win-shop').onclick = () => this.openShop();
@@ -946,6 +948,7 @@ const UI = {
     document.getElementById('versus-hud').classList.remove('hidden');
     document.getElementById('btn-vs-quit').classList.remove('hidden');   // ✕ tonen (online); Journey verbergt 'm
     this.renderLoadoutBar();                                             // power-up-loadout onderin
+    if (window.MenuBg) MenuBg.stop();                                   // geen vulkaan-bg tijdens een match
   },
 
   // touch-knoppen tonen het pixel-icoon van het actieve wapen/powerup (i.p.v. emoji)
@@ -1149,6 +1152,8 @@ const UI = {
     const vrb = document.getElementById('vs-round-banner'); if (vrb) vrb.classList.add('hidden');
     const vw = document.getElementById('vs-win'); if (vw) vw.classList.add('hidden');
     const lb = document.getElementById('loadout-bar'); if (lb) lb.classList.add('hidden');   // loadout niet op menu's
+    // vulkaan-achtergrond alleen laten draaien op de menuschermen (niet in het spel)
+    if (window.MenuBg) { if (!inGame) MenuBg.start(); else MenuBg.stop(); }
 
     // muntentellers bijwerken
     this.el.menuCoins.textContent = Storage.data.coins;

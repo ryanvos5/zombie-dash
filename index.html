@@ -11,9 +11,9 @@
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="theme-color" content="#0d0f14" />
   <title>Tiny Power Smashers</title>
-  <link rel="icon" type="image/svg+xml" href="icon.svg?v=menu41" />
-  <link rel="apple-touch-icon" href="icon.svg?v=menu41" />
-  <link rel="stylesheet" href="css/style.css?v=menu41" />
+  <link rel="icon" type="image/svg+xml" href="icon.svg?v=menu42" />
+  <link rel="apple-touch-icon" href="icon.svg?v=menu42" />
+  <link rel="stylesheet" href="css/style.css?v=menu42" />
 </head>
 <body>
   <div id="game-root">
@@ -33,24 +33,18 @@
         <symbol id="ic-back" viewBox="0 0 16 16"><rect x="3" y="7" width="10" height="2" fill="#cfd6df"/><rect x="4" y="5" width="2" height="2" fill="#cfd6df"/><rect x="4" y="9" width="2" height="2" fill="#cfd6df"/><rect x="5" y="3" width="2" height="2" fill="#cfd6df"/><rect x="5" y="11" width="2" height="2" fill="#cfd6df"/></symbol>
         <symbol id="ic-swords" viewBox="0 0 16 16"><rect x="3" y="2" width="2" height="2" fill="#cfd6df"/><rect x="5" y="4" width="2" height="2" fill="#cfd6df"/><rect x="7" y="6" width="2" height="2" fill="#cfd6df"/><rect x="11" y="2" width="2" height="2" fill="#cfd6df"/><rect x="9" y="4" width="2" height="2" fill="#cfd6df"/><rect x="2" y="11" width="4" height="2" fill="#8a3418"/><rect x="10" y="11" width="4" height="2" fill="#8a3418"/></symbol>
         <symbol id="ic-bolt" viewBox="0 0 16 16"><rect x="7" y="2" width="4" height="5" fill="#ffe27a"/><rect x="5" y="6" width="5" height="2" fill="#ffd24a"/><rect x="6" y="8" width="4" height="5" fill="#ffe27a"/><rect x="4" y="8" width="3" height="2" fill="#ffd24a"/></symbol>
+        <symbol id="ic-backpack" viewBox="0 0 16 16"><rect x="6" y="1" width="4" height="2" fill="#6b4420"/><rect x="4" y="3" width="8" height="2" fill="#8a5a2a"/><rect x="3" y="4" width="10" height="10" fill="#3a7a4a"/><rect x="3" y="4" width="10" height="2" fill="#54a066"/><rect x="3" y="4" width="2" height="10" fill="#2c5c38"/><rect x="11" y="4" width="2" height="10" fill="#2c5c38"/><rect x="5" y="8" width="6" height="5" fill="#2c5c38"/><rect x="7" y="9" width="2" height="3" fill="#ffd24a"/></symbol>
       </defs>
     </svg>
 
-    <!-- ===== Battlemap-achtergrond (drijft voorbij) achter alle menu's ===== -->
+    <!-- ===== Dynamische vulkaan-achtergrond achter alle menu's ===== -->
     <div id="bg-layer" aria-hidden="true">
-      <div class="scene-scroll">
-        <img class="menu-scene" alt="" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 320 180' preserveAspectRatio='xMidYMid slice'%3E%3Crect width='320' height='180' fill='%237fc0e8'/%3E%3Crect y='60' width='320' height='50' fill='%23a9d0ea'/%3E%3Ccircle cx='160' cy='38' r='20' fill='%23ffe79a'/%3E%3Cpath d='M20 120 L70 72 L120 120 Z' fill='%235e7e9a'/%3E%3Cpath d='M95 120 L160 58 L225 120 Z' fill='%234f6e88'/%3E%3Cpath d='M200 120 L255 76 L300 120 Z' fill='%235e7e9a'/%3E%3Crect y='116' width='320' height='64' fill='%238db86a'/%3E%3Crect y='116' width='320' height='5' fill='%236a9c4a'/%3E%3Crect y='150' width='320' height='30' fill='%237aa658'/%3E%3Crect x='40' y='138' width='64' height='12' fill='%235e5a54'/%3E%3Crect x='40' y='138' width='64' height='3' fill='%237a756e'/%3E%3Crect x='138' y='122' width='46' height='11' fill='%235e5a54'/%3E%3Crect x='138' y='122' width='46' height='3' fill='%237a756e'/%3E%3Crect x='222' y='140' width='58' height='12' fill='%235e5a54'/%3E%3Crect x='222' y='140' width='58' height='3' fill='%237a756e'/%3E%3C/svg%3E" />
-        <img class="menu-scene" alt="" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 320 180' preserveAspectRatio='xMidYMid slice'%3E%3Crect width='320' height='180' fill='%237fc0e8'/%3E%3Crect y='60' width='320' height='50' fill='%23a9d0ea'/%3E%3Ccircle cx='160' cy='38' r='20' fill='%23ffe79a'/%3E%3Cpath d='M20 120 L70 72 L120 120 Z' fill='%235e7e9a'/%3E%3Cpath d='M95 120 L160 58 L225 120 Z' fill='%234f6e88'/%3E%3Cpath d='M200 120 L255 76 L300 120 Z' fill='%235e7e9a'/%3E%3Crect y='116' width='320' height='64' fill='%238db86a'/%3E%3Crect y='116' width='320' height='5' fill='%236a9c4a'/%3E%3Crect y='150' width='320' height='30' fill='%237aa658'/%3E%3Crect x='40' y='138' width='64' height='12' fill='%235e5a54'/%3E%3Crect x='40' y='138' width='64' height='3' fill='%237a756e'/%3E%3Crect x='138' y='122' width='46' height='11' fill='%235e5a54'/%3E%3Crect x='138' y='122' width='46' height='3' fill='%237a756e'/%3E%3Crect x='222' y='140' width='58' height='12' fill='%235e5a54'/%3E%3Crect x='222' y='140' width='58' height='3' fill='%237a756e'/%3E%3C/svg%3E" />
-      </div>
-      <div class="bird b1"><span class="wing wl"></span><span class="wing wr"></span></div>
-      <div class="bird b2"><span class="wing wl"></span><span class="wing wr"></span></div>
-      <div class="bird b3"><span class="wing wl"></span><span class="wing wr"></span></div>
-      <div class="bird b4"><span class="wing wl"></span><span class="wing wr"></span></div>
+      <canvas id="menu-bg-canvas"></canvas>
       <div class="bg-vignette"></div>
     </div>
 
     <!-- ===== Splash bij opstarten (logo, fadet vanzelf weg) ===== -->
-    <div id="splash"><img src="logo.svg?v=menu41" alt="Tiny Power Smashers" /></div>
+    <div id="splash"><img src="logo.svg?v=menu42" alt="Tiny Power Smashers" /></div>
 
     <!-- ===== Canvas (de spelwereld) ===== -->
     <canvas id="game-canvas"></canvas>
@@ -111,7 +105,7 @@
     <div id="menu-screen" class="screen">
       <div class="menu-frame">
         <header class="menu-top">
-          <img class="menu-logo-img" src="logo.svg?v=menu41" alt="Tiny Power Smashers" />
+          <img class="menu-logo-img" src="logo.svg?v=menu42" alt="Tiny Power Smashers" />
           <div class="menu-hud">
             <span class="menu-coins-top">
               <svg class="px-icon" viewBox="0 0 8 8" width="16" height="16" shape-rendering="crispEdges"><rect x="2" y="1" width="4" height="6" fill="#caa12e"/><rect x="1" y="2" width="6" height="4" fill="#ffd24a"/><rect x="3" y="2" width="1" height="4" fill="#fff0a8"/></svg>
@@ -126,6 +120,7 @@
 
         <main class="menu-tiles">
           <button id="btn-journey" class="stone-tile">
+            <span class="tile-badge solo">Singleplayer</span>
             <span class="tile-play">Play</span>
             <span class="tile-name">Journey</span>
             <span class="tile-sub" id="journey-prog">Wereld 1</span>
@@ -142,7 +137,7 @@
 
         <footer class="menu-bottom">
           <button id="btn-shop" class="stone-btn"><svg class="ic"><use href="#ic-cart"/></svg> Shop</button>
-          <button id="btn-inventory" class="stone-btn">Inventaris</button>
+          <button id="btn-inventory" class="stone-btn"><svg class="ic"><use href="#ic-backpack"/></svg> Inventaris</button>
           <div class="menu-bottom-right">
             <button id="btn-chat" class="stone-btn">Lobby Chat</button>
             <button id="btn-leaderboard" class="stone-btn">Leaderboard</button>
@@ -466,15 +461,16 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
-  <script src="js/config.js?v=menu41"></script>
-  <script src="js/storage.js?v=menu41"></script>
-  <script src="js/audio.js?v=menu41"></script>
-  <script src="js/net.js?v=menu41"></script>
-  <script src="js/input.js?v=menu41"></script>
-  <script src="js/sprites.js?v=menu41"></script>
-  <script src="js/entities.js?v=menu41"></script>
-  <script src="js/ui.js?v=menu41"></script>
-  <script src="js/game.js?v=menu41"></script>
-  <script src="js/main.js?v=menu41"></script>
+  <script src="js/config.js?v=menu42"></script>
+  <script src="js/storage.js?v=menu42"></script>
+  <script src="js/audio.js?v=menu42"></script>
+  <script src="js/net.js?v=menu42"></script>
+  <script src="js/input.js?v=menu42"></script>
+  <script src="js/sprites.js?v=menu42"></script>
+  <script src="js/menubg.js?v=menu42"></script>
+  <script src="js/entities.js?v=menu42"></script>
+  <script src="js/ui.js?v=menu42"></script>
+  <script src="js/game.js?v=menu42"></script>
+  <script src="js/main.js?v=menu42"></script>
 </body>
 </html>
