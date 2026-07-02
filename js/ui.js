@@ -295,7 +295,14 @@ const UI = {
     document.getElementById('btn-vs-menu').onclick = () => { document.getElementById('versus-result').classList.add('hidden'); Game.journey = null; this.show('menu'); };
     document.getElementById('versus-result').classList.remove('hidden');
     document.getElementById('versus-screen').classList.add('hidden');
-    if (rewards && rewards.length) this.showRewards(rewards);   // beloning-popups bovenop de uitslag
+    const rw = (rewards || []).slice(); const lu = this._levelUpReward(); if (lu) rw.push(lu);
+    if (rw.length) this.showRewards(rw);   // beloning-popups (incl. level-up) bovenop de uitslag
+  },
+
+  // level-up-popup-entry (keert ook 300 munten per level uit); null als er niet geleveld is
+  _levelUpReward() {
+    const lu = Storage.claimLevelUps();
+    return lu ? { type: 'levelup', level: lu.level, coins: lu.coins } : null;
   },
 
   // ===== Beloning-popups met wachtrij: munten/xp + unlock-kaartjes (OK = volgende) =====
@@ -353,6 +360,12 @@ const UI = {
       ctx.save(); ctx.translate(cv.width / 2, cv.height / 2 - 6); ctx.scale(2.8, 2.8);
       this._chestArt(ctx, r.rarity); ctx.restore();
       nameEl.textContent = (CHEST_TYPES[r.rarity] || {}).name + '-kist — open in het menu!';
+    } else if (r.type === 'levelup') {   // level omhoog
+      title.textContent = '⭐ LEVEL UP!';
+      ctx.fillStyle = '#ffd23a'; this._star(ctx, cv.width / 2, cv.height / 2 - 6, 30, 5);
+      ctx.fillStyle = '#7a5600'; ctx.font = 'bold 22px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(r.level, cv.width / 2, cv.height / 2 - 4);
+      nameEl.textContent = 'Level ' + r.level + '  ·  +' + r.coins + ' munten';
     } else { // 'earn' — munten + xp
       title.textContent = '🏆 BELONING';
       this._drawCoinXp(ctx, cv, r.coins || 0, r.xp || 0);
@@ -808,6 +821,7 @@ const UI = {
       onBurn: () => Game.onVersusBurn(),
       onShot: (p) => Game.onVersusShot(p),
       onQuake: (p) => Game.onVersusQuake(p),
+      onAbility: (p) => Game.onVersusAbility(p),
       onOver: (p) => Game.onVersusOver(p),
       onPeerLeft: () => {
         if (Game.state === 'versus') { Game.endVersus(true, true); }   // tegenstander verliet = jij wint (forfeit)
@@ -1180,6 +1194,7 @@ const UI = {
     const rlist = [];
     if (won && (xpGained > 0 || coinsEarned > 0)) rlist.push({ type: 'earn', coins: coinsEarned, xp: xpGained });
     if (chestDrop) { rlist.push({ type: 'chest', rarity: chestDrop }); this.renderChests(); }   // nieuwe kist in het menu
+    const lvup = this._levelUpReward(); if (lvup) rlist.push(lvup);
     if (rlist.length) this.showRewards(rlist);
   },
 
@@ -1509,6 +1524,7 @@ const UI = {
   showChestRewards(rw) {
     const list = [{ type: 'earn', coins: rw.gold, xp: rw.xp }];
     for (const id in rw.pus) list.push({ type: 'pu', id, n: rw.pus[id] });
+    const lu = this._levelUpReward(); if (lu) list.push(lu);   // kist-xp kan je laten levelen
     this.showRewards(list);
   },
   _startChestTimer() { if (this._chestIv) return; this._chestIv = setInterval(() => this.renderChests(), 1000); },

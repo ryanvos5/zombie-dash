@@ -1333,6 +1333,7 @@ const Game = {
     this._bossBot = !!opts.boss;                        // Journey-eindbaas (Gorilla King)
     this._mmBot = !!opts.mmLevel;                       // matchmaking-bot: echte inzet (XP/munten/kisten als online)
     this._quakeUntil = 0; this._selfQuakeUntil = 0;    // aardbeving-ability reset
+    this.abilityFx = [];                                // magische ring-effecten
     this.vsPaused = false;                              // verse pot is nooit gepauzeerd
     if (!opts.journey) this.journey = null;            // alleen Journey-context houden bij een Journey-potje
     if (window.Net && Net.lobby) Net.lobbyLeave();   // niet meer "online in de lobby" tijdens een potje
@@ -1501,6 +1502,7 @@ const Game = {
   updateVersus(dt) {
     if (!this.vs) return;
     this.time += dt;
+    if (this.abilityFx && this.abilityFx.length) this.abilityFx = this.abilityFx.filter((f) => this.time - f.born < f.dur);
     this.dtScale = Math.min(3, dt / 16.6667);
     const v = this.vs;
 
@@ -2592,9 +2594,29 @@ const Game = {
       case 'knife': p._bladeRounds = 2; p.meleeId = 'zapblade'; p.weaponId = 'zapblade'; this._abFx(p, '#cfe8ff'); break;
       default: break;
     }
+    // magisch effect om de speler heen + online zichtbaar maken voor de tegenstander
+    this.spawnAbilityFx(p.x, p.y, this._abilityColor(p.ability));
+    if (!this.vsBot && window.Net) Net.versusSend('ability', { ab: p.ability });
     if (window.Sfx) Sfx.play('pickup');
     if (window.UI && UI.renderAbilityBtn) UI.renderAbilityBtn();
     return true;
+  },
+  _abilityColor(ab) {
+    return ({ heal: '#5aff7a', highjump: '#8fd0ff', triplejump: '#8fd0ff', fireaura10: '#ff8a2a',
+      rage10: '#ff5a3a', rage8: '#ff5a3a', ultrarage: '#ff2a2a', zapdash: '#ffe27a',
+      earthquake: '#c8a060', knife: '#bfe6ff' })[ab] || '#c9a6ff';
+  },
+  // magische ring + sprankels rond een positie (moment van ability-inzet)
+  spawnAbilityFx(x, y, color) {
+    if (!this.abilityFx) this.abilityFx = [];
+    this.abilityFx.push({ x, y, born: this.time, dur: 650, color: color || '#c9a6ff' });
+    for (let i = 0; i < 18; i++) { const a = (i / 18) * 6.2832; this.particles.push(new Particle(x + Math.cos(a) * 10, y - 12 + Math.sin(a) * 10, Math.cos(a) * 1.7, Math.sin(a) * 1.7 - 0.4, color || '#c9a6ff', 520, 2)); }
+    this.shake = Math.max(this.shake, 3);
+  },
+  // online: de tegenstander zette zijn ability in -> toon het effect om hém heen
+  onVersusAbility(payload) {
+    const r = this.vs && this.vs.remote; if (!r) return;
+    this.spawnAbilityFx(r.x, r.y, this._abilityColor(payload && payload.ab));
   },
   _abFx(p, col) {
     for (let i = 0; i < 16; i++) this.particles.push(new Particle(p.x, p.y - 14, (Math.random() - 0.5) * 3, -Math.random() * 3, col, 420, 3));
@@ -3407,6 +3429,17 @@ const Game = {
     if (map.jungle2 && this.jungleCage) this.drawCage(ctx);  // kooi-tralies vóór de spelers
     if (this.ball) this.drawBall(ctx);                       // strandbal
     if (map.beach && this.tide) this.drawTideWater(ctx);     // vloed-water over de spelers
+    // ability-effect: magische ring + sprankels rond de speler die 'm inzette
+    if (this.abilityFx) for (const fx of this.abilityFx) {
+      const t = (this.time - fx.born) / fx.dur; if (t < 0 || t >= 1) continue;
+      const cy = fx.y - 12, R = 8 + t * 30, a = 1 - t;
+      ctx.strokeStyle = fx.color; ctx.lineWidth = 2.5; ctx.globalAlpha = a * 0.85;
+      ctx.beginPath(); ctx.arc(fx.x, cy, R, 0, 6.2832); ctx.stroke();
+      ctx.globalAlpha = a * 0.5; ctx.beginPath(); ctx.arc(fx.x, cy, R * 0.6, 0, 6.2832); ctx.stroke();
+      ctx.globalAlpha = a;
+      for (let k = 0; k < 6; k++) { const ang = t * 6 + k * 1.05; Sprites.px(ctx, '#ffffff', Math.round(fx.x + Math.cos(ang) * R), Math.round(cy + Math.sin(ang) * R), 2, 2); }
+      ctx.globalAlpha = 1;
+    }
     ctx.restore();
 
     // draken (drakenei-powerup) — scherm-ruimte, over de wereld heen

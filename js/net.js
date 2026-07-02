@@ -281,6 +281,7 @@ const Net = {
     ch.on('broadcast', { event: 'dragon' }, (m) => { if (v.cbs.onDragon) v.cbs.onDragon(m.payload); });
     ch.on('broadcast', { event: 'stun' }, (m) => { if (v.cbs.onStun) v.cbs.onStun(m.payload); });
     ch.on('broadcast', { event: 'quake' }, (m) => { if (v.cbs.onQuake) v.cbs.onQuake(m.payload); });
+    ch.on('broadcast', { event: 'ability' }, (m) => { if (v.cbs.onAbility) v.cbs.onAbility(m.payload); });
     ch.on('broadcast', { event: 'cavearm' }, (m) => { if (v.cbs.onCaveArm) v.cbs.onCaveArm(m.payload); });
     ch.on('broadcast', { event: 'cavewall' }, (m) => { if (v.cbs.onCaveWall) v.cbs.onCaveWall(m.payload); });
     ch.on('broadcast', { event: 'rocks' }, (m) => { if (v.cbs.onRocks) v.cbs.onRocks(m.payload); });

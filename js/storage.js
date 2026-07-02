@@ -24,6 +24,7 @@ const DEFAULT_SAVE = {
   loadout: [],                  // max 3 power-up-ids die je meeneemt in een match
   chests: [],                   // kist-slots (max 3): { r: rarity, u: unlockAt(ms) 0=nog niet begonnen }
   xp: 0,                        // ervaring uit multiplayer-duels (level = playerLevel(xp))
+  level: 1,                     // laatst-uitgekeerde level (voor de level-up-popup + beloning)
   mpWins: 0,                    // gewonnen 1v1-duels
   mpLosses: 0,                  // verloren 1v1-duels
 };
@@ -50,6 +51,7 @@ const Storage = {
       if (!Array.isArray(this.data.loadout)) this.data.loadout = [];
       if (!Array.isArray(this.data.chests)) this.data.chests = [];
       if (typeof this.data.xp !== 'number') this.data.xp = 0;
+      if (typeof this.data.level !== 'number') this.data.level = (typeof playerLevel === 'function') ? playerLevel(this.data.xp || 0) : 1;
       if (typeof this.data.mpWins !== 'number') this.data.mpWins = 0;
       if (typeof this.data.mpLosses !== 'number') this.data.mpLosses = 0;
       if (!this.data.arenaPlays) this.data.arenaPlays = { date: '', count: 0 };
@@ -84,6 +86,7 @@ const Storage = {
     d.arenaBest = Math.max(d.arenaBest || 0, cloud.arenaBest || 0);
     d.journey1 = Math.max(d.journey1 || 0, cloud.journey1 || 0);
     d.xp = Math.max(d.xp || 0, cloud.xp || 0);
+    d.level = Math.max(d.level || 0, cloud.level || 0);   // al-uitgekeerde levels niet dubbel belonen
     // power-ups: neem per soort het hoogste aantal (anti-verlies); loadout: houd de lokale keuze
     d.powerups = d.powerups || {};
     const cpu = cloud.powerups || {};
@@ -226,6 +229,20 @@ const Storage = {
   equipHat(id) {
     if (!this.ownsHat(id)) return false;
     this.data.equippedHat = id; this.save(); return true;
+  },
+
+  // ---- level-up: keert 300 munten per nieuw level uit; geeft info terug voor de popup ----
+  claimLevelUps() {
+    const cur = (typeof playerLevel === 'function') ? playerLevel(this.data.xp || 0) : 1;
+    if (typeof this.data.level !== 'number') { this.data.level = cur; this.save(); return null; }
+    if (cur > this.data.level) {
+      const levels = cur - this.data.level, coins = levels * 300;
+      this.data.coins = (this.data.coins || 0) + coins;
+      this.data.level = cur;
+      this.save();
+      return { level: cur, levels, coins };
+    }
+    return null;
   },
 
   // ---- power-ups (inventaris + loadout) ----
