@@ -1703,6 +1703,17 @@ const Game = {
     const oppLive = !!(opp && (this.vsBot ? !opp.dead : opp.alive));
     const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
+    // aftelling (3s): strak inzoomen op JEZELF zodat je ziet welke kant je start
+    if (this.vs && this.vs.countdown > 0) {
+      const zz0 = (this.vsCamZoom += (1.7 - this.vsCamZoom) * 0.16);
+      const visW = W / zz0, visH = H / zz0;
+      let tx = (mapW <= visW) ? (mapW - visW) / 2 : clamp(p.x - visW / 2, 0, mapW - visW);
+      let ty = Math.min((GY + 28) - visH, p.y - visH * 0.55); ty = Math.max(ty, -200);
+      this.vsCamX += (tx - this.vsCamX) * 0.2;
+      this.vsCamY += (ty - this.vsCamY) * 0.2;
+      return;
+    }
+
     const BIAS = 0.3, MX = 70, ZMIN = 0.6, ZMAX = 1.12;   // ruimer dichtbij
     const DEAD_X = 70, SHIFT_X = 110, CAPW = W / (2 * ZMIN);   // binnen DEAD_X leunt/zoomt het beeld NIET
 
