@@ -295,14 +295,28 @@ const UI = {
     document.getElementById('btn-vs-menu').onclick = () => { document.getElementById('versus-result').classList.add('hidden'); Game.journey = null; this.show('menu'); };
     document.getElementById('versus-result').classList.remove('hidden');
     document.getElementById('versus-screen').classList.add('hidden');
-    const rw = (rewards || []).slice(); const lu = this._levelUpReward(); if (lu) rw.push(lu);
+    const rw = (rewards || []).slice(); rw.push(...this._levelUpRewards());
     if (rw.length) this.showRewards(rw);   // beloning-popups (incl. level-up) bovenop de uitslag
   },
 
-  // level-up-popup-entry (keert ook 300 munten per level uit); null als er niet geleveld is
-  _levelUpReward() {
+  // level-up-beloningen (300 munten/level; bij elk 10e level een auto-openende legendary kist)
+  _levelUpRewards() {
     const lu = Storage.claimLevelUps();
-    return lu ? { type: 'levelup', level: lu.level, coins: lu.coins } : null;
+    if (!lu) return [];
+    const out = [{ type: 'levelup', level: lu.level, coins: lu.coins }];
+    for (let L = lu.level - lu.levels + 1; L <= lu.level; L++) {
+      if (L % 10 !== 0) continue;                                   // elk 10e level
+      const rw = Storage.rollChestRewards('legendary');            // meteen toepassen (auto-open)
+      Storage.data.coins = (Storage.data.coins || 0) + rw.gold;
+      Storage.data.xp = (Storage.data.xp || 0) + rw.xp;
+      Storage.data.powerups = Storage.data.powerups || {};
+      for (const id in rw.pus) Storage.data.powerups[id] = (Storage.data.powerups[id] || 0) + rw.pus[id];
+      Storage.save();
+      out.push({ type: 'legendaryopen', level: L });               // openings-animatie
+      out.push({ type: 'earn', coins: rw.gold, xp: rw.xp });
+      for (const id in rw.pus) out.push({ type: 'pu', id, n: rw.pus[id] });
+    }
+    return out;
   },
 
   // ===== Beloning-popups met wachtrij: munten/xp + unlock-kaartjes (OK = volgende) =====
@@ -321,13 +335,54 @@ const UI = {
     const r = this._rewardQueue.shift();
     if (!r) { pop.classList.add('hidden'); const cb = this._rewardDone; this._rewardDone = null; if (cb) cb(); return; }
     this._rewardShown++;
-    this._drawReward(r);
     const cnt = document.getElementById('reward-count');
-    if (cnt) cnt.textContent = this._rewardTotal > 1 ? (this._rewardShown + ' / ' + this._rewardTotal) : '';
+    if (cnt) cnt.textContent = (r.type !== 'legendaryopen' && this._rewardTotal > 1) ? (this._rewardShown + ' / ' + this._rewardTotal) : '';
     pop.classList.remove('hidden');
     const card = pop.querySelector('.reward-card');         // pop-animatie opnieuw afspelen
     if (card) { card.style.animation = 'none'; void card.offsetWidth; card.style.animation = ''; }
+    const ok = document.getElementById('btn-reward-ok');
+    if (r.type === 'legendaryopen') {                        // legendary kist opent automatisch met animatie
+      if (ok) ok.style.visibility = 'hidden';
+      this._playLegendaryOpen(r.level);
+      return;
+    }
+    if (ok) ok.style.visibility = '';
+    this._drawReward(r);
     if (window.Sfx) Sfx.play(r.type === 'earn' ? 'coin' : 'win');
+  },
+  // legendary kist die vanzelf openbarst (level-mijlpaal), daarna door naar de beloningen
+  _playLegendaryOpen(level) {
+    const cv = document.getElementById('reward-canvas'), ctx = cv.getContext('2d');
+    const title = document.getElementById('reward-title'), nameEl = document.getElementById('reward-name');
+    title.textContent = '🏆 LEGENDARY KIST!'; nameEl.textContent = 'Level ' + level + ' — bonuskist!';
+    const t0 = (window.performance && performance.now) ? performance.now() : 0, DUR = 1900;
+    if (window.Sfx) { try { Sfx.play('win'); } catch (e) {} }
+    let done = false;
+    const finish = () => {                                   // altijd doorschakelen (ook als rAF stilstaat)
+      if (done) return; done = true;
+      if (this._legRaf) cancelAnimationFrame(this._legRaf); this._legRaf = 0;
+      const ok = document.getElementById('btn-reward-ok'); if (ok) ok.style.visibility = '';
+      this._nextReward();
+    };
+    const step = () => {
+      if (done) return;
+      const now = (window.performance && performance.now) ? performance.now() : t0 + DUR;
+      const t = Math.min(1, (now - t0) / DUR);
+      ctx.clearRect(0, 0, cv.width, cv.height);
+      const cx = cv.width / 2, cy = cv.height / 2 + 6;
+      const gr = ctx.createRadialGradient(cx, cy, 2, cx, cy, 70); gr.addColorStop(0, 'rgba(255,240,160,' + (0.3 + t * 0.6).toFixed(2) + ')'); gr.addColorStop(1, 'rgba(255,200,60,0)');
+      ctx.fillStyle = gr; ctx.fillRect(0, 0, cv.width, cv.height);
+      ctx.save(); ctx.translate(cx, cy);
+      if (t < 0.62) { ctx.rotate(Math.sin(t * 40) * 0.06 * (t / 0.62)); ctx.scale(3, 3); this._chestArt(ctx, 'legendary'); }
+      else { const b = (t - 0.62) / 0.38; ctx.scale(3 + b * 0.6, 3 + b * 0.6); ctx.globalAlpha = 1 - b * 0.7; this._chestArt(ctx, 'legendary');
+        ctx.globalAlpha = 1; for (let k = 0; k < 12; k++) { const a = k * 0.5236, rr = b * 26; ctx.fillStyle = k % 2 ? '#fff0a0' : '#ffd24a'; ctx.fillRect(Math.round(Math.cos(a) * rr - 1), Math.round(Math.sin(a) * rr - 1), 3, 3); } }
+      ctx.restore();
+      if (t < 1 && !done) this._legRaf = requestAnimationFrame(step);
+    };
+    if (this._legRaf) cancelAnimationFrame(this._legRaf);
+    if (this._legTimer) clearTimeout(this._legTimer);
+    this._legTimer = setTimeout(finish, DUR + 150);          // garandeert de doorschakeling
+    step();
   },
   _drawReward(r) {
     const title = document.getElementById('reward-title');
@@ -1194,7 +1249,7 @@ const UI = {
     const rlist = [];
     if (won && (xpGained > 0 || coinsEarned > 0)) rlist.push({ type: 'earn', coins: coinsEarned, xp: xpGained });
     if (chestDrop) { rlist.push({ type: 'chest', rarity: chestDrop }); this.renderChests(); }   // nieuwe kist in het menu
-    const lvup = this._levelUpReward(); if (lvup) rlist.push(lvup);
+    rlist.push(...this._levelUpRewards());
     if (rlist.length) this.showRewards(rlist);
   },
 
@@ -1524,7 +1579,7 @@ const UI = {
   showChestRewards(rw) {
     const list = [{ type: 'earn', coins: rw.gold, xp: rw.xp }];
     for (const id in rw.pus) list.push({ type: 'pu', id, n: rw.pus[id] });
-    const lu = this._levelUpReward(); if (lu) list.push(lu);   // kist-xp kan je laten levelen
+    list.push(...this._levelUpRewards());   // kist-xp kan je laten levelen (evt. mijlpaal-kist)
     this.showRewards(list);
   },
   _startChestTimer() { if (this._chestIv) return; this._chestIv = setInterval(() => this.renderChests(), 1000); },
