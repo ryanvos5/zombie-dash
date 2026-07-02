@@ -1379,10 +1379,11 @@ const Game = {
     this.ball = null;
     this.player.beachball = 0; this.player.coco = 0; this.player.boomerang = 0; this.player.dart = 0;
     this.player.cannon = 0; this.player.shieldHp = 0; this.player.gunAmmo = 0; this.player.giant = false; this.player._baseMaxHp = this.player.maxHp; this.player._caged = false; this.player.heli = false; this.player.heliMinigun = 0; this.player.heliRockets = 0;
-    // Jungle: lianen + gorilla in de kooi + papegaaien
+    // Jungle: lianen + wilde aap in het midden + papegaaien
     this.vsVines = map.vines || null;
     this.gorilla = map.cage ? { x: map.cage.x, y: map.cage.floorY, hp: GORILLA_HP, maxHp: GORILLA_HP, dir: -1, alive: true, state: 'idle', swipeUntil: 0, swipeCd: 0, respawnAt: 0, hitFlash: 0, _net: 0 } : null;
     this.jungleCage = map.cage || null;
+    this.jungleApe = map.ape ? { x: map.ape.x, floorY: map.ape.floorY, y: map.ape.floorY, vy: 0, state: 'idle', dir: 1, nextAt: this.time + 1400, hitP: false, hitB: false, _net: 0 } : null;
     this.monkey = null;
     this.parrots = [];
     this.ammo = mode === 'both' ? 999 : 0;
@@ -1473,6 +1474,7 @@ const Game = {
         onGorilla: (p) => this.onVersusGorilla(p),
         onGorhit: (p) => this.onVersusGorhit(p),
         onMonkey: (p) => this.onVersusMonkey(p),
+        onApe: (p) => this.onVersusApe(p),
       });
     }
     this.state = 'versus';
@@ -1550,12 +1552,9 @@ const Game = {
       if (this.vsMap && this.vsMap.pirate) this.updatePirate(dt);   // zeemonster-tentakel
       if (this.vsMap && this.vsMap.beach) this.updateTide(dt);      // strand: getij/vloed
       if (this.ball) this.updateBall(dt);                           // strandbal
-      if (this.vsMap && this.vsMap.jungle2) this.updateGorilla(dt); // kooi-gorilla
-      if (this.vsMap && this.vsMap.jungle2) this.updateMonkey(dt);  // helper-aapje
-      if (this.vsMap && this.vsMap.jungle2) this.confineCage(this.player);   // opgesloten tot de gorilla dood is
+      if (this.vsMap && this.vsMap.jungle2) this.updateJungleApe(dt);  // wilde aap: springt + mept je van de map
       if (this.player.giant) this.giantContact(dt);     // reus: bots iemand weg / stamp
       if (this.vsBot) this.updateBot(dt);              // de AI-tegenstander
-      if (this.vsMap && this.vsMap.jungle2 && this.vsBot) this.confineCage(this.bot);
       this.checkVersusHit();
       // Just: stamp-schade op de tegenstander bij de landing
       if (this.player._poundHit) {
@@ -2324,6 +2323,45 @@ const Game = {
     if (p.ph) this._tentPhase(p.ph);
   },
 
+  // ---- JUNGLE: wilde aap in het midden (springt af en toe omhoog en mept je van de map) ----
+  updateJungleApe(dt) {
+    const a = this.jungleApe; if (!a) return;
+    const dts = Math.min(3, dt / 16.6667);
+    // host (of bot-potje) bepaalt WANNEER de aap springt en deelt dat
+    if (this.vsBot || this.vs.role === 'host') {
+      if (a.state === 'idle' && this.time >= a.nextAt) {
+        a.state = 'jump'; a.vy = APE_JUMP_VY; a.hitP = false; a.hitB = false;
+        this.shake = Math.max(this.shake, 4); if (window.Sfx) Sfx.play('gorilla');
+        if (window.Net && !this.vsBot) Net.versusSend('ape', { ph: 'jump', x: a.x });
+      }
+    }
+    // fysica draait op elke client zodat de sprong vloeiend is
+    if (a.state === 'jump') {
+      a.vy += APE_GRAV * dts; a.y += a.vy * dts;
+      if (a.y >= a.floorY) { a.y = a.floorY; a.vy = 0; a.state = 'idle'; a.nextAt = this.time + APE_JUMP_EVERY; }
+    }
+    // raak-detectie: elke client op zijn eigen speler; het bot-potje ook op de bot
+    const airborne = a.state === 'jump';
+    const overlaps = (e) => e && !e.dead && e.respawnInvuln <= 0 && Math.abs(e.x - a.x) < 30 && Math.abs(e.y - a.y) < 34;
+    if (airborne && !a.hitP && overlaps(this.player)) { a.hitP = true; this._apeSmack(this.player); }
+    if (airborne && this.vsBot && !a.hitB && overlaps(this.bot)) { a.hitB = true; this._apeSmack(this.bot); }
+    // host houdt de gasten op de hoogte van de positie
+    if (window.Net && !this.vsBot && this.vs.role === 'host') { a._net += dt; if (a._net >= 90) { a._net = 0; Net.versusSend('ape', { y: Math.round(a.y), st: a.state, x: a.x }); } }
+  },
+  _apeSmack(e) {
+    const dir = (e.x < this.jungleApe.x) ? -1 : 1;
+    e.knockVx = dir * 30; e.vy = -7.5; e.onGround = false; e.stunUntil = this.time + 420; e.combo = 0;
+    this.shake = Math.max(this.shake, 9); if (window.Sfx) Sfx.play('gorilla');
+    for (let i = 0; i < 14; i++) this.particles.push(new Particle(e.x, e.y - 12, (Math.random() - 0.5) * 4, -Math.random() * 3, Math.random() < 0.5 ? '#caa06a' : '#8a5e38', 360, 2));
+  },
+  onVersusApe(p) {
+    const a = this.jungleApe; if (!a || !p) return;
+    if (p.x != null) a.x = p.x;
+    if (p.ph === 'jump') { a.state = 'jump'; a.vy = APE_JUMP_VY; a.hitP = false; a.hitB = false; }
+    else if (p.st) a.state = p.st;
+    if (p.y != null) a.y = p.y;
+  },
+
   // ---- JUNGLE: gorilla in de kooi ----
   _inCage(e) {
     const cg = this.jungleCage; if (!cg || !e || e.dead) return false;
@@ -2554,7 +2592,6 @@ const Game = {
       if (mid === 'cave') pool.push({ kind: 'rock', w: 8 });                          // steen alleen op Cave
       if (mid === 'pirate') pool.push({ kind: 'cannon', w: 9 });                      // kanonskogel alleen op Pirate Ship
       if (mid === 'pirate' || mid === 'sky') pool.push({ kind: 'shield', w: 9 });     // shield op Pirate + Sky
-      if (mid === 'sky' || mid === 'lava') pool.push({ kind: 'heli', w: 6 });          // gevechtsheli op Sky + Volcano
       if (mid === 'beach') pool.push({ kind: 'beachball', w: 10 });                     // strandbal op Beach
       if (mid === 'jungle') { pool.push({ kind: 'giant', w: 6 }); pool.push({ kind: 'ak47', w: 9 }); }  // Giant + AK47 op Jungle
       if (mid === 'dohyo') {                                                          // Dohyo: ALLE power-ups
@@ -3418,7 +3455,7 @@ const Game = {
 
     if (map.pirate) this.drawPirateMast(ctx);           // middenmast loopt door het dek heen
     if (map.throne) this.drawThrone(ctx);               // troonzaal-eindbaas: troon achter de spelers
-    if (map.jungle2) { this.drawVines(ctx); this.drawGorilla(ctx); }   // lianen + gorilla (achter de spelers)
+    if (map.jungle2) this.drawVines(ctx);              // lianen (achter de spelers)
     if (map.cave) this.drawCaveButtons(ctx);            // knoppen op de platforms
 
     // portalen (Power Smash) — achter de spelers
@@ -3503,8 +3540,7 @@ const Game = {
     if (map.cave && this.caveWall) this.drawCaveWall(ctx);   // de muur sweept over de spelers heen
     if (map.vulcan) this.drawVulcanJet(ctx);                 // borrel-waarschuwing + lavastraal
     if (map.pirate && this.tentacle) this.drawTentacle(ctx); // zeemonster-tentakel
-    if (map.jungle2 && this.monkey) this.drawMonkey(ctx);    // helper-aapje
-    if (map.jungle2 && this.jungleCage) this.drawCage(ctx);  // kooi-tralies vóór de spelers
+    if (map.jungle2 && this.jungleApe) this.drawJungleApe(ctx);  // wilde aap in het midden (vóór de spelers)
     if (this.ball) this.drawBall(ctx);                       // strandbal
     if (map.beach && this.tide) this.drawTideWater(ctx);     // vloed-water over de spelers
     // Ryan zap-dash: bliksemboog van start -> eind
@@ -3928,6 +3964,28 @@ const Game = {
     Sprites.px(ctx, '#000', x - 5, y - 44, 2, 2); Sprites.px(ctx, '#000', x + 3, y - 44, 2, 2);  // ogen
     if (g.state === 'swipe') { Sprites.px(ctx, fur, x + (s > 0 ? 14 : -26), y - 46, 12, 8); }   // klap-arm omhoog
     if (g.hp < g.maxHp) { const bw = 44; Sprites.px(ctx, '#11151e', x - bw / 2 - 1, y - 58, bw + 2, 5); Sprites.px(ctx, '#cc3333', x - bw / 2, y - 57, Math.round(bw * Math.max(0, g.hp / g.maxHp)), 3); }
+  },
+  // de wilde aap in de jungle: bruine chimp die springt; armen omhoog tijdens de sprong
+  drawJungleApe(ctx) {
+    const a = this.jungleApe; if (!a) return;
+    const x = Math.round(a.x), y = Math.round(a.y);
+    const up = a.state === 'jump';
+    const fur = '#6a4a2c', furDk = '#4a3220', chest = '#b98a5a';
+    // schaduw op de grond wanneer 'ie in de lucht hangt
+    if (up) { ctx.globalAlpha = 0.28; Sprites.px(ctx, '#000', x - 16, a.floorY - 3, 32, 5); ctx.globalAlpha = 1; }
+    // armen: omhoog geheven tijdens de sprong (om je te meppen), anders omlaag
+    if (up) { Sprites.px(ctx, fur, x - 26, y - 44, 9, 20); Sprites.px(ctx, fur, x + 17, y - 44, 9, 20); }
+    else { Sprites.px(ctx, fur, x - 25, y - 30, 9, 26); Sprites.px(ctx, fur, x + 16, y - 30, 9, 26); }
+    Sprites.px(ctx, fur, x - 15, y - 34, 30, 34);                              // lijf
+    Sprites.px(ctx, furDk, x - 15, y - 34, 5, 34);                            // schaduwrand
+    Sprites.px(ctx, chest, x - 8, y - 26, 16, 18);                            // borst/buik (lichter)
+    Sprites.px(ctx, fur, x - 12, y - 47, 24, 15);                             // kop
+    Sprites.px(ctx, furDk, x - 12, y - 47, 24, 3);                            // wenkbrauwrand
+    Sprites.px(ctx, '#e8c8a0', x - 7, y - 40, 14, 7);                         // snuit
+    Sprites.px(ctx, '#1a0e06', x - 3, y - 37, 2, 2); Sprites.px(ctx, '#1a0e06', x + 2, y - 37, 2, 2);   // neusgaten
+    const eyeY = up ? y - 45 : y - 44;
+    Sprites.px(ctx, '#000', x - 5, eyeY, 2, 2); Sprites.px(ctx, '#000', x + 3, eyeY, 2, 2);             // ogen
+    if (up) { Sprites.px(ctx, '#c04030', x - 4, y - 42, 8, 3); }              // opengesperde bek tijdens de sprong
   },
   drawCage(ctx) {
     const cg = this.jungleCage; const L = cg.x - cg.w / 2, R = cg.x + cg.w / 2, top = cg.top, bot = cg.floorY + 4;

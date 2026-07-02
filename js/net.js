@@ -290,6 +290,7 @@ const Net = {
     ch.on('broadcast', { event: 'gorilla' }, (m) => { if (v.cbs.onGorilla) v.cbs.onGorilla(m.payload); });
     ch.on('broadcast', { event: 'gorhit' }, (m) => { if (v.cbs.onGorhit) v.cbs.onGorhit(m.payload); });
     ch.on('broadcast', { event: 'monkey' }, (m) => { if (v.cbs.onMonkey) v.cbs.onMonkey(m.payload); });
+    ch.on('broadcast', { event: 'ape' }, (m) => { if (v.cbs.onApe) v.cbs.onApe(m.payload); });
     ch.on('broadcast', { event: 'parry' }, (m) => { if (v.cbs.onParry) v.cbs.onParry(m.payload); });
     ch.on('broadcast', { event: 'tide' }, (m) => { if (v.cbs.onTide) v.cbs.onTide(m.payload); });
     ch.on('broadcast', { event: 'ball' }, (m) => { if (v.cbs.onBall) v.cbs.onBall(m.payload); });

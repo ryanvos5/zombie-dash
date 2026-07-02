@@ -319,7 +319,7 @@ const Storage = {
     } else {   // legendary: ALLE power-ups uit het spel, de goede zeldzamer
       const pool = [['heal', 6], ['shield', 6], ['speed', 6], ['rage', 6],
         ['fireball', 3], ['beachball', 3], ['coco', 3], ['boom', 3], ['dart', 3], ['cannon', 2.6],
-        ['ak47', 2.2], ['rocket', 1.6], ['giant', 1.4], ['dragon', 1], ['rock', 1.4], ['lightning', 1.2], ['heli', 0.8]];
+        ['ak47', 2.2], ['rocket', 1.6], ['giant', 1.4], ['dragon', 1], ['rock', 1.4], ['lightning', 1.2]];
       const n = ri(5, 8); for (let i = 0; i < n; i++) add(wpick(pool));
     }
     return { rarity, gold, xp, pus };

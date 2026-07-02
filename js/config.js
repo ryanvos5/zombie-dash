@@ -623,9 +623,8 @@ const SHOP_POWERUPS = {
   dart:      { name: 'Gifdart',     cost: 0, kind: 'dart',      icon: '🎯', desc: 'Snelle dart die verdooft. Alleen uit kisten.', chestOnly: true },
   rock:      { name: 'Rotsblok',    cost: 0, kind: 'rock',      icon: '🪨', desc: 'Laat rotsblokken op je tegenstander vallen. Alleen uit kisten.', chestOnly: true },
   lightning: { name: 'Bliksem',     cost: 0, kind: 'lightning', icon: '🌩', desc: 'Verdoof je tegenstander met de bliksem. Alleen uit kisten.', chestOnly: true },
-  heli:      { name: 'Gevechtsheli', cost: 0, kind: 'heli',     icon: '🚁', desc: 'Stap in een gevechtsheli met minigun + raketten. Alleen uit kisten.', chestOnly: true },
 };
-const POWERUP_ORDER = ['heal', 'shield', 'speed', 'rage', 'fireball', 'giant', 'dragon', 'ak47', 'rocket', 'cannon', 'beachball', 'coco', 'boom', 'dart', 'rock', 'lightning', 'heli'];
+const POWERUP_ORDER = ['heal', 'shield', 'speed', 'rage', 'fireball', 'giant', 'dragon', 'ak47', 'rocket', 'cannon', 'beachball', 'coco', 'boom', 'dart', 'rock', 'lightning'];
 
 /* ---------- KISTEN (loot uit online matches, Clash-stijl met unlock-timers) ---------- */
 const CHEST_TYPES = {
@@ -686,6 +685,11 @@ const GORILLA_RESPAWN = 16000;     // komt na ~16s terug
 const GORILLA_SWIPE_CD = 1100;     // ms tussen klappen
 const GORILLA_REACH = 44;          // bereik van de klap
 
+/* ---------- Jungle: wilde aap in het midden (springt + mept je van de map) ---------- */
+const APE_JUMP_EVERY = 3000;       // ms dat de aap op de grond wacht tussen sprongen
+const APE_JUMP_VY = -6.4;          // opwaartse sprongkracht
+const APE_GRAV = 0.34;             // zwaartekracht voor de aap-sprong
+
 /* ---------- Pirate Ship: zeemonster-tentakel ---------- */
 const PIRATE_TENT_EVERY = 7000;    // ms tussen tentakels
 const PIRATE_TENT_WARN = 1100;     // waarschuwing (water borrelt) vóór de slag
@@ -703,19 +707,19 @@ const VULCAN_SLIDE = 0.85;     // afglijsnelheid op schuine platforms (px/frame)
    sky = [boven, onder] kleuren, void = afgrond-kleur onderin. */
 const VERSUS_MAPS = [
   {
-    // Jungle: grootste map. Oerwoud-achtergrond + papegaaien, lianen om mee te slingeren,
-    // en in het midden een kooi met een sterke (maar te verslaan) gorilla — val je erin, dan vecht je.
+    // Jungle: grootste map. Oerwoud-achtergrond + papegaaien, lianen om mee te slingeren.
+    // In het midden staat een wilde aap die af en toe omhoog springt en je van de map mept als 'ie je raakt.
     id: 'jungle', name: 'Jungle', sky: ['#163a24', '#08160e'], void: '#06120a', plat: 'leaf', jungle2: true,
-    w: 960, fallY: 240, camTop: -50, camBottom: 30,
+    w: 960, fallY: 240, camTop: -60, camBottom: 30,
     spawnL: { x: 120, y: 176 }, spawnR: { x: 840, y: 176 },
     platforms: [
       { x: 120, y: 176, w: 170 }, { x: 840, y: 176, w: 170 },   // grond links/rechts
-      { x: 280, y: 118, w: 70 }, { x: 680, y: 118, w: 70 },     // midden
+      { x: 480, y: 176, w: 150 },                                // midden-grond (waar de aap staat)
+      { x: 300, y: 120, w: 76 }, { x: 660, y: 120, w: 76 },      // midden
       { x: 160, y: 66, w: 52 }, { x: 800, y: 66, w: 52 },       // hoog
-      { x: 480, y: 206, w: 150 },                                // kooi-vloer (in het midden, lager)
     ],
     vines: [{ x: 360, ay: -38, len: 150 }, { x: 600, ay: -38, len: 150 }],   // lianen om mee te slingeren
-    cage: { x: 480, floorY: 206, w: 150, top: 118 },             // kooi met gorilla
+    ape: { x: 480, floorY: 176 },                                // wilde aap in het midden (springt + mept je eraf)
   },
   {
     // Dohyo: kleine Japanse sumo-ring. Eén klein rond platform -> je wordt er makkelijk afgeslagen.
@@ -755,16 +759,22 @@ const VERSUS_MAPS = [
     ],
   },
   {
-    // grootste map: hoog in de lucht, camera beweegt mee (omhoog + horizontaal), spring op wolken
+    // grootste map: heel hoog in de lucht, camera beweegt ver mee (omhoog + horizontaal), veel wolken
     id: 'sky', name: 'Sky', sky: ['#6fb6e8', '#bfe3f5'], void: '#9fcce8', plat: 'cloud',
-    w: 720, fallY: 232, camTop: -120, camBottom: 30,
-    spawnL: { x: 110, y: 176 }, spawnR: { x: 610, y: 176 },
+    w: 1040, fallY: 236, camTop: -215, camBottom: 30,
+    spawnL: { x: 150, y: 176 }, spawnR: { x: 890, y: 176 },
     platforms: [
-      { x: 110, y: 176, w: 74 }, { x: 610, y: 176, w: 74 },
-      { x: 240, y: 130, w: 120 }, { x: 480, y: 130, w: 120 }, // middenrij: 2x zo groot
-      { x: 215, y: 82, w: 56, soft: true }, { x: 505, y: 82, w: 56, soft: true },   // zachte wolken
-      { x: 295, y: 34, w: 52, soft: true }, { x: 425, y: 34, w: 52, soft: true },   // zachte wolken
-      { x: 360, y: -16, w: 128 },                             // top (midden): 2x zo groot
+      { x: 150, y: 176, w: 96 }, { x: 890, y: 176, w: 96 },                          // grond links/rechts
+      { x: 340, y: 152, w: 96 }, { x: 700, y: 152, w: 96 },                           // lage brede wolken
+      { x: 520, y: 170, w: 88, soft: true },                                          // midden-laag zachte wolk
+      { x: 240, y: 112, w: 62, soft: true }, { x: 800, y: 112, w: 62, soft: true },   // zachte wolken
+      { x: 430, y: 100, w: 74 }, { x: 610, y: 100, w: 74 },                           // midden-hoog vast
+      { x: 150, y: 64, w: 50, soft: true }, { x: 890, y: 64, w: 50, soft: true },     // zachte wolken buiten
+      { x: 340, y: 44, w: 58, soft: true }, { x: 700, y: 44, w: 58, soft: true },     // zachte wolken
+      { x: 520, y: 14, w: 64, soft: true },                                           // hoge zachte wolk (midden)
+      { x: 260, y: -22, w: 52, soft: true }, { x: 780, y: -22, w: 52, soft: true },   // nog hoger
+      { x: 430, y: -62, w: 58, soft: true }, { x: 610, y: -62, w: 58, soft: true },   // nog hoger
+      { x: 520, y: -112, w: 136 },                                                    // top (midden): groot vast wolk-plateau
     ],
   },
   {
