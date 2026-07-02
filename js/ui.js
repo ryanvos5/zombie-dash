@@ -356,7 +356,9 @@ const UI = {
     const cv = document.getElementById('reward-canvas'), ctx = cv.getContext('2d');
     const title = document.getElementById('reward-title'), nameEl = document.getElementById('reward-name');
     const rn = (CHEST_TYPES[rarity] || {}).name || 'Kist';
-    title.textContent = (rarity === 'legendary' ? '🏆 ' : '💜 ') + rn.toUpperCase() + ' KIST!'; nameEl.textContent = 'Level ' + level + ' — bonuskist!';
+    const emoji = rarity === 'legendary' ? '🏆 ' : (rarity === 'epic' ? '💜 ' : (rarity === 'rare' ? '🔷 ' : '📦 '));
+    title.textContent = emoji + rn.toUpperCase() + ' KIST!';
+    nameEl.textContent = level ? ('Level ' + level + ' — bonuskist!') : 'Openen…';
     const t0 = (window.performance && performance.now) ? performance.now() : 0, DUR = 1900;
     if (window.Sfx) { try { Sfx.play('win'); } catch (e) {} }
     let done = false;
@@ -1580,7 +1582,8 @@ const UI = {
     // bezig met openen: laat de timer gewoon lopen
   },
   showChestRewards(rw) {
-    const list = [{ type: 'earn', coins: rw.gold, xp: rw.xp }];
+    const list = [{ type: 'chestopen', rarity: rw.rarity }];   // eerst de openings-animatie
+    list.push({ type: 'earn', coins: rw.gold, xp: rw.xp });
     for (const id in rw.pus) list.push({ type: 'pu', id, n: rw.pus[id] });
     list.push(...this._levelUpRewards());   // kist-xp kan je laten levelen (evt. mijlpaal-kist)
     this.showRewards(list);
