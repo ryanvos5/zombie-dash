@@ -305,14 +305,15 @@ const UI = {
     if (!lu) return [];
     const out = [{ type: 'levelup', level: lu.level, coins: lu.coins }];
     for (let L = lu.level - lu.levels + 1; L <= lu.level; L++) {
-      if (L % 10 !== 0) continue;                                   // elk 10e level
-      const rw = Storage.rollChestRewards('legendary');            // meteen toepassen (auto-open)
+      const rarity = (L % 10 === 0) ? 'legendary' : (L % 5 === 0 ? 'epic' : null);   // 10e = legendary, 5e = epic
+      if (!rarity) continue;
+      const rw = Storage.rollChestRewards(rarity);                 // meteen toepassen (auto-open)
       Storage.data.coins = (Storage.data.coins || 0) + rw.gold;
       Storage.data.xp = (Storage.data.xp || 0) + rw.xp;
       Storage.data.powerups = Storage.data.powerups || {};
       for (const id in rw.pus) Storage.data.powerups[id] = (Storage.data.powerups[id] || 0) + rw.pus[id];
       Storage.save();
-      out.push({ type: 'legendaryopen', level: L });               // openings-animatie
+      out.push({ type: 'chestopen', rarity, level: L });           // openings-animatie
       out.push({ type: 'earn', coins: rw.gold, xp: rw.xp });
       for (const id in rw.pus) out.push({ type: 'pu', id, n: rw.pus[id] });
     }
@@ -341,20 +342,21 @@ const UI = {
     const card = pop.querySelector('.reward-card');         // pop-animatie opnieuw afspelen
     if (card) { card.style.animation = 'none'; void card.offsetWidth; card.style.animation = ''; }
     const ok = document.getElementById('btn-reward-ok');
-    if (r.type === 'legendaryopen') {                        // legendary kist opent automatisch met animatie
+    if (r.type === 'chestopen') {                            // mijlpaal-kist opent automatisch met animatie
       if (ok) ok.style.visibility = 'hidden';
-      this._playLegendaryOpen(r.level);
+      this._playChestOpen(r.rarity || 'legendary', r.level);
       return;
     }
     if (ok) ok.style.visibility = '';
     this._drawReward(r);
     if (window.Sfx) Sfx.play(r.type === 'earn' ? 'coin' : 'win');
   },
-  // legendary kist die vanzelf openbarst (level-mijlpaal), daarna door naar de beloningen
-  _playLegendaryOpen(level) {
+  // mijlpaal-kist die vanzelf openbarst (level-mijlpaal), daarna door naar de beloningen
+  _playChestOpen(rarity, level) {
     const cv = document.getElementById('reward-canvas'), ctx = cv.getContext('2d');
     const title = document.getElementById('reward-title'), nameEl = document.getElementById('reward-name');
-    title.textContent = '🏆 LEGENDARY KIST!'; nameEl.textContent = 'Level ' + level + ' — bonuskist!';
+    const rn = (CHEST_TYPES[rarity] || {}).name || 'Kist';
+    title.textContent = (rarity === 'legendary' ? '🏆 ' : '💜 ') + rn.toUpperCase() + ' KIST!'; nameEl.textContent = 'Level ' + level + ' — bonuskist!';
     const t0 = (window.performance && performance.now) ? performance.now() : 0, DUR = 1900;
     if (window.Sfx) { try { Sfx.play('win'); } catch (e) {} }
     let done = false;
@@ -370,11 +372,12 @@ const UI = {
       const t = Math.min(1, (now - t0) / DUR);
       ctx.clearRect(0, 0, cv.width, cv.height);
       const cx = cv.width / 2, cy = cv.height / 2 + 6;
+      const band = (CHEST_TYPES[rarity] || {}).band || '#ffd24a';
       const gr = ctx.createRadialGradient(cx, cy, 2, cx, cy, 70); gr.addColorStop(0, 'rgba(255,240,160,' + (0.3 + t * 0.6).toFixed(2) + ')'); gr.addColorStop(1, 'rgba(255,200,60,0)');
       ctx.fillStyle = gr; ctx.fillRect(0, 0, cv.width, cv.height);
       ctx.save(); ctx.translate(cx, cy);
-      if (t < 0.62) { ctx.rotate(Math.sin(t * 40) * 0.06 * (t / 0.62)); ctx.scale(3, 3); this._chestArt(ctx, 'legendary'); }
-      else { const b = (t - 0.62) / 0.38; ctx.scale(3 + b * 0.6, 3 + b * 0.6); ctx.globalAlpha = 1 - b * 0.7; this._chestArt(ctx, 'legendary');
+      if (t < 0.62) { ctx.rotate(Math.sin(t * 40) * 0.06 * (t / 0.62)); ctx.scale(3, 3); this._chestArt(ctx, rarity); }
+      else { const b = (t - 0.62) / 0.38; ctx.scale(3 + b * 0.6, 3 + b * 0.6); ctx.globalAlpha = 1 - b * 0.7; this._chestArt(ctx, rarity);
         ctx.globalAlpha = 1; for (let k = 0; k < 12; k++) { const a = k * 0.5236, rr = b * 26; ctx.fillStyle = k % 2 ? '#fff0a0' : '#ffd24a'; ctx.fillRect(Math.round(Math.cos(a) * rr - 1), Math.round(Math.sin(a) * rr - 1), 3, 3); } }
       ctx.restore();
       if (t < 1 && !done) this._legRaf = requestAnimationFrame(step);
