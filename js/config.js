@@ -86,6 +86,11 @@ const WEAPONS = {
     damage: 82, cooldown: 560, range: 54, knock: 14, cost: 3200,
     desc: 'Lang bereik én zware schade, maar traag.'
   },
+  zapblade: {   // Yarno's ability-mes: snel als een dagger, hard als een katana (niet te koop)
+    id: 'zapblade', name: 'Zap-mes', type: 'melee',
+    damage: 70, cooldown: 150, range: 30, knock: 10, cost: 0,
+    desc: 'Speciaal mes: snel én hard.'
+  },
   pistol: {
     id: 'pistol', name: 'Pistol', type: 'ranged',
     damage: 42, cooldown: 380, range: 999, bulletSpeed: 7, pellets: 1, cost: 350,
@@ -132,7 +137,7 @@ const ROCKET_AOE = 56;             // straal van de explosie
 const CHARACTERS = {
   ryan: {
     id: 'ryan', name: 'Ryan', cost: 0,
-    maxHp: 100, speedMul: 1.0, meleeMul: 1.0, build: 'normal', hair: 'natural',
+    maxHp: 100, speedMul: 1.0, meleeMul: 1.0, build: 'normal', hair: 'natural', ability: 'zapdash',
     palette: {
       hair: '#5a3a22', hairDark: '#3f2817',
       skin: '#d8a878', skinDark: '#b8895e',
@@ -143,9 +148,8 @@ const CHARACTERS = {
     desc: 'Gebalanceerd. Snelste loper.'
   },
   tygo: {
-    id: 'tygo', name: 'Tygo', cost: 2100, lvl: 10,
-    maxHp: 110, speedMul: 1.0, meleeMul: 1.0, build: 'tall', hair: 'natural',
-    dblJumpMul: 1.22,                          // iets hogere/langere dubbel-jump
+    id: 'tygo', name: 'Tygo', cost: 1200, lvl: 8,
+    maxHp: 100, speedMul: 1.0, meleeMul: 1.0, build: 'tall', hair: 'natural', ability: 'highjump',
     palette: {
       hair: '#a8824a', hairDark: '#7a5e30',  // blond-bruin
       skin: '#dcb088', skinDark: '#b88f64',
@@ -156,9 +160,8 @@ const CHARACTERS = {
     desc: 'Lang & taai (+10 HP). Hogere dubbel-jump. Gebruikt elk melee-wapen.'
   },
   just: {
-    id: 'just', name: 'Just', cost: 2400, lvl: 12,
-    maxHp: 130, speedMul: 0.8, meleeMul: 1.2, build: 'stocky', hair: 'bald',
-    groundPound: true,
+    id: 'just', name: 'Just', cost: 7200, lvl: 22,
+    maxHp: 140, speedMul: 0.8, meleeMul: 1.1, build: 'stocky', hair: 'bald', ability: 'earthquake',
     palette: {
       hair: '#c8a85a', hairDark: '#9a7e3a',     // klein beetje blond haar
       skin: '#d8a878', skinDark: '#b8895e',
@@ -169,9 +172,8 @@ const CHARACTERS = {
     desc: 'Dik & klein, traag maar sterk (+30 HP, +20% melee). Stamp bij de landing schade in de buurt.'
   },
   timo: {
-    id: 'timo', name: 'Timo', cost: 2700, lvl: 4,
-    maxHp: 90, speedMul: 1.05, meleeMul: 1.0, build: 'small', hair: 'natural',
-    extraJump: true,
+    id: 'timo', name: 'Timo', cost: 4000, lvl: 16,
+    maxHp: 90, speedMul: 1.1, meleeMul: 1.0, build: 'small', hair: 'natural', ability: 'triplejump',
     palette: {
       hair: '#a8824a', hairDark: '#7a5e30',     // blond-bruin, natural
       skin: '#d8a878', skinDark: '#b8895e',
@@ -182,9 +184,8 @@ const CHARACTERS = {
     desc: 'Klein & wendbaar (kleine hitbox). Heeft een extra (kleinere) dubbel-jump.'
   },
   vince: {
-    id: 'vince', name: 'Vince', cost: 2550, lvl: 8,
-    maxHp: 100, speedMul: 1.0, meleeMul: 1.0, build: 'normal', hair: 'spiky',
-    fireAura: true,
+    id: 'vince', name: 'Vince', cost: 2500, lvl: 14,
+    maxHp: 100, speedMul: 1.0, meleeMul: 1.0, build: 'normal', hair: 'spiky', fireAura: true, ability: 'fireaura10',
     palette: {
       hair: '#1a1a1a', hairDark: '#000000',     // zwarte stekels
       skin: '#d8a878', skinDark: '#b8895e',
@@ -195,8 +196,8 @@ const CHARACTERS = {
     desc: 'Gebalanceerd. Elke 30s een vuuraura (5s): wie je dan aanraakt brandt 3s.'
   },
   jenze: {
-    id: 'jenze', name: 'Jenze', cost: 1350, lvl: 2,
-    maxHp: 140, speedMul: 0.9, meleeMul: 1.3, build: 'bulky', hair: 'curly',
+    id: 'jenze', name: 'Jenze', cost: 500, lvl: 5,
+    maxHp: 120, speedMul: 0.95, meleeMul: 1.05, build: 'bulky', hair: 'curly', ability: 'heal',
     palette: {
       hair: '#6b4426', hairDark: '#4a2e18',  // bruine krullen
       skin: '#dcab7e', skinDark: '#bb8a5e',
@@ -207,9 +208,8 @@ const CHARACTERS = {
     desc: 'Fors & taai: +40 HP, +30% melee, iets trager.'
   },
   ricky: {
-    id: 'ricky', name: 'Ricky', cost: 2100, lvl: 6,
-    maxHp: 85, speedMul: 1.0, meleeMul: 1.0, build: 'normal', hair: 'natural',
-    autoRage: true, rageEvery: 15000,
+    id: 'ricky', name: 'Ricky', cost: 5500, lvl: 17,
+    maxHp: 85, speedMul: 1.0, meleeMul: 1.0, build: 'normal', hair: 'natural', ability: 'rage10',
     palette: {
       hair: '#6b4426', hairDark: '#4a2e18',   // bruin haar naar voren
       skin: '#d8a878', skinDark: '#b8895e',
@@ -220,8 +220,8 @@ const CHARACTERS = {
     desc: 'Elke 15s 3s RAGE (2× schade). 85 HP.'
   },
   yarno: {
-    id: 'yarno', name: 'Yarno', cost: 1800, lvl: 13,
-    maxHp: 100, speedMul: 1.08, meleeMul: 1.0, build: 'normal', hair: 'back', startMelee: 'dagger',
+    id: 'yarno', name: 'Yarno', cost: 9200, lvl: 24,
+    maxHp: 100, speedMul: 1.0, meleeMul: 1.0, build: 'normal', hair: 'back', ability: 'knife',
     palette: {
       hair: '#161616', hairDark: '#000000',     // zwart, naar achteren
       skin: '#d8a878', skinDark: '#b8895e',
@@ -234,7 +234,7 @@ const CHARACTERS = {
   // ---- Journey-only mensapen (alleen vrij te spelen in Journey, niet te koop) ----
   bonzo: {
     id: 'bonzo', name: 'Bonzo', cost: 0, journeyOnly: true,
-    maxHp: 80, speedMul: 1.15, meleeMul: 0.95, build: 'small', hair: 'natural', extraJump: true,
+    maxHp: 80, speedMul: 1.12, meleeMul: 0.95, build: 'small', hair: 'natural', ability: 'triplejump',
     palette: {
       hair: '#3a2a1c', hairDark: '#241810',
       skin: '#8a5e38', skinDark: '#5e3f22',     // chimp-vacht
@@ -245,7 +245,7 @@ const CHARACTERS = {
   },
   koba: {
     id: 'koba', name: 'Koba', cost: 0, journeyOnly: true,
-    maxHp: 135, speedMul: 0.94, meleeMul: 1.25, build: 'bulky', hair: 'bald',
+    maxHp: 110, speedMul: 1.0, meleeMul: 1.05, build: 'bulky', hair: 'bald', ability: 'rage8',
     palette: {
       hair: '#7a3a1e', hairDark: '#54260f',
       skin: '#a85e34', skinDark: '#7a421f',     // orang-oetan-rood
@@ -256,7 +256,7 @@ const CHARACTERS = {
   },
   kong: {
     id: 'kong', name: 'Gorilla King', cost: 0, journeyOnly: true,
-    maxHp: 150, speedMul: 0.95, meleeMul: 1.3, build: 'bulky', hair: 'bald', autoRage: true, rageEvery: 14000,
+    maxHp: 130, speedMul: 0.95, meleeMul: 1.0, build: 'bulky', hair: 'bald', ability: 'ultrarage',
     palette: {
       hair: '#2a2622', hairDark: '#15120f',
       skin: '#3a342f', skinDark: '#262220',     // gorilla-zwart
@@ -276,6 +276,26 @@ const CHARACTERS = {
   },
 };
 const CHARACTER_ORDER = ['ryan', 'jenze', 'tygo', 'vince', 'timo', 'just', 'ricky', 'yarno', 'bonzo', 'koba', 'kong'];
+
+// ---- CHARACTER-ABILITIES (oplaadbaar in een match: vlam-knop boven de melee-knop) ----
+const ABILITIES = {
+  zapdash:    { name: 'Zap Dash',    desc: 'Dash naar je tegenstander: schade + knockback.' },
+  heal:       { name: 'HP Herstel',  desc: 'Herstelt in één keer al je HP.' },
+  highjump:   { name: 'Hoge Sprong', desc: 'Springt hoger — de rest van de match.' },
+  fireaura10: { name: 'Vuuraura',    desc: 'Vuuraura 10s: wie je aanraakt brandt.' },
+  triplejump: { name: 'Dubbel Sprong', desc: 'Een extra dubbel-jump — de rest van de match.' },
+  earthquake: { name: 'Aardbeving',  desc: 'De map trilt 5s; je tegenstander wordt weggeschud.' },
+  rage10:     { name: 'Rage',        desc: 'Rage 10s (2× schade).' },
+  rage8:      { name: 'Rage',        desc: 'Rage 8s (2× schade).' },
+  ultrarage:  { name: 'Ultra Rage',  desc: 'Ultra rage 5s (4× schade).' },
+  knife:      { name: 'Zap-mes',     desc: 'Speciaal mes voor 2 rondes (snel + hard).' },
+};
+const ABILITY_CHARGE_MS = 42000;   // basis-oplaadtijd van de ability (combos versnellen dit)
+// Journey-enemy-stats blijven ongewijzigd (online zijn koba/kong aangepast)
+const JOURNEY_ENEMY_OVERRIDE = {
+  koba: { maxHp: 135, speedMul: 0.94, meleeMul: 1.25 },
+  kong: { maxHp: 150, speedMul: 0.95, meleeMul: 1.3, autoRage: true, rageEvery: 14000 },
+};
 const SHIELD_BLOCK_CD = 3000;   // ms cooldown nadat Tygo's schild een treffer blokt
 
 /* ---------- LEVELS (Wereld 1: Verlaten Stad) ----------

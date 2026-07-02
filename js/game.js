@@ -1332,6 +1332,7 @@ const Game = {
     this.journeyDrops = opts.journeyDrops || null;     // Journey: extra powerup-pool per level
     this._bossBot = !!opts.boss;                        // Journey-eindbaas (Gorilla King)
     this._mmBot = !!opts.mmLevel;                       // matchmaking-bot: echte inzet (XP/munten/kisten als online)
+    this._quakeUntil = 0; this._selfQuakeUntil = 0;    // aardbeving-ability reset
     this.vsPaused = false;                              // verse pot is nooit gepauzeerd
     if (!opts.journey) this.journey = null;            // alleen Journey-context houden bij een Journey-potje
     if (window.Net && Net.lobby) Net.lobbyLeave();   // niet meer "online in de lobby" tijdens een potje
@@ -1428,6 +1429,14 @@ const Game = {
       b.baseMelee = botMelee; b.fireballs = 0; b.smashRockets = 0; b._weaponUntil = 0; b._fireCd = 0;
       b.cannon = 0; b.shieldHp = 0; b.gunAmmo = 0; b.giant = false; b._baseMaxHp = b.maxHp; b._caged = false; b.heli = false; b.heliMinigun = 0; b.heliRockets = 0; b.beachball = 0;
       b.beachball = 0; b.coco = 0; b.boomerang = 0; b.dart = 0;
+      // Journey-vijanden (koba/kong) houden hun oude stats + passives (online zijn ze aangepast)
+      if (opts.journey && typeof JOURNEY_ENEMY_OVERRIDE !== 'undefined' && JOURNEY_ENEMY_OVERRIDE[botChar]) {
+        const ov = JOURNEY_ENEMY_OVERRIDE[botChar];
+        if (ov.maxHp) { b.maxHp = ov.maxHp; b.hp = ov.maxHp; b._baseMaxHp = ov.maxHp; }
+        if (ov.speedMul != null) b.speedMul = ov.speedMul;
+        if (ov.meleeMul != null) b.meleeMul = ov.meleeMul;
+        if (ov.autoRage) { b.autoRage = true; b.rageEvery = ov.rageEvery || 14000; b.rageNextAt = b.rageEvery; }
+      }
       if (opts.boss) { b.maxHp = 220; b.hp = 220; b._baseMaxHp = 220; }   // Gorilla King: extra taai
       // matchmaking-bot (Lv 10..20): boven Lv 10 iets meer HP + klap-schade
       if (opts.mmLevel && opts.mmLevel > 10) {
@@ -1513,6 +1522,14 @@ const Game = {
     if (v.countdown > 0) { v.countdown -= dt; }       // korte aftelling vóór de start
     else {
       if (this.player.respawnInvuln > 0) this.player.respawnInvuln -= dt;
+      if (!this.player.dead) this.player.abCharge = Math.min(1, this.player.abCharge + dt / ABILITY_CHARGE_MS);   // ability laadt langzaam op
+      if (this._quakeUntil > this.time) this.updateEarthquake(dt);                                                // aardbeving-ability (bot)
+      // online: de tegenstander gebruikte aardbeving op JOU -> jij wordt geschud
+      if (this._selfQuakeUntil > this.time && !this.player.dead) {
+        this.shake = Math.max(this.shake, 7);
+        this.player.knockVx += (Math.random() - 0.5) * 6;
+        if (this.player.onGround && Math.random() < 0.06) { this.player.vy = -4 - Math.random() * 3; this.player.onGround = false; }
+      }
       if (this.player.heli) {
         this.updateHeli(dt);                          // gevechtsheli: vliegen + minigun/raketten
       } else {
@@ -2553,6 +2570,71 @@ const Game = {
     return true;
   },
 
+  // ===== CHARACTER-ABILITY activeren (vlam-knop, opgeladen) =====
+  useAbility() {
+    if (this.state !== 'versus' || this.vsPaused) return false;
+    const p = this.player; if (!p || p.dead || !p.ability) return false;
+    if (this.vs && (this.vs.countdown > 0 || this.vs.roundFreezeUntil > this.time)) return false;
+    if (p.abCharge < 1) return false;
+    p.abCharge = 0;
+    const opp = this.vsBot ? this.bot : (this.vs ? this.vs.remote : null);
+    const now = this.time;
+    switch (p.ability) {
+      case 'zapdash': this.zapDash(); break;
+      case 'heal': p.hp = p.maxHp; this._abFx(p, '#5aff7a'); break;
+      case 'highjump': p.jumpMul = 1.4; this._abFx(p, '#8fd0ff'); break;
+      case 'fireaura10': p.fireAura = true; p.auraUntil = now + 10000; this._abFx(p, '#ff8a2a'); break;
+      case 'triplejump': p.maxJumps = Math.max(p.maxJumps, 2) + 1; p.jumps = p.maxJumps; this._abFx(p, '#8fd0ff'); break;
+      case 'rage10': p.buffs.rage = now + 10000; this._abFx(p, '#ff5a3a'); break;
+      case 'rage8': p.buffs.rage = now + 8000; this._abFx(p, '#ff5a3a'); break;
+      case 'ultrarage': p.buffs.rage = now + 5000; p._ultraUntil = now + 5000; this._abFx(p, '#ff2a2a'); break;
+      case 'earthquake': this.startEarthquake(); break;
+      case 'knife': p._bladeRounds = 2; p.meleeId = 'zapblade'; p.weaponId = 'zapblade'; this._abFx(p, '#cfe8ff'); break;
+      default: break;
+    }
+    if (window.Sfx) Sfx.play('pickup');
+    if (window.UI && UI.renderAbilityBtn) UI.renderAbilityBtn();
+    return true;
+  },
+  _abFx(p, col) {
+    for (let i = 0; i < 16; i++) this.particles.push(new Particle(p.x, p.y - 14, (Math.random() - 0.5) * 3, -Math.random() * 3, col, 420, 3));
+    this.shake = Math.max(this.shake, 4);
+  },
+  // Ryan: zap-dash naar de tegenstander -> schade + knockback
+  zapDash() {
+    const p = this.player;
+    const opp = this.vsBot ? this.bot : (this.vs ? this.vs.remote : null);
+    if (!opp) return;
+    const dir = (opp.x >= p.x) ? 1 : -1; p.dir = dir;
+    const target = opp.x - dir * 22;
+    const nx = Math.max(8, Math.min(this.vsMapW - 8, target));
+    // zap-spoor
+    for (let i = 0; i <= 8; i++) { const tx = p.x + (nx - p.x) * (i / 8); this.particles.push(new Particle(tx, p.y - 14, 0, 0, i % 2 ? '#bfe6ff' : '#ffe27a', 260, 2)); }
+    p.x = nx; p.knockVx = dir * 6;
+    this.shake = Math.max(this.shake, 6);
+    // raak de tegenstander als 'ie binnen bereik is
+    if (Math.abs(opp.x - p.x) < 40 && Math.abs((opp.y || p.y) - p.y) < 40) {
+      if (this.vsBot) this.applyHitToBot(dir, 26, -7, 22);
+      else if (window.Net) Net.versusSend('hit', { dir, power: 26, vy: -7, dmg: 22 });
+    }
+  },
+  // Just: aardbeving — map trilt, tegenstander wordt weggeschud (kan niet stil staan/springen)
+  startEarthquake() {
+    this._quakeUntil = this.time + 5000;
+    if (!this.vsBot && window.Net) Net.versusSend('quake', { until: 5000 });   // online: tegenstander schudt zichzelf
+    if (window.Sfx) Sfx.play('stomp');
+  },
+  updateEarthquake(dt) {
+    this.shake = Math.max(this.shake, 7);
+    if (this.vsBot && this.bot && !this.bot.dead && this.bot.respawnInvuln <= 0) {
+      const b = this.bot;
+      b.knockVx += (Math.random() - 0.5) * 6; b.vx = (b.vx || 0);
+      b.x += (Math.random() - 0.5) * 3 * this.dtScale;
+      if (b.onGround && Math.random() < 0.08) { b.vy = -4 - Math.random() * 3; b.onGround = false; }   // hij stuitert
+      b._quakeStun = this.time + 120;   // bot kan niet gecontroleerd springen
+    }
+  },
+
   applyDrop(pl, d) {
     if (window.Sfx && pl === this.player) Sfx.play('pickup');
     for (let i = 0; i < 8; i++) this.particles.push(new Particle(d.x, d.y, (Math.random() - 0.5) * 2, -Math.random() * 2, '#ffe27a', 340, 2));
@@ -2645,12 +2727,13 @@ const Game = {
         // combo: opeenvolgende treffers binnen het venster -> hoger (x1..x5), meer schade
         p.combo = (this.time < (p.comboUntil || 0)) ? Math.min(COMBO_MAX, (p.combo || 0) + 1) : 1;
         p.comboUntil = this.time + COMBO_WINDOW;
-        const wd = (WEAPONS[p.meleeId] ? WEAPONS[p.meleeId].damage : 34) * (p.meleeMul || 1) * (p.hasBuff('rage', this.time) ? 1.6 : 1) * comboMul(p.combo);
+        const wd = (WEAPONS[p.meleeId] ? WEAPONS[p.meleeId].damage : 34) * (p.meleeMul || 1) * p.rageMul(this.time) * comboMul(p.combo);
         const dmg = Math.round(wd * 0.45);                            // versus-melee-schade
         const kp = 15 + Math.max(0, p.combo - 1) * 8;                 // vanaf x2 fors meer knockback (x1=15 .. x5=47)
         const kvy = -5.5 - Math.max(0, p.combo - 1) * 0.7;            // en iets meer omhoog
         if (this.vsBot) this.applyHitToBot(kdir, kp, kvy, dmg);       // bot wegslaan + schade
         else Net.versusSend('hit', { dir: p.dir, power: kp, vy: kvy, dmg: dmg });
+        p.abCharge = Math.min(1, p.abCharge + 0.05 + 0.03 * Math.max(0, p.combo - 1));   // ability laadt sneller op met combos
         // combo-XP (alleen online — geen XP-farmen tegen de bot)
         const cx = comboXp(p.combo);
         p._lastComboXp = this.vsBot ? 0 : cx;
@@ -2859,6 +2942,7 @@ const Game = {
     const cfg = this.botCfg || BOT_PROFILES[4];
     const inp = { left: false, right: false, jump: false, duck: false, attack: false, melee: false, jumpPressed: false };
     if (b.dead) return inp;
+    if (this._quakeUntil > now) return inp;   // aardbeving: de bot wordt weggeschud en kan niks doen
     const dx = p.x - b.x;
     const aDx = Math.abs(dx);
     const face = () => { if (aDx > 8) b.dir = dx > 0 ? 1 : -1; };
@@ -3020,6 +3104,8 @@ const Game = {
       this.player.meleeId = this.player.baseMelee || 'bat'; this.player.rangedId = null;
       this.player.weaponId = this.player.meleeId;    // ook het getekende wapen terug naar de knuppel
       this.player.fireballs = 0; this.player.smashRockets = 0; this.player.cannon = 0; this.player.shieldHp = 0; this.player._weaponUntil = 0; this.player.gunAmmo = 0; this.player.beachball = 0; this.player.coco = 0; this.player.boomerang = 0; this.player.dart = 0;
+      // Yarno's zap-mes blijft nog een ronde staan
+      if (this.player._bladeRounds > 0) { this.player._bladeRounds--; if (this.player._bladeRounds > 0) { this.player.meleeId = 'zapblade'; this.player.weaponId = 'zapblade'; } }
     }
   },
 
@@ -3043,6 +3129,9 @@ const Game = {
     const p = this.player;
     if (p.respawnInvuln > 0 || p.dead) return;
     p.burnUntil = this.time + 3000;     // 3s branden
+  },
+  onVersusQuake(payload) {              // tegenstander gebruikte aardbeving op jou
+    this._selfQuakeUntil = this.time + ((payload && payload.until) || 5000);
   },
 
   onVersusState(s) {

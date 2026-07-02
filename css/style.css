@@ -314,10 +314,20 @@ body.is-touch #hud { justify-content: flex-start; gap: 8px; }
   background: rgba(122,82,48,0.28);
   border-color: rgba(170,120,70,0.6);
 }
+.tbtn-ability {
+  width: 58px; height: 58px;
+  background: rgba(28,18,10,0.5); border-color: rgba(255,160,60,0.5);
+  align-self: center; margin-bottom: -2px;
+}
+.tbtn-ability.hidden { display: none; }
+.tbtn-ability.ready { border-color: #ffd24a; animation: abReady 0.8s ease-in-out infinite; }
+@keyframes abReady { 0%,100% { box-shadow: 0 0 6px rgba(255,150,40,.5); } 50% { box-shadow: 0 0 18px rgba(255,190,70,.95); } }
+.tbtn-ability .tbtn-ic { width: 82%; height: 82%; }
 /* iets kleiner op echt lage schermen zodat alles past */
 @media (max-height: 380px) {
   #touch-controls { padding-bottom: calc(16px + env(safe-area-inset-bottom)); }
   .tbtn { width: 62px; height: 62px; font-size: 26px; }
+  .tbtn-ability { width: 50px; height: 50px; }
   .touch-left .tbtn,
   .touch-right > .tbtn { width: 76px; height: 76px; font-size: 34px; }
   .tbtn-melee { width: 70px; height: 70px; }

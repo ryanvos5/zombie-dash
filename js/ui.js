@@ -47,6 +47,8 @@ const UI = {
     document.querySelectorAll('.loadout-slot').forEach((b) => {
       b.onclick = () => { const id = b.dataset.pu; if (id) { Game.usePowerupSlot(id); } };
     });
+    $('ability-btn').onclick = () => Game.useAbility();                                    // vlam-knop
+    window.addEventListener('keydown', (e) => { if ((e.key === 'e' || e.key === 'E') && Game.state === 'versus') Game.useAbility(); });   // desktop-toets
     $('btn-journey-skip').onclick = () => Game.skipStory();
     $('btn-journey-next').onclick = () => Game.storyNext();
     const aa = $('btn-arena-again'); if (aa) aa.onclick = () => this.show('menu');   // oude arena-knop (mode is weg)
@@ -266,6 +268,7 @@ const UI = {
     this.el.touch.classList.add('hidden'); document.body.classList.remove('in-game');
     this.el.pause.classList.add('hidden');
     document.getElementById('loadout-bar').classList.add('hidden');
+    document.getElementById('ability-btn').classList.add('hidden');
     document.getElementById('versus-hud').classList.add('hidden');
     const t = document.getElementById('vs-result-title');
     t.textContent = won ? (idx >= total ? 'EILAND VERSLAGEN! 🏆' : 'LEVEL GEHAALD!') : 'VERLOREN';
@@ -804,6 +807,7 @@ const UI = {
       onFell: () => Game.onVersusFell(),
       onBurn: () => Game.onVersusBurn(),
       onShot: (p) => Game.onVersusShot(p),
+      onQuake: (p) => Game.onVersusQuake(p),
       onOver: (p) => Game.onVersusOver(p),
       onPeerLeft: () => {
         if (Game.state === 'versus') { Game.endVersus(true, true); }   // tegenstander verliet = jij wint (forfeit)
@@ -1029,6 +1033,7 @@ const UI = {
     document.getElementById('versus-hud').classList.remove('hidden');
     document.getElementById('btn-vs-quit').classList.remove('hidden');   // ✕ tonen (online); Journey verbergt 'm
     this.renderLoadoutBar();                                             // power-up-loadout onderin
+    this.renderAbilityBtn();                                            // ability-vlam boven de melee-knop
     if (window.MenuBg) MenuBg.stop();                                   // geen vulkaan-bg tijdens een match
   },
 
@@ -1071,6 +1076,7 @@ const UI = {
 
   updateVersusHUD(v) {
     this.updateTouchIcons();
+    this.renderAbilityBtn();
     const me = document.getElementById('vs-score-me');
     const them = document.getElementById('vs-score-them');
     if (me) me.textContent = v.myScore;
@@ -1125,6 +1131,7 @@ const UI = {
     const rb = document.getElementById('vs-round-banner'); if (rb) rb.classList.add('hidden');
     document.getElementById('versus-hud').classList.add('hidden');
     document.getElementById('loadout-bar').classList.add('hidden');
+    document.getElementById('ability-btn').classList.add('hidden');
     document.body.classList.remove('in-game');
     this.el.touch.classList.add('hidden');
     const t = document.getElementById('vs-result-title');
@@ -1415,6 +1422,42 @@ const UI = {
     bar.classList.toggle('hidden', lo.length === 0);
   },
 
+  // ---------- ABILITY-VLAM (boven de melee-knop) ----------
+  renderAbilityBtn() {
+    const btn = document.getElementById('ability-btn'); if (!btn) return;
+    const p = Game.player;
+    if (!p || !p.ability || Game.state !== 'versus') { btn.classList.add('hidden'); return; }
+    btn.classList.remove('hidden');
+    const ready = (p.abCharge || 0) >= 1;
+    btn.classList.toggle('ready', ready);
+    this._drawAbilityFlame(document.getElementById('ability-ic'), p.ability, p.abCharge || 0, ready);
+  },
+  _drawAbilityFlame(cv, ability, charge, ready) {
+    if (!cv) return;
+    const ctx = cv.getContext('2d'), W = cv.width, H = cv.height, cx = W / 2;
+    ctx.clearRect(0, 0, W, H);
+    const flame = () => { ctx.beginPath(); ctx.moveTo(cx, H * 0.08); ctx.quadraticCurveTo(W * 0.92, H * 0.52, cx, H * 0.95); ctx.quadraticCurveTo(W * 0.08, H * 0.52, cx, H * 0.08); ctx.closePath(); };
+    flame(); ctx.fillStyle = '#33241a'; ctx.fill();                         // lege (donkere) vlam
+    ctx.save(); flame(); ctx.clip();                                        // vullen van onderaf op basis van charge
+    const fy = H * (1 - Math.max(0, Math.min(1, charge)));
+    const g = ctx.createLinearGradient(0, H, 0, 0); g.addColorStop(0, '#ffd24a'); g.addColorStop(0.5, '#ff8a2a'); g.addColorStop(1, '#ff5a2a');
+    ctx.fillStyle = g; ctx.fillRect(0, fy, W, H - fy); ctx.restore();
+    flame(); ctx.lineWidth = 1.6; ctx.strokeStyle = ready ? '#fff0a0' : '#6a4a30'; ctx.stroke();
+    this._drawAbilityIcon(ctx, ability, cx, H * 0.58, ready || charge > 0.55);
+  },
+  _drawAbilityIcon(ctx, ability, cx, cy, bright) {
+    const c = bright ? '#ffffff' : '#e8d2b8';
+    const px = (x, y, w, h) => { ctx.fillStyle = c; ctx.fillRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h)); };
+    if (ability === 'heal') { px(cx - 1, cy - 5, 3, 11); px(cx - 5, cy - 1, 11, 3); }
+    else if (ability === 'highjump') { px(cx - 4, cy + 1, 3, 3); px(cx - 1, cy - 2, 3, 3); px(cx + 2, cy + 1, 3, 3); }
+    else if (ability === 'triplejump') { for (let k = 0; k < 2; k++) { const y = cy - 3 + k * 5; px(cx - 4, y + 1, 3, 2); px(cx - 1, y - 1, 3, 2); px(cx + 2, y + 1, 3, 2); } }
+    else if (ability === 'zapdash') { px(cx, cy - 6, 3, 5); px(cx - 2, cy - 1, 5, 2); px(cx - 1, cy + 1, 3, 5); }
+    else if (ability === 'fireaura10') { px(cx - 2, cy - 4, 4, 8); px(cx - 3, cy - 1, 6, 5); }
+    else if (ability === 'earthquake') { for (let k = 0; k < 3; k++) { const y = cy - 4 + k * 4; px(cx - 6, y, 4, 2); px(cx - 1, y + 1, 4, 2); px(cx + 3, y, 3, 2); } }
+    else if (ability === 'knife') { px(cx - 3, cy + 3, 3, 2); for (let k = 0; k < 5; k++) px(cx - 1 + k, cy + 2 - k, 2, 2); }
+    else { ctx.fillStyle = c; ctx.font = 'bold 11px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(ability === 'ultrarage' ? '4×' : '2×', cx, cy); }   // rage
+  },
+
   // ---------- KISTEN (op het hoofdmenu) ----------
   renderChests() {
     const bar = document.getElementById('chest-bar'); if (!bar) return;
@@ -1602,9 +1645,11 @@ const UI = {
       // stats t.o.v. Ryan
       const spd = c.speedMul >= 1 ? 'snel' : (c.speedMul >= 0.9 ? 'iets trager' : 'traag');
       const mel = c.meleeMul > 1 ? `+${Math.round((c.meleeMul - 1) * 100)}%` : 'normaal';
+      const ab = (typeof ABILITIES !== 'undefined' && ABILITIES[c.ability]) ? ABILITIES[c.ability] : null;
       const info = document.createElement('div');
       info.innerHTML = `<div class="w-name">${c.name}</div>
-        <div class="w-stats">❤ <b>${c.maxHp}</b> · melee ${mel} · ${spd}<br>${c.desc}</div>`;
+        <div class="w-stats">❤ <b>${c.maxHp}</b> · melee ${mel} · ${spd}` +
+        (ab ? `<br>🔥 <b>${ab.name}</b>: ${ab.desc}` : '') + `</div>`;
 
       const btn = document.createElement('button');
       btn.className = 'shop-buy';

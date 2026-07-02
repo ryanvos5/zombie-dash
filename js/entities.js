@@ -61,7 +61,16 @@ class Player {
     this.rageNextAt = this.rageEvery;
     this.burnUntil = 0;        // brandt de speler zelf (versus)
     this.burnNextTick = 0;
+    // ---- character-ability (oplaadbaar in een match) ----
+    this.ability = ch.ability || null;
+    this.abCharge = 0;          // 0..1 (vol = te gebruiken)
+    this.jumpMul = 1;           // Tygo: hogere sprong (ability)
+    this._ultraUntil = 0;       // Gorilla King: ultra rage (4× schade)
+    this._bladeRounds = 0;      // Yarno: zap-mes nog X rondes
   }
+
+  // rage-schademultiplier (ultra rage = 4×, gewone rage = 2×)
+  rageMul(time) { return this._ultraUntil > time ? 4 : (this.hasBuff('rage', time) ? 2 : 1); }
 
   get height() { return this.ducking ? 20 : 29; }
 
@@ -130,7 +139,7 @@ class Player {
 
     // Vince: vuuraura (elke 30s, 5s lang) — aanraking zet zombies in brand
     if (this.fireAura) {
-      if (game.time >= this.auraNextAt) {
+      if (this !== game.player && game.time >= this.auraNextAt) {   // auto-aura alleen voor bots; speler gebruikt de ability
         this.auraUntil = game.time + 5000;          // 5s actief
         this.auraNextAt = game.time + 30000;        // weer over 30s
       }
@@ -155,8 +164,8 @@ class Player {
       }
     }
 
-    // automatische rage (3s lang -> 2x schade), interval per character
-    if (this.autoRage && game.time >= this.rageNextAt) {
+    // automatische rage (3s lang -> 2x schade), interval per character — alleen voor bots
+    if (this.autoRage && this !== game.player && game.time >= this.rageNextAt) {
       this.buffs.rage = game.time + 3000;
       this.rageNextAt = game.time + this.rageEvery;
       if (game.particles) for (let i = 0; i < 8; i++)
@@ -233,13 +242,13 @@ class Player {
     if (jumpPressed && !this.ducking && !inCloud) {
       if (this.jumps > 0) {
         const air = !this.onGround;              // dit is de dubbel-jump (al in de lucht)
-        this.vy = CONFIG.JUMP_VELOCITY * (air ? this.dblJumpMul : 1);
+        this.vy = CONFIG.JUMP_VELOCITY * (this.jumpMul || 1) * (air ? this.dblJumpMul : 1);
         this.onGround = false;
         this.jumps--;
         this.jumping = true;     // variabele spronghoogte: actief
         if (window.Sfx && this === game.player) Sfx.play('jump');
       } else if (this.extraJumpLeft > 0 && this.maxJumps >= 2) {
-        this.vy = CONFIG.JUMP_VELOCITY * 0.6;   // Timo: extra, KLEINERE sprong
+        this.vy = CONFIG.JUMP_VELOCITY * (this.jumpMul || 1) * 0.7;   // extra dubbel-jump
         this.onGround = false;
         this.extraJumpLeft--;
         this.jumping = true;
